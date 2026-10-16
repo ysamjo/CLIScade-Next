@@ -1,0 +1,773 @@
+<!doctype html><html lang="de"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Beads → ACP → Handoff</title><style>body{font:16px/1.6 system-ui;color:#1a1a1a;background:#fdfdfb;margin:0}main{max-width:1000px;margin:auto;padding:32px}nav{padding:16px;background:#f3f1ec}a{color:#2b4eaa}section{border-top:1px solid #ddd;margin-top:32px}pre{overflow:auto;padding:16px;background:#f3f1ec;font-size:12px}svg{width:100%;height:auto}details{border:1px solid #ddd;padding:12px}</style><main><h1>Beads → ACP → gespeicherter Handoff</h1><p>Neu ist die fachliche Verbindung zwischen Beads und OpenHands. Vorher konnte Canvas ACP-Conversations starten; Beads-Aufgaben, Attempt-Zuordnung und portable Checkpoints fehlten.</p><p><strong>Ausführungsgrenze:</strong> Vor der Prompt-Übermittlung wird der Attempt dauerhaft markiert. Unklarer Versand führt zu Prüfung statt automatischem Replay.</p><svg viewBox="0 0 940 150" role="img" aria-label="Beads.show zu Orchestrator.start zu RemoteConversation; Ledger hält die Zuordnung"><g fill="#e6ecfa" stroke="#2b4eaa"><rect x="10" y="20" width="210" height="90" rx="8"/><rect x="310" y="20" width="270" height="90" rx="8"/><rect x="670" y="20" width="260" height="90" rx="8"/><path d="M220 65h90m270 0h90"/></g><g text-anchor="middle" font-family="system-ui" font-size="17"><text x="115" y="60">Beads.show</text><text x="115" y="87">fachliche Aufgabe</text><text x="445" y="60">Orchestrator.start</text><text x="445" y="87">Ledger + Handoff v1</text><text x="800" y="60">RemoteConversation</text><text x="800" y="87">OpenHands ACPAgent</text></g></svg><nav><ol><li><a href="#beads.py">beads.py</a></li><li><a href="#agents.py">agents.py</a></li><li><a href="#ledger.py">ledger.py</a></li><li><a href="#context.py">context.py</a></li><li><a href="#orchestrator.py">orchestrator.py</a></li><li><a href="#api.py">api.py</a></li></ol></nav><p>API: vorher keine CLIScade-Endpunkte; jetzt additive /cliscade/v1-Endpunkte. OpenHands-Contracts bleiben unverändert. Quellcode in allen Links ist auf die geprüfte Revision eb21e75c719856e23c74d139768acd3f2bb130c3 gepinnt.</p><section id="beads.py"><h2>beads.py</h2><p>Aufgaben lesen und schreiben ausschließlich über bd; keine zweite Task-Datenbank.</p><a href="https://github.com/ysamjo/CLIScade-Next/blob/eb21e75c719856e23c74d139768acd3f2bb130c3/cliscade/src/cliscade_next/beads.py#L1">cliscade/src/cliscade_next/beads.py:1</a><details><summary>Neue Implementierung</summary><pre>diff --git a/cliscade/src/cliscade_next/beads.py b/cliscade/src/cliscade_next/beads.py
+new file mode 100644
+index 000000000..65ab933a5
+--- /dev/null
++++ b/cliscade/src/cliscade_next/beads.py
+@@ -0,0 +1,113 @@
++&quot;&quot;&quot;Beads bleibt die einzige lesbare und schreibbare Aufgabenquelle.&quot;&quot;&quot;
++
++import json
++import os
++import re
++import subprocess
++from pathlib import Path
++
++from filelock import FileLock
++
++
++class Beads:
++    @staticmethod
++    def validate_id(task_id):
++        if not isinstance(task_id, str) or not re.fullmatch(
++            r&quot;[a-zA-Z][a-zA-Z0-9_.-]{1,150}&quot;, task_id
++        ):
++            raise ValueError(&quot;Ungültige Beads-ID&quot;)
++
++    def __init__(self, project: Path):
++        self.project = project.resolve()
++        directory = self.project / &quot;.beads&quot;
++        if not directory.is_dir() or directory.is_symlink():
++            raise ValueError(&quot;Beads ist im Projekt nicht eingerichtet&quot;)
++        self.directory = directory
++
++    def call(self, *args: str, readonly=False, json_output=True):
++        command = [&quot;bd&quot;, *args, &quot;--sandbox&quot;]
++        if readonly:
++            command.append(&quot;--readonly&quot;)
++        if json_output:
++            command.append(&quot;--json&quot;)
++        env = {**os.environ, &quot;BEADS_DIR&quot;: str(self.directory)}
++        with FileLock(str(self.directory / &quot;cliscade.lock&quot;), timeout=30):
++            result = subprocess.run(
++                command,
++                cwd=self.project,
++                env=env,
++                capture_output=True,
++                text=True,
++                timeout=30,
++                check=False,
++            )
++        if result.returncode:
++            raise RuntimeError(&quot;Beads-Zugriff fehlgeschlagen; bd doctor prüfen&quot;)
++        return json.loads(result.stdout) if json_output else result.stdout
++
++    def tasks(self):
++        return self.call(&quot;list&quot;, &quot;--all&quot;, &quot;--limit&quot;, &quot;0&quot;, readonly=True)
++
++    def show(self, task_id):
++        self.validate_id(task_id)
++        result = self.call(&quot;show&quot;, task_id, readonly=True)
++        task = result[0] if isinstance(result, list) and result else result
++        if not isinstance(task, dict) or task.get(&quot;id&quot;) != task_id:
++            raise ValueError(&quot;Beads-Aufgabe nicht gefunden&quot;)
++        return task
++
++    def create(self, title, description=&quot;&quot;, acceptance=&quot;&quot;, priority=2, parent=None):
++        args = [
++            &quot;create&quot;,
++            &quot;--title&quot;,
++            title,
++            &quot;--description&quot;,
++            description,
++            &quot;--acceptance&quot;,
++            acceptance,
++            &quot;--priority&quot;,
++            str(priority),
++        ]
++        if parent:
++            self.validate_id(parent)
++            args.extend([&quot;--parent&quot;, parent])
++        return self.call(*args)
++
++    def update(self, task_id, **fields):
++        self.validate_id(task_id)
++        allowed = {
++            &quot;title&quot;,
++            &quot;description&quot;,
++            &quot;acceptance&quot;,
++            &quot;priority&quot;,
++            &quot;assignee&quot;,
++            &quot;status&quot;,
++        }
++        if not fields or fields.keys() - allowed:
++            raise ValueError(&quot;Ungültige Aufgabenänderung&quot;)
++        args = [&quot;update&quot;, task_id]
++        for key, value in fields.items():
++            args.extend([&quot;--&quot; + key, str(value)])
++        return self.call(*args)
++
++    def dependency(self, task_id, depends_on):
++        self.validate_id(task_id)
++        self.validate_id(depends_on)
++        return self.call(&quot;dep&quot;, &quot;add&quot;, task_id, depends_on)
++
++    def assign(self, task_id, agent_id, previous=None):
++        self.validate_id(task_id)
++        args = [&quot;update&quot;, task_id, &quot;--assignee&quot;, agent_id, &quot;--status&quot;, &quot;in_progress&quot;]
++        if previous:
++            args.extend(
++                [&quot;--if-assignee&quot;, previous, &quot;--if-status&quot;, &quot;in_progress&quot;]
++            )
++        return self.call(*args)
++
++    def context(self):
++        return {
++            &quot;workflow&quot;: self.call(
++                &quot;prime&quot;, &quot;--full&quot;, &quot;--no-memories&quot;, readonly=True, json_output=False
++            ),
++            &quot;memories&quot;: self.call(&quot;memories&quot;, readonly=True),
++        }
+</pre></details></section><section id="agents.py"><h2>agents.py</h2><p>RemoteConversation und ACPAgent übernehmen Session, Transport und Abbruch.</p><a href="https://github.com/ysamjo/CLIScade-Next/blob/eb21e75c719856e23c74d139768acd3f2bb130c3/cliscade/src/cliscade_next/agents.py#L1">cliscade/src/cliscade_next/agents.py:1</a><details><summary>Neue Implementierung</summary><pre>diff --git a/cliscade/src/cliscade_next/agents.py b/cliscade/src/cliscade_next/agents.py
+new file mode 100644
+index 000000000..7cda85415
+--- /dev/null
++++ b/cliscade/src/cliscade_next/agents.py
+@@ -0,0 +1,85 @@
++&quot;&quot;&quot;ACP-Integration ausschließlich über den offiziellen OpenHands-Client.&quot;&quot;&quot;
++
++from dataclasses import dataclass
++from pathlib import Path
++from uuid import UUID
++
++from openhands.sdk import RemoteConversation
++from openhands.sdk.agent import ACPAgent
++from openhands.sdk.settings.acp_providers import ACP_PROVIDERS
++from openhands.sdk.workspace import RemoteWorkspace
++
++
++@dataclass(frozen=True)
++class Agent:
++    id: str
++    command: tuple[str, ...]
++    model: str | None = None
++
++
++def registry():
++    agents = {
++        key: Agent(key, tuple(ACP_PROVIDERS[key].default_command))
++        for key in (&quot;codex&quot;, &quot;claude-code&quot;, &quot;opencode&quot;)
++    }
++    agents[&quot;kiro&quot;] = Agent(&quot;kiro&quot;, (&quot;kiro-cli&quot;, &quot;acp&quot;))
++    return agents
++
++
++class OpenHands:
++    def __init__(self, settings):
++        self.settings = settings
++
++    def attach(self, agent: Agent, workspace: Path, session_id=None):
++        remote = RemoteWorkspace(
++            host=self.settings.agent_server,
++            working_dir=str(workspace),
++            api_key=self.settings.api_key,
++        )
++        try:
++            conversation = (
++                RemoteConversation.attach(
++                    workspace=remote,
++                    conversation_id=UUID(session_id),
++                    visualizer=None,
++                )
++                if session_id
++                else RemoteConversation(
++                    agent=ACPAgent(
++                        acp_command=list(agent.command), acp_model=agent.model
++                    ),
++                    workspace=remote,
++                    visualizer=None,
++                    delete_on_close=False,
++                    tags={&quot;cliscade&quot;: &quot;v1&quot;, &quot;agent&quot;: agent.id},
++                )
++            )
++        except BaseException:
++            remote.client.close()
++            raise
++        return Session(conversation, remote)
++
++
++class Session:
++    def __init__(self, conversation, workspace):
++        self.conversation = conversation
++        self.workspace = workspace
++        self.id = str(conversation.id)
++
++    def submit(self, prompt):
++        self.conversation.send_message(prompt)
++        self.conversation.run(blocking=False)
++
++    def state(self):
++        state = self.conversation.state
++        return {
++            &quot;status&quot;: str(state.execution_status.value),
++            &quot;events&quot;: [event.model_dump(mode=&quot;json&quot;) for event in state.events],
++        }
++
++    def cancel(self):
++        self.conversation.interrupt()
++
++    def close(self):
++        self.conversation.close()
++        self.workspace.client.close()
+</pre></details></section><section id="ledger.py"><h2>ledger.py</h2><p>SQLite speichert Attempt-ID, Beads-ID, Conversation-ID und Checkpoint.</p><a href="https://github.com/ysamjo/CLIScade-Next/blob/eb21e75c719856e23c74d139768acd3f2bb130c3/cliscade/src/cliscade_next/ledger.py#L1">cliscade/src/cliscade_next/ledger.py:1</a><details><summary>Neue Implementierung</summary><pre>diff --git a/cliscade/src/cliscade_next/ledger.py b/cliscade/src/cliscade_next/ledger.py
+new file mode 100644
+index 000000000..4466dac9e
+--- /dev/null
++++ b/cliscade/src/cliscade_next/ledger.py
+@@ -0,0 +1,91 @@
++&quot;&quot;&quot;Dauerhafte Ausführungszuordnung ohne zweite Aufgaben-Datenbank.&quot;&quot;&quot;
++
++import json
++import sqlite3
++from contextlib import contextmanager
++from pathlib import Path
++from uuid import uuid4
++
++
++class Ledger:
++    def __init__(self, directory: Path):
++        directory.mkdir(parents=True, exist_ok=True)
++        self.path = directory / &quot;attempts.sqlite&quot;
++        with self.connect() as db:
++            db.executescript(&quot;&quot;&quot;
++                PRAGMA journal_mode=WAL;
++                CREATE TABLE IF NOT EXISTS attempts (
++                    id TEXT PRIMARY KEY, project TEXT NOT NULL,
++                    task_id TEXT NOT NULL, agent TEXT NOT NULL,
++                    workspace TEXT NOT NULL, status TEXT NOT NULL,
++                    session_id TEXT, prompt_sent INTEGER NOT NULL DEFAULT 0,
++                    source_id TEXT, checkpoint TEXT, error TEXT, terminal_seen REAL,
++                    created_at TEXT NOT NULL DEFAULT (strftime(&#x27;%Y-%m-%dT%H:%M:%fZ&#x27;))
++                );
++                CREATE UNIQUE INDEX IF NOT EXISTS active_workspace
++                ON attempts(workspace)
++                WHERE status IN (&#x27;preparing&#x27;,&#x27;submitted&#x27;,&#x27;running&#x27;,&#x27;cancelling&#x27;);
++            &quot;&quot;&quot;)
++
++    @contextmanager
++    def connect(self):
++        db = sqlite3.connect(self.path, timeout=30)
++        db.row_factory = sqlite3.Row
++        try:
++            with db:
++                yield db
++        finally:
++            db.close()
++
++    def create(self, project, task_id, agent, workspace, source_id=None):
++        attempt_id = str(uuid4())
++        with self.connect() as db:
++            db.execute(
++                &quot;INSERT INTO attempts (id,project,task_id,agent,workspace,status,&quot;
++                &quot;source_id) VALUES (?,?,?,?,?,&#x27;preparing&#x27;,?)&quot;,
++                (attempt_id, project, task_id, agent, str(workspace), source_id),
++            )
++        return self.get(attempt_id)
++
++    def get(self, attempt_id):
++        with self.connect() as db:
++            row = db.execute(
++                &quot;SELECT * FROM attempts WHERE id=?&quot;, (attempt_id,)
++            ).fetchone()
++        if row is None:
++            raise ValueError(&quot;Ausführung nicht gefunden&quot;)
++        item = dict(row)
++        if item[&quot;checkpoint&quot;]:
++            item[&quot;checkpoint&quot;] = json.loads(item[&quot;checkpoint&quot;])
++        return item
++
++    def list(self, project, task_id=None):
++        sql = &quot;SELECT id FROM attempts WHERE project=?&quot;
++        args = [project]
++        if task_id:
++            sql += &quot; AND task_id=?&quot;
++            args.append(task_id)
++        with self.connect() as db:
++            rows = db.execute(sql + &quot; ORDER BY created_at,id&quot;, args).fetchall()
++        return [self.get(row[&quot;id&quot;]) for row in rows]
++
++    def update(self, attempt_id, **fields):
++        allowed = {
++            &quot;status&quot;,
++            &quot;session_id&quot;,
++            &quot;prompt_sent&quot;,
++            &quot;checkpoint&quot;,
++            &quot;error&quot;,
++            &quot;terminal_seen&quot;,
++        }
++        if not fields or fields.keys() - allowed:
++            raise ValueError(&quot;Ungültige Ausführungsänderung&quot;)
++        if &quot;checkpoint&quot; in fields:
++            fields[&quot;checkpoint&quot;] = json.dumps(fields[&quot;checkpoint&quot;], ensure_ascii=False)
++        columns = &quot;,&quot;.join(f&quot;{key}=?&quot; for key in fields)
++        with self.connect() as db:
++            db.execute(
++                f&quot;UPDATE attempts SET {columns} WHERE id=?&quot;,
++                [*fields.values(), attempt_id],
++            )
++        return self.get(attempt_id)
+</pre></details></section><section id="context.py"><h2>context.py</h2><p>Handoff v1 trennt Arbeitsdaten, Regeln und Vertrauensstufen.</p><a href="https://github.com/ysamjo/CLIScade-Next/blob/eb21e75c719856e23c74d139768acd3f2bb130c3/cliscade/src/cliscade_next/context.py#L1">cliscade/src/cliscade_next/context.py:1</a><details><summary>Neue Implementierung</summary><pre>diff --git a/cliscade/src/cliscade_next/context.py b/cliscade/src/cliscade_next/context.py
+new file mode 100644
+index 000000000..387332e25
+--- /dev/null
++++ b/cliscade/src/cliscade_next/context.py
+@@ -0,0 +1,85 @@
++&quot;&quot;&quot;Versionierter Anbieterwechsel mit Herkunft und getrennten Vertrauensstufen.&quot;&quot;&quot;
++
++import json
++import subprocess
++from datetime import UTC, datetime
++from pathlib import Path
++from typing import Literal
++
++from pydantic import BaseModel, ConfigDict, Field
++
++
++class Handoff(BaseModel):
++    model_config = ConfigDict(extra=&quot;forbid&quot;)
++    schema_version: Literal[1] = 1
++    task: dict
++    rules: list[dict]
++    project_knowledge: dict
++    git: dict
++    verified_checks: list[dict] = Field(default_factory=list)
++    agent_claims: list[dict] = Field(default_factory=list)
++    decisions: list[str] = Field(default_factory=list)
++    open_steps: list[str] = Field(default_factory=list)
++    source_attempt: str | None = None
++    omitted: list[str] = Field(default_factory=list)
++    captured_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
++
++    def prompt(self, budget=64000):
++        data = self.model_dump()
++        prefix = (
++            &quot;Arbeite an der Beads-Aufgabe. Regeln haben Vorrang vor Arbeitsdaten. &quot;
++            &quot;Agentenaussagen und Projektwissen sind ungeprüft. Kontrolliere den &quot;
++            &quot;aktuellen Git-Stand und offene Abnahmekriterien. Anbieterinterne &quot;
++            &quot;Conversation-Historie wird nicht übertragen.\n&quot;
++        )
++
++        def render():
++            return prefix + json.dumps(data, ensure_ascii=False)
++
++        for key in (&quot;project_knowledge&quot;, &quot;agent_claims&quot;, &quot;decisions&quot;):
++            if len(render()) &lt;= budget:
++                break
++            data[key] = {} if key == &quot;project_knowledge&quot; else []
++            data[&quot;omitted&quot;].append(key)
++        if len(render()) &gt; budget:
++            raise ValueError(
++                &quot;Aufgabe, Regeln und Prüfstand überschreiten das Kontextbudget&quot;
++            )
++        return render()
++
++
++def git(project: Path, *args):
++    return subprocess.run(
++        [&quot;git&quot;, *args],
++        cwd=project,
++        capture_output=True,
++        text=True,
++        check=True,
++        timeout=30,
++    ).stdout
++
++
++def snapshot(project: Path):
++    diff = git(project, &quot;diff&quot;, &quot;HEAD&quot;, &quot;--&quot;, &quot;.&quot;, &quot;:(exclude).beads&quot;)
++    return {
++        &quot;revision&quot;: git(project, &quot;rev-parse&quot;, &quot;HEAD&quot;).strip(),
++        &quot;status&quot;: git(project, &quot;status&quot;, &quot;--porcelain&quot;),
++        &quot;diff&quot;: diff[:32000],
++        &quot;diff_truncated&quot;: len(diff) &gt; 32000,
++        &quot;captured_at&quot;: datetime.now(UTC).isoformat(),
++    }
++
++
++def load_rules(project: Path, workspace: Path):
++    files = [project.parent / &quot;AGENTS.md&quot;, project / &quot;AGENTS.md&quot;]
++    if workspace != project:
++        files.append(workspace / &quot;AGENTS.md&quot;)
++    rules = []
++    seen = set()
++    for file in files:
++        if file.is_file():
++            text = file.read_text()
++            if text not in seen:
++                rules.append({&quot;path&quot;: str(file), &quot;text&quot;: text})
++                seen.add(text)
++    return rules
+</pre></details></section><section id="orchestrator.py"><h2>orchestrator.py</h2><p>Isolierter Erststart, persistierter Prompt-Grenzpunkt und kontrollierte Übergabe.</p><a href="https://github.com/ysamjo/CLIScade-Next/blob/eb21e75c719856e23c74d139768acd3f2bb130c3/cliscade/src/cliscade_next/orchestrator.py#L1">cliscade/src/cliscade_next/orchestrator.py:1</a><details><summary>Neue Implementierung</summary><pre>diff --git a/cliscade/src/cliscade_next/orchestrator.py b/cliscade/src/cliscade_next/orchestrator.py
+new file mode 100644
+index 000000000..229198e7b
+--- /dev/null
++++ b/cliscade/src/cliscade_next/orchestrator.py
+@@ -0,0 +1,231 @@
++&quot;&quot;&quot;Beads-Arbeitseinheiten mit unabhängigen OpenHands-Conversations verbinden.&quot;&quot;&quot;
++
++import time
++from pathlib import Path
++from uuid import uuid4
++
++from filelock import FileLock
++
++from cliscade_next.agents import OpenHands, registry
++from cliscade_next.beads import Beads
++from cliscade_next.context import Handoff, git, load_rules, snapshot
++from cliscade_next.ledger import Ledger
++
++
++def evidence(events):
++    starts, checks, claims = {}, [], []
++    for event in events:
++        action = event.get(&quot;action&quot;) or {}
++        if event.get(&quot;kind&quot;) == &quot;ActionEvent&quot; and action.get(&quot;kind&quot;) == &quot;FinishAction&quot;:
++            claims.append(
++                {
++                    &quot;verified&quot;: False,
++                    &quot;event_id&quot;: event.get(&quot;id&quot;),
++                    &quot;message&quot;: action.get(&quot;message&quot;, &quot;&quot;),
++                }
++            )
++        if event.get(&quot;kind&quot;) == &quot;ACPToolCallEvent&quot;:
++            tool_id = event.get(&quot;tool_call_id&quot;)
++            raw = event.get(&quot;raw_input&quot;)
++            if event.get(&quot;status&quot;) in (&quot;pending&quot;, &quot;in_progress&quot;) and isinstance(
++                raw, dict
++            ):
++                command = raw.get(&quot;command&quot;)
++                if isinstance(command, str):
++                    starts[tool_id] = command
++            output = event.get(&quot;raw_output&quot;)
++            if tool_id in starts and isinstance(output, dict):
++                code = output.get(&quot;exit_code&quot;, output.get(&quot;exitCode&quot;))
++                if type(code) is int and event.get(&quot;status&quot;) in (&quot;completed&quot;, &quot;failed&quot;):
++                    checks.append(
++                        {
++                            &quot;command&quot;: starts.pop(tool_id),
++                            &quot;exit_code&quot;: code,
++                            &quot;event_id&quot;: event.get(&quot;id&quot;),
++                            &quot;verification&quot;: &quot;tool_receipt&quot;,
++                            &quot;independently_reproduced&quot;: False,
++                            &quot;timestamp&quot;: event.get(&quot;timestamp&quot;),
++                        }
++                    )
++        if event.get(&quot;kind&quot;) == &quot;MessageEvent&quot; and event.get(&quot;source&quot;) == &quot;agent&quot;:
++            claims.append(
++                {
++                    &quot;verified&quot;: False,
++                    &quot;event_id&quot;: event.get(&quot;id&quot;),
++                    &quot;message&quot;: event.get(&quot;llm_message&quot;, {}),
++                }
++            )
++    return checks, claims
++
++
++class Orchestrator:
++    def __init__(
++        self, settings, runner=None, beads_factory=Beads, agents=None, settle_seconds=30
++    ):
++        self.settings = settings
++        self.ledger = Ledger(settings.state)
++        self.runner = runner or OpenHands(settings)
++        self.beads_factory = beads_factory
++        self.agents = agents if agents is not None else registry()
++        self.settle_seconds = settle_seconds
++
++    def checkpoint(self, attempt, events=()):
++        project = self.settings.project(attempt[&quot;project&quot;])
++        beads = self.beads_factory(project)
++        workspace = Path(attempt[&quot;workspace&quot;])
++        checks, claims = evidence(events)
++        old = attempt.get(&quot;checkpoint&quot;) or {}
++        return Handoff(
++            task=beads.show(attempt[&quot;task_id&quot;]),
++            rules=load_rules(project, workspace),
++            project_knowledge=beads.context(),
++            git=snapshot(workspace),
++            verified_checks=checks or old.get(&quot;verified_checks&quot;, []),
++            agent_claims=claims or old.get(&quot;agent_claims&quot;, []),
++            decisions=old.get(&quot;decisions&quot;, []),
++            open_steps=old.get(&quot;open_steps&quot;)
++            or [&quot;Abnahmekriterien am Git-Stand prüfen&quot;],
++            source_attempt=attempt.get(&quot;source_id&quot;),
++        ).model_dump()
++
++    def start(self, project_name, task_id, agent_id, source_id=None):
++        if agent_id not in self.agents:
++            raise ValueError(&quot;ACP-Agent ist nicht freigegeben&quot;)
++        project = self.settings.project(project_name)
++        self.settings.state.mkdir(parents=True, exist_ok=True)
++        with FileLock(str(self.settings.state / &quot;dispatch.lock&quot;), timeout=30):
++            source = self.refresh(source_id) if source_id else None
++            if source:
++                if (source[&quot;project&quot;], source[&quot;task_id&quot;]) != (project_name, task_id):
++                    raise ValueError(&quot;Übergabe gehört zu einer anderen Aufgabe&quot;)
++                if source[&quot;status&quot;] in (&quot;uncertain&quot;, &quot;preparing&quot;, &quot;needs_review&quot;):
++                    raise ValueError(
++                        &quot;Unsicherer Stand: zuerst Session und Dateien prüfen&quot;
++                    )
++                if source[&quot;status&quot;] not in (&quot;completed&quot;, &quot;failed&quot;, &quot;cancelled&quot;):
++                    raise ValueError(&quot;Ausführung vor der Übergabe anhalten&quot;)
++                workspace = Path(source[&quot;workspace&quot;])
++            else:
++                workspace = (
++                    self.settings.projects / &quot;.cliscade-worktrees&quot; / str(uuid4())
++                )
++                workspace.parent.mkdir(parents=True, exist_ok=True)
++                git(project, &quot;worktree&quot;, &quot;add&quot;, &quot;--detach&quot;, str(workspace), &quot;HEAD&quot;)
++            attempt = self.ledger.create(
++                project_name, task_id, agent_id, workspace, source_id
++            )
++            session = None
++            try:
++                checkpoint = self.checkpoint(attempt)
++                if source:
++                    checkpoint.update(
++                        {
++                            key: source[&quot;checkpoint&quot;][key]
++                            for key in (
++                                &quot;verified_checks&quot;,
++                                &quot;agent_claims&quot;,
++                                &quot;decisions&quot;,
++                                &quot;open_steps&quot;,
++                            )
++                        }
++                    )
++                    checkpoint[&quot;source_attempt&quot;] = source_id
++                prompt = Handoff.model_validate(checkpoint).prompt()
++                self.ledger.update(attempt[&quot;id&quot;], checkpoint=checkpoint)
++                self.beads_factory(project).assign(
++                    task_id, agent_id, previous=source[&quot;agent&quot;] if source else None
++                )
++                session = self.runner.attach(self.agents[agent_id], workspace)
++                self.ledger.update(
++                    attempt[&quot;id&quot;],
++                    session_id=session.id,
++                    prompt_sent=1,
++                    status=&quot;submitted&quot;,
++                )
++                session.submit(prompt)
++                return self.ledger.update(attempt[&quot;id&quot;], status=&quot;running&quot;)
++            except Exception:
++                saved = self.ledger.get(attempt[&quot;id&quot;])
++                return self.ledger.update(
++                    attempt[&quot;id&quot;],
++                    status=&quot;uncertain&quot;
++                    if saved[&quot;prompt_sent&quot;]
++                    else &quot;preparation_failed&quot;,
++                    error=&quot;Ausführung fehlgeschlagen; Session und Arbeitsstand prüfen&quot;,
++                )
++            finally:
++                if session:
++                    session.close()
++
++    def refresh(self, attempt_id):
++        attempt = self.ledger.get(attempt_id)
++        if attempt[&quot;status&quot;] in (
++            &quot;completed&quot;,
++            &quot;failed&quot;,
++            &quot;cancelled&quot;,
++            &quot;preparation_failed&quot;,
++        ):
++            return attempt
++        if not attempt[&quot;session_id&quot;]:
++            return self.ledger.update(
++                attempt_id,
++                status=&quot;needs_review&quot;,
++                error=&quot;Vorbereitung unterbrochen; kein automatischer Neustart&quot;,
++            )
++        session = self.runner.attach(
++            self.agents[attempt[&quot;agent&quot;]],
++            Path(attempt[&quot;workspace&quot;]),
++            attempt[&quot;session_id&quot;],
++        )
++        try:
++            state = session.state()
++            status = state[&quot;status&quot;]
++            if status in (&quot;finished&quot;, &quot;error&quot;, &quot;stuck&quot;, &quot;paused&quot;):
++                seen = attempt[&quot;terminal_seen&quot;]
++                if status == &quot;finished&quot; and (
++                    seen is None or time.time() - seen &lt; self.settle_seconds
++                ):
++                    if seen is None:
++                        self.ledger.update(attempt_id, terminal_seen=time.time())
++                    if self.settle_seconds:
++                        return self.ledger.get(attempt_id)
++                terminal = {
++                    &quot;finished&quot;: &quot;completed&quot;,
++                    &quot;error&quot;: &quot;failed&quot;,
++                    &quot;stuck&quot;: &quot;failed&quot;,
++                    &quot;paused&quot;: &quot;cancelled&quot;
++                    if attempt[&quot;status&quot;] == &quot;cancelling&quot;
++                    else &quot;needs_review&quot;,
++                }
++                return self.ledger.update(
++                    attempt_id,
++                    status=terminal[status],
++                    checkpoint=self.checkpoint(attempt, state[&quot;events&quot;]),
++                )
++            if status == &quot;running&quot;:
++                return self.ledger.update(
++                    attempt_id, terminal_seen=None, status=&quot;running&quot;
++                )
++            return attempt
++        finally:
++            session.close()
++
++    def cancel(self, attempt_id):
++        attempt = self.ledger.get(attempt_id)
++        if not attempt[&quot;session_id&quot;] or attempt[&quot;status&quot;] in (
++            &quot;completed&quot;,
++            &quot;failed&quot;,
++            &quot;cancelled&quot;,
++        ):
++            raise ValueError(&quot;Keine aktive Session vorhanden&quot;)
++        self.ledger.update(attempt_id, status=&quot;cancelling&quot;)
++        session = self.runner.attach(
++            self.agents[attempt[&quot;agent&quot;]],
++            Path(attempt[&quot;workspace&quot;]),
++            attempt[&quot;session_id&quot;],
++        )
++        try:
++            session.cancel()
++        finally:
++            session.close()
++        return self.refresh(attempt_id)
+</pre></details></section><section id="api.py"><h2>api.py</h2><p>Authentifizierte additive API unter /cliscade/v1.</p><a href="https://github.com/ysamjo/CLIScade-Next/blob/eb21e75c719856e23c74d139768acd3f2bb130c3/cliscade/src/cliscade_next/api.py#L1">cliscade/src/cliscade_next/api.py:1</a><details><summary>Neue Implementierung</summary><pre>diff --git a/cliscade/src/cliscade_next/api.py b/cliscade/src/cliscade_next/api.py
+new file mode 100644
+index 000000000..307d5f020
+--- /dev/null
++++ b/cliscade/src/cliscade_next/api.py
+@@ -0,0 +1,131 @@
++&quot;&quot;&quot;Authentifizierte Aufgaben-API; Ausführung bleibt im OpenHands Agent Server.&quot;&quot;&quot;
++
++import hmac
++import sqlite3
++from typing import Annotated
++
++from fastapi import Depends, FastAPI, Header, HTTPException
++from fastapi.responses import JSONResponse
++from pydantic import BaseModel, ConfigDict, Field
++
++from cliscade_next.beads import Beads
++from cliscade_next.config import Settings
++from cliscade_next.orchestrator import Orchestrator
++
++
++class TaskInput(BaseModel):
++    model_config = ConfigDict(extra=&quot;forbid&quot;)
++    title: str = Field(min_length=1, max_length=500)
++    description: str = Field(default=&quot;&quot;, max_length=32000)
++    acceptance: str = Field(default=&quot;&quot;, max_length=16000)
++    priority: int = Field(default=2, ge=0, le=4)
++    parent: str | None = None
++
++
++class TaskUpdate(BaseModel):
++    model_config = ConfigDict(extra=&quot;forbid&quot;)
++    title: str | None = Field(default=None, min_length=1, max_length=500)
++    description: str | None = Field(default=None, max_length=32000)
++    acceptance: str | None = Field(default=None, max_length=16000)
++    priority: int | None = Field(default=None, ge=0, le=4)
++    assignee: str | None = Field(default=None, max_length=200)
++    status: str | None = Field(
++        default=None, pattern=&quot;^(open|in_progress|blocked|closed)$&quot;
++    )
++
++
++class StartInput(BaseModel):
++    model_config = ConfigDict(extra=&quot;forbid&quot;)
++    task_id: str = Field(pattern=r&quot;^[a-zA-Z][a-zA-Z0-9_.-]{1,150}$&quot;)
++    agent_id: str = Field(min_length=1, max_length=100)
++    source_id: str | None = None
++
++
++class DependencyInput(BaseModel):
++    depends_on: str = Field(pattern=r&quot;^[a-zA-Z][a-zA-Z0-9_.-]{1,150}$&quot;)
++
++
++def create_app(settings=None, orchestrator=None):
++    settings = settings or Settings.from_env()
++    service = orchestrator or Orchestrator(settings)
++
++    def authenticate(x_session_api_key: Annotated[str, Header()] = &quot;&quot;):
++        if not settings.api_key or not hmac.compare_digest(
++            x_session_api_key, settings.api_key
++        ):
++            raise HTTPException(401, &quot;Anmeldung erforderlich&quot;)
++
++    app = FastAPI(title=&quot;CLIScade Next&quot;, dependencies=[Depends(authenticate)])
++    prefix = &quot;/cliscade/v1&quot;
++
++    @app.exception_handler(ValueError)
++    def bad_request(request, error):
++        return JSONResponse(status_code=400, content={&quot;detail&quot;: str(error)})
++
++    @app.exception_handler(RuntimeError)
++    def unavailable(request, error):
++        return JSONResponse(status_code=503, content={&quot;detail&quot;: str(error)})
++
++    @app.exception_handler(sqlite3.IntegrityError)
++    def conflict(request, error):
++        return JSONResponse(
++            status_code=409, content={&quot;detail&quot;: &quot;Arbeitsverzeichnis belegt&quot;}
++        )
++
++    @app.get(prefix + &quot;/projects&quot;)
++    def projects():
++        return [
++            {&quot;id&quot;: path.name, &quot;beads&quot;: (path / &quot;.beads&quot;).is_dir()}
++            for path in sorted(settings.projects.iterdir())
++            if path.is_dir() and not path.name.startswith(&quot;.&quot;) and not path.is_symlink()
++        ]
++
++    @app.get(prefix + &quot;/agents&quot;)
++    def agents():
++        return [
++            {
++                &quot;id&quot;: agent.id,
++                &quot;command&quot;: agent.command,
++                &quot;model&quot;: agent.model,
++                &quot;live_verified&quot;: False,
++                &quot;transport&quot;: &quot;acp&quot;,
++            }
++            for agent in service.agents.values()
++        ]
++
++    @app.get(prefix + &quot;/projects/{project}/tasks&quot;)
++    def tasks(project: str):
++        return Beads(settings.project(project)).tasks()
++
++    @app.post(prefix + &quot;/projects/{project}/tasks&quot;, status_code=201)
++    def create_task(project: str, body: TaskInput):
++        return Beads(settings.project(project)).create(**body.model_dump())
++
++    @app.patch(prefix + &quot;/projects/{project}/tasks/{task_id}&quot;)
++    def update_task(project: str, task_id: str, body: TaskUpdate):
++        return Beads(settings.project(project)).update(
++            task_id, **body.model_dump(exclude_none=True)
++        )
++
++    @app.post(prefix + &quot;/projects/{project}/tasks/{task_id}/dependencies&quot;)
++    def dependency(project: str, task_id: str, body: DependencyInput):
++        return Beads(settings.project(project)).dependency(task_id, body.depends_on)
++
++    @app.get(prefix + &quot;/projects/{project}/attempts&quot;)
++    def attempts(project: str, task_id: str | None = None):
++        settings.project(project)
++        return service.ledger.list(project, task_id)
++
++    @app.post(prefix + &quot;/projects/{project}/attempts&quot;, status_code=201)
++    def start(project: str, body: StartInput):
++        return service.start(project, **body.model_dump())
++
++    @app.get(prefix + &quot;/attempts/{attempt_id}&quot;)
++    def refresh(attempt_id: str):
++        return service.refresh(attempt_id)
++
++    @app.post(prefix + &quot;/attempts/{attempt_id}/cancel&quot;)
++    def cancel(attempt_id: str):
++        return service.cancel(attempt_id)
++
++    return app
+</pre></details></section><h2>Prüfstand und Grenzen</h2><p>Acht Tests plus separater echter Beads/Agent-Server-E2E mit kontrollierten ACP-Prozessen. Noch keine authentifizierte Anbieter-Inferenz und kein produktives Docker-Deployment.</p></main></html>
