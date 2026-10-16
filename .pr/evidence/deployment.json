@@ -1,0 +1,54 @@
+{
+  "proof_type": "actual_docker_stack_with_controlled_acp_fixture",
+  "attempts": [
+    {
+      "id": "58588fb9-ad90-46b1-a0c5-94035129d020",
+      "session_id": "fc9f3286-f048-40c9-80e6-74fbcf654fd6",
+      "source_id": null,
+      "status": "completed",
+      "check_count": 1,
+      "revision": "1acbc3749fff03cb174cac1551e70cdbe170924c"
+    },
+    {
+      "id": "f692e9ed-dec3-4332-a638-c700b678dc20",
+      "session_id": "e7ab8622-825c-4296-8305-9effc6c2b8d6",
+      "source_id": null,
+      "status": "completed",
+      "check_count": 1,
+      "revision": "1acbc3749fff03cb174cac1551e70cdbe170924c"
+    },
+    {
+      "id": "4373b666-6f1e-412b-8f6d-714eddf9624d",
+      "session_id": "8d0a0a99-f15f-41e8-ac37-1fa68d7f595d",
+      "source_id": "f692e9ed-dec3-4332-a638-c700b678dc20",
+      "status": "completed",
+      "check_count": 1,
+      "revision": "1acbc3749fff03cb174cac1551e70cdbe170924c"
+    }
+  ],
+  "native_automation": {
+    "id": "7e119247-29a0-45de-aacc-b869a37ad290",
+    "state": "INACTIVE",
+    "runs": [
+      {
+        "id": "ddc10515-5c74-4d93-a64f-911e55012b9c",
+        "status": "COMPLETED",
+        "error_detail": null,
+        "completed_at": "2026-10-16T09:53:21.457719Z"
+      }
+    ]
+  },
+  "backup": {
+    "id": "b2ab5482-a949-4ea5-bf46-30dcbe1f96c7",
+    "sha256": "2801fc8e42e074c571d51d2dcc8714f1e3e197796fb6fa96d24d325a0bc98d2b",
+    "tasks": 3,
+    "restore_verified": true
+  },
+  "actual_restart": "all four own compose services",
+  "https": {
+    "port": 9443,
+    "funnel": false,
+    "server_tls_verified_http_status": 200,
+    "mac_tailnet_e2e": false
+  }
+}
