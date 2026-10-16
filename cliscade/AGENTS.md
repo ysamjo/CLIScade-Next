@@ -1,20 +1,23 @@
-# CLIScade Next integration
+# CLIScade-Next-Integration
 
-This package owns Beads project integration and orchestration policy. Agent
-execution, ACP transport, conversation persistence and cancellation belong to
-the existing OpenHands SDK/Agent Server and must be reused through its SDK.
-Beads is the only task store. The local SQLite ledger stores attempts and
-checkpoints, never a second editable copy of tasks or conversations.
+Dieses Paket besitzt Beads-Projektzugriff und Orchestrierungsregeln. Ausführung,
+ACP-Transport, Conversation-Persistenz und Abbruch gehören dem vorhandenen
+OpenHands SDK/Agent Server und werden über dessen SDK wiederverwendet.
+Beads ist die einzige Aufgabenquelle. Das SQLite-Ledger speichert Attempts und
+Checkpoints, keine zweite bearbeitbare Kopie von Aufgaben oder Conversations.
 
-Use feature branches and German documentation and commit messages. Run
-`uv sync --frozen`, `uv run pytest`, and `uv run ruff check .` in this directory.
-Provider statements are unverified. Checks require a paired tool result and
-exit status; never promote an agent's prose to evidence. A submitted prompt is
-an execution boundary: automatic fallback after that boundary is forbidden.
+Feature-Branches und deutsche Dokumentation/Commit-Messages verwenden.
+In diesem Verzeichnis `uv sync --frozen`, `uv run pytest` und
+`uv run ruff check .` ausführen. Für Deployment-Code aus dem Repository-Root:
+`uv run --project cliscade ruff check --config cliscade/pyproject.toml cliscade deploy`.
 
-Parent OpenHands guidance applies to upstream Canvas code. CLIScade-specific
-backend integrations live here as a separate installable service, not in Canvas
-API adapters or a replacement Agent Server. No headless or PTY runner.
+Agentenaussagen bleiben ungeprüft. Werkzeugbelege benötigen zusammengehörigen
+Start/Ergebnis und Exit-Code; Agentenprosa ist kein Nachweis. Nach möglichem
+Promptversand ist automatischer Fallback verboten.
+
+Übergeordnete OpenHands-Regeln gelten für Canvas-Code. Die fachliche Integration
+liegt hier als eigener Dienst, weder als Ersatz-Agent-Server noch in Canvas-
+API-Adaptern. Keine Headless- oder PTY-Runner ergänzen.
 
 Konsensreservierungen und Dispatch müssen denselben dateibasierten Dispatch-Lock
 beachten. Jeder Konsensversuch beginnt bei derselben Revision und eingefrorenen
