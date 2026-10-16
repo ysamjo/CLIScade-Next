@@ -1,104 +1,11 @@
 import json
-import subprocess
 from pathlib import Path
 
 import pytest
+from helpers import FakeBeads
 
-from cliscade_next.agents import Agent
-from cliscade_next.config import Settings
 from cliscade_next.ledger import Ledger
 from cliscade_next.orchestrator import Orchestrator
-
-
-class FakeBeads:
-    def __init__(self, project):
-        self.project = project
-
-    def show(self, task_id):
-        return {"id": task_id, "title": "Rechne", "acceptance_criteria": "Tests grün"}
-
-    def context(self):
-        return {"memories": {"rule": "Deutsche UI"}, "workflow": "bd ready"}
-
-    def ensure_startable(self, task_id):
-        return self.show(task_id)
-
-    def update(self, task_id, **fields):
-        return self.show(task_id) | fields
-
-    def assign(self, task_id, agent_id, previous=None):
-        return self.show(task_id) | {"assignee": agent_id}
-
-
-class FakeSession:
-    def __init__(self, session_id, state):
-        self.id, self.value = session_id, state
-
-    def submit(self, prompt):
-        self.value["prompt"] = prompt
-        if self.value.get("fail_submit"):
-            raise RuntimeError("Verbindung unterbrochen")
-        self.value["status"] = "running"
-
-    def state(self):
-        return self.value
-
-    def cancel(self):
-        self.value["status"] = "paused"
-
-    def close(self):
-        pass
-
-
-class FakeOpenHands:
-    def __init__(self):
-        self.sessions = {}
-        self.fail_submit = False
-
-    def attach(self, agent, workspace, session_id=None):
-        session_id = session_id or str(len(self.sessions) + 1)
-        state = self.sessions.setdefault(
-            session_id,
-            {
-                "status": "idle",
-                "events": [],
-                "fail_submit": self.fail_submit,
-            },
-        )
-        return FakeSession(session_id, state)
-
-
-@pytest.fixture
-def system(tmp_path):
-    project = tmp_path / "project"
-    project.mkdir()
-    subprocess.run(["git", "init", "-q", str(project)], check=True)
-    subprocess.run(
-        [
-            "git",
-            "-C",
-            str(project),
-            "-c",
-            "user.email=test@example.invalid",
-            "-c",
-            "user.name=Test",
-            "commit",
-            "--allow-empty",
-            "-qm",
-            "Start",
-        ],
-        check=True,
-    )
-    settings = Settings(tmp_path, tmp_path / "state", "http://localhost:8000", "key")
-    runner = FakeOpenHands()
-    service = Orchestrator(
-        settings,
-        runner=runner,
-        beads_factory=FakeBeads,
-        agents={"one": Agent("one", ("one",)), "two": Agent("two", ("two",))},
-        settle_seconds=0,
-    )
-    return service, runner, settings
 
 
 def test_task_execution_restart_and_handoff_preserve_uncommitted_files(system):
@@ -167,3 +74,18 @@ def test_resume_is_a_new_attempt_in_the_same_session(system):
     assert resumed["session_id"] == first["session_id"]
     assert resumed["source_id"] == first["id"]
     assert runner.sessions[first["session_id"]]["status"] == "running"
+
+
+def test_request_id_survives_restart_without_duplicate_session(system):
+    service, runner, settings = system
+    first = service.start("project", "cn-1", "one", request_key="automation-run-1")
+    restarted = Orchestrator(
+        settings, runner=runner, beads_factory=FakeBeads, agents=service.agents
+    )
+    assert (
+        restarted.start("project", "cn-1", "one", request_key="automation-run-1")["id"]
+        == first["id"]
+    )
+    assert len(runner.sessions) == 1
+    with pytest.raises(ValueError, match="andere Parameter"):
+        restarted.start("project", "cn-2", "one", request_key="automation-run-1")

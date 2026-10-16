@@ -65,3 +65,13 @@ erhalten. Agenten und ACP-Adapter haben eigene Lizenz-, Installations- und
 Authentifizierungsbedingungen und werden nicht durch diese Lizenz freigegeben.
 ACP ist die Protokollspezifikation; der SDK-Transport wird wiederverwendet.
 Beads ist inzwischen von `steveyegge/beads` nach `gastownhall/beads` umgezogen.
+
+## Gelieferter Stand 0.5.0
+
+Die fünf Feature-Meilensteine sind implementiert. Der erste Vertical Slice und
+Konsens wurden gegen einen echten Agent Server mit kontrollierten ACP-Prozessen
+geprüft. ZimaOS führt den Compose-Stack aus; echter Container-Neustart,
+Handoff und native Automation sind geprüft. Dies ist keine pauschale Freigabe
+aller Anbieter oder Sandbox-Betriebsarten. Aktuelle Grenzen stehen in
+[offene Punkte](cliscade/OPEN_POINTS.md), Belege in
+[Validierung](cliscade/VALIDATION.md) und Betrieb in [Deployment](deploy/README.md).

@@ -29,6 +29,7 @@ describe("CLIScade tasks", () => {
       if (body) return {};
       if (path === "/projects") return [{ id: "demo", beads: true }];
       if (path === "/agents") return [{ id: "codex" }, { id: "kiro" }];
+      if (path.includes("/consensus?")) return [];
       if (path.endsWith("/tasks"))
         return [
           { id: "cn-1", title: "Implementierung", status: "open", priority: 2 },
@@ -66,8 +67,29 @@ describe("CLIScade tasks", () => {
           task_id: "cn-1",
           agent_id: "kiro",
           source_id: "a1",
+          request_key: expect.any(String),
         },
         undefined,
+      ),
+    );
+    fireEvent.click(screen.getByRole("checkbox", { name: "codex" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "kiro" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "CLISCADE$START_CONSENSUS" }),
+    );
+    await waitFor(() =>
+      expect(cliscadeRequest).toHaveBeenCalledWith("/projects/demo/consensus", {
+        task_id: "cn-1",
+        agents: ["codex", "kiro"],
+      }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "CLISCADE$CREATE_SCHEDULE" }),
+    );
+    await waitFor(() =>
+      expect(cliscadeRequest).toHaveBeenCalledWith(
+        "/projects/demo/tasks/cn-1/schedule",
+        { cron: "0 9 * * 1-5", timezone: "Europe/Berlin", agent_id: "kiro" },
       ),
     );
   });

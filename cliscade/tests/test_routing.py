@@ -14,7 +14,7 @@ def test_fallback_skips_bad_models_and_auth_without_replaying_uncertain_prompt(
             return {"error": {"code": "ACPAuthRequired"}}
         return {"available_models": [{"model_id": "supported"}]}
 
-    def start(project, task, agent, source_id=None):
+    def start(project, task, agent, source_id=None, **options):
         starts.append(agent)
         return {"id": "attempt", "prompt_sent": True, "status": "uncertain"}
 

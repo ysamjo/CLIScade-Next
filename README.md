@@ -179,3 +179,7 @@ The Agent Server API is implemented by the SDK and consumed through the TypeScri
 - [Architecture overview](./docs/architecture.md)
 - [Development guide](./docs/DEVELOPMENT.md)
 - [Self-hosting guide](./docs/SELF_HOSTING.md)
+
+CLIScade Next 0.5: [Private ZimaOS-Installation](deploy/README.md),
+[Konsens und native Automationen](cliscade/README.md),
+[Prüfnachweise und verbleibende Grenzen](cliscade/VALIDATION.md).

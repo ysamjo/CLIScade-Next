@@ -15,3 +15,14 @@ an execution boundary: automatic fallback after that boundary is forbidden.
 Parent OpenHands guidance applies to upstream Canvas code. CLIScade-specific
 backend integrations live here as a separate installable service, not in Canvas
 API adapters or a replacement Agent Server. No headless or PTY runner.
+
+Konsensreservierungen und Dispatch müssen denselben dateibasierten Dispatch-Lock
+beachten. Jeder Konsensversuch beginnt bei derselben Revision und eingefrorenen
+Aufgabe/Projektwissen; Provider-Historien bleiben getrennt. Eine Patch-Gleichheit
+ist kein Korrektheitsnachweis. Native Automationen verwenden ihre Run-ID als
+Idempotenzschlüssel. Der Dispatch-Bundle enthält keine Zugangsdaten.
+
+Beads-Backups werden erst nach nativer Wiederherstellung und vollständigem
+Vergleich von Aufgaben und Memories als verifiziert bezeichnet. Das ist keine
+vollständige Sicherung der OpenHands-Sessions. Deployment-Tests stehen in
+`tests/test_deployment.py`; Docker-Builds laufen ausschließlich auf ZimaOS.

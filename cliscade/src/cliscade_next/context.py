@@ -1,5 +1,6 @@
 """Versionierter Anbieterwechsel mit Herkunft und getrennten Vertrauensstufen."""
 
+import hashlib
 import json
 import re
 import subprocess
@@ -91,12 +92,42 @@ def git(project: Path, *args):
 
 def snapshot(project: Path):
     diff = git(project, "diff", "HEAD", "--", ".", ":(exclude).beads")
+    untracked = []
+    complete = True
+    names = list(
+        filter(
+            None,
+            git(
+                project,
+                "ls-files",
+                "--others",
+                "--exclude-standard",
+                "-z",
+                "--",
+                ".",
+                ":(exclude).beads",
+            ).split("\0"),
+        )
+    )
+    for name in names[:256]:
+        file = project / name
+        if file.is_symlink():
+            value = str(file.readlink()).encode()
+        elif file.is_file() and file.stat().st_size <= 16 * 1024 * 1024:
+            value = file.read_bytes()
+        else:
+            complete = False
+            untracked.append({"path": name, "omitted": True})
+            continue
+        untracked.append({"path": name, "sha256": hashlib.sha256(value).hexdigest()})
     return {
         "revision": git(project, "rev-parse", "HEAD").strip(),
         "status": git(project, "status", "--porcelain"),
         "diff": diff[:32000],
         "diff_truncated": len(diff) > 32000,
         "captured_at": datetime.now(UTC).isoformat(),
+        "untracked": untracked,
+        "untracked_complete": complete and len(names) <= 256,
     }
 
 

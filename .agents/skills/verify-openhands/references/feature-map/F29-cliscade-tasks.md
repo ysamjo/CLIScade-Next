@@ -2,7 +2,7 @@
 
 Route `/tasks`, erreichbar über die Seitenleiste **Projekte & Aufgaben**.
 Source: `src/routes/cliscade-tasks.tsx`, `src/api/cliscade-service.ts`,
-`src/utils/beads-task-tree.ts`, `cliscade/src/cliscade_next/api.py`.
+`src/utils/beads-task-tree.ts`, `src/components/features/cliscade`, `cliscade/src/cliscade_next/api.py`.
 
 ## Sub-features
 
@@ -14,6 +14,11 @@ Source: `src/routes/cliscade-tasks.tsx`, `src/api/cliscade-service.ts`,
 - `F29.handoff`: Beendeten Attempt an den ausgewählten ACP-Agenten übergeben.
 - `F29.checkpoint`: Git-Diff, Werkzeugbelege und strukturierten Checkpoint lesen.
 - `F29.mobile`: Bei 390 px alle Aktionen ohne horizontalen Seiten-Scroll erreichen.
+
+- `F29.routing`: Automatische Route und übersprungene Anbieter anzeigen.
+- `F29.consensus`: Zwei bis vier unabhängige Worktrees starten und Unterschiede vergleichen.
+- `F29.schedule`: Native OpenHands-Automation anlegen und verwalten.
+- `F29.backup`: Native Beads-Sicherung samt Wiederherstellungsprüfung auslösen.
 
 ## How to get to it (user POV)
 

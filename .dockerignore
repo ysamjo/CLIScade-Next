@@ -37,3 +37,13 @@ Thumbs.db
 artifacts/
 *.tgz
 *.log
+
+# Lokale Python-Umgebungen und persistente Projektaufgaben
+**/.venv/
+**/__pycache__/
+**/.pytest_cache/
+**/.ruff_cache/
+.beads/
+.cliscade-worktrees/
+deploy/runtime.env
+Archiv/

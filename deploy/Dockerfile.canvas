@@ -1,0 +1,17 @@
+FROM node:24.19.0-bookworm-slim AS builder
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --ignore-scripts
+COPY . .
+RUN npm run build
+FROM node:24.19.0-bookworm-slim
+WORKDIR /app
+COPY --from=builder /app/build ./build
+COPY --from=builder /app/scripts ./scripts
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/deploy/start-canvas.mjs ./deploy/start-canvas.mjs
+ENV AGENT_CANVAS_DISABLE_TELEMETRY=true
+USER 1000:1000
+EXPOSE 8000
+CMD ["node", "deploy/start-canvas.mjs"]

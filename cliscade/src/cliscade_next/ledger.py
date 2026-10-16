@@ -26,6 +26,16 @@ class Ledger:
                 CREATE UNIQUE INDEX IF NOT EXISTS active_workspace
                 ON attempts(workspace)
                 WHERE status IN ('preparing','submitted','running','cancelling');
+                CREATE TABLE IF NOT EXISTS requests (
+                    key TEXT PRIMARY KEY, fingerprint TEXT NOT NULL,
+                    attempt_id TEXT NOT NULL REFERENCES attempts(id)
+                );
+                CREATE TABLE IF NOT EXISTS consensus (
+                    id TEXT PRIMARY KEY, project TEXT NOT NULL, task_id TEXT NOT NULL,
+                    revision TEXT NOT NULL, expected INTEGER NOT NULL,
+                    attempts TEXT NOT NULL DEFAULT '[]',
+                    status TEXT NOT NULL DEFAULT 'preparing', result TEXT
+                );
             """)
             columns = {row[1] for row in db.execute("PRAGMA table_info(attempts)")}
             if "route_trace" not in columns:
@@ -41,7 +51,16 @@ class Ledger:
         finally:
             db.close()
 
-    def create(self, project, task_id, agent, workspace, source_id=None):
+    def create(
+        self,
+        project,
+        task_id,
+        agent,
+        workspace,
+        source_id=None,
+        request_key=None,
+        request_fingerprint=None,
+    ):
         attempt_id = str(uuid4())
         with self.connect() as db:
             db.execute(
@@ -49,7 +68,21 @@ class Ledger:
                 "source_id) VALUES (?,?,?,?,?,'preparing',?)",
                 (attempt_id, project, task_id, agent, str(workspace), source_id),
             )
+            if request_key:
+                db.execute(
+                    "INSERT INTO requests VALUES (?,?,?)",
+                    (request_key, request_fingerprint, attempt_id),
+                )
         return self.get(attempt_id)
+
+    def request(self, key, fingerprint):
+        with self.connect() as db:
+            row = db.execute("SELECT * FROM requests WHERE key=?", (key,)).fetchone()
+        if row is None:
+            return None
+        if row["fingerprint"] != fingerprint:
+            raise ValueError("Request-ID wurde bereits für andere Parameter verwendet")
+        return self.get(row["attempt_id"])
 
     def get(self, attempt_id):
         with self.connect() as db:

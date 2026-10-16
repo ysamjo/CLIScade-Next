@@ -15,6 +15,7 @@ import {
   type TaskAgent,
 } from "#/api/cliscade-service";
 
+import { TaskOrchestration } from "#/components/features/cliscade/task-orchestration";
 import { beadsTaskTree } from "#/utils/beads-task-tree";
 
 const CONTROL =
@@ -139,6 +140,7 @@ export default function CliscadeTasks() {
       body: {
         task_id: selected,
         agent_id: agent,
+        request_key: crypto.randomUUID(),
         ...(source_id ? { source_id } : {}),
       },
     });
@@ -442,6 +444,16 @@ export default function CliscadeTasks() {
                 </BrandButton>
               </form>
             </div>
+          )}
+          {task && (
+            <TaskOrchestration
+              key={`${project}/${selected}`}
+              project={project}
+              taskId={selected}
+              agents={agents.data ?? []}
+              agent={agent}
+              disabled={pending || task.status === "closed"}
+            />
           )}
           {attempts.data?.map((attempt) => (
             <article key={attempt.id} className={CARD}>

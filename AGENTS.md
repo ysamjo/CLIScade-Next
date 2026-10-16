@@ -89,3 +89,8 @@ Use the `e2e-testing` skill for suite selection and E2E-specific requirements.
 ## DigitalOcean Managed Agents
 
 Before changing `scripts/mars-*` / `scripts/tunnel-*`, `src/api/mars/`, the Managed Agents UI (`src/components/features/backends/managed-agents/`) or the MARS hooks, read `src/api/mars/AGENTS.md`.
+
+CLIScade-Deployment: `deploy/README.md` beschreibt den privaten Compose-Stack.
+Eigene Images auf ZimaOS bauen; das produktive Compose enthält ausschließlich
+Images, keine Variablensubstitution und keinen Docker-Socket. Bestehende
+Tailscale-Routen erhalten, ausschließlich eine private Serve-Route ergänzen.

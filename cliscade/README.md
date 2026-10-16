@@ -61,10 +61,10 @@ Der opt-in Test `tests/test_agent_server_e2e.py` benötigt `AGENT_SERVER_URL` un
 `SESSION_API_KEY`, lokales `bd` und einen echten Agent Server. Er erstellt ein
 Wegwerf-Gitprojekt mit echtem Beads und zwei echten, kontrollierten ACP-Prozessen.
 
-Nicht nachgewiesen durch diese Tests: Authentifizierung und Inferenz bei
-Claude Code, Codex, OpenCode oder Kiro; Docker-Sandbox-Laufzeit und Tailscale.
-Die vier ACP-Kommandos sind integriert, Anbieter bleiben bis zum Live-Test
-unverifiziert. OpenHands führt die Capability-Aushandlung beim Start durch.
+Diese Protokoll-Fixtures beweisen keine Anbieter-Inferenz. Authentifizierte
+lokale Tests, echte Docker-/Neustart-Tests und Tailscale-Nachweise werden
+getrennt in `VALIDATION.md` und `AGENTS_SUPPORTED.md` geführt. Ein lokaler
+Anbieter-Test gilt nicht automatisch für die Anmeldung im NAS-Container.
 
 ## Automatische Route und Fortsetzung
 
@@ -87,3 +87,17 @@ Agenten können Entscheidungen und offene Schritte mit dem schema-validierten
 `<cliscade-report>`-Block liefern (`report-v1.schema.json`). Der Block kann keine
 Prüfbelege als verifiziert deklarieren. Anbieterfehler werden getrennt als
 OpenHands-Laufzeitfehler im Checkpoint geführt.
+
+## Konsens, Automationen und Sicherung (0.5.0)
+
+Die Task-UI startet unabhängige Konsensversuche mit getrennten Worktrees und
+zeigt Patch-Unterschiede sowie getrennte Aussagen und Werkzeugbelege. Ein
+Request-Schlüssel verhindert doppelte Attempts nach Zustellwiederholung.
+Zeitpläne verwenden ausschließlich die native OpenHands-Automation mit festem
+API-Dispatch-Bundle und nativer Run-ID. Geschlossene Aufgaben werden übersprungen.
+Beads-Backups nutzen native Dolt-Sicherung und eine echte Wiederherstellungsprüfung.
+
+Installation, Persistenz, private Tailscale-Anbindung und bekannte Grenzen:
+[ZimaOS-Anleitung](../deploy/README.md). Neue Runs verlangen einen sauberen
+Quellstand; Handoffs behalten den bisherigen Worktree. Keine automatische
+Wiederholung nach möglichem Promptversand, kein automatischer Konsens-Merge.

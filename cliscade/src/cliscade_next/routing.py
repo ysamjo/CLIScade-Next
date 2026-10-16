@@ -29,7 +29,15 @@ class Routing:
             temp.replace(self.path)
         return record
 
-    def start(self, project_name, task_id, capability="coding", source_id=None):
+    def start(
+        self,
+        project_name,
+        task_id,
+        capability="coding",
+        source_id=None,
+        request_key=None,
+        request_fingerprint=None,
+    ):
         skipped = []
         for agent in sorted(
             self.service.agents.values(), key=lambda item: (item.priority, item.id)
@@ -57,7 +65,12 @@ class Routing:
                 )
                 continue
             attempt = self.service.start(
-                project_name, task_id, agent.id, source_id=source_id
+                project_name,
+                task_id,
+                agent.id,
+                source_id=source_id,
+                request_key=request_key,
+                request_fingerprint=request_fingerprint,
             )
             attempt = self.service.ledger.update(attempt["id"], route_trace=skipped)
             return {

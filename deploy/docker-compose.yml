@@ -1,0 +1,76 @@
+name: cliscade-next
+services:
+  canvas:
+    image: cliscade-next-canvas:0.5.0
+    restart: unless-stopped
+    env_file: runtime.env
+    ports:
+      - "127.0.0.1:8740:8000"
+    depends_on:
+      - cliscade
+      - agent-server
+      - automation
+    security_opt:
+      - no-new-privileges:true
+    x-casaos:
+      ports:
+        - container: "8000"
+          description:
+            de_de: Privater Zugang über Tailscale Serve
+  cliscade:
+    image: cliscade-next-service:0.5.0
+    restart: unless-stopped
+    env_file: runtime.env
+    environment:
+      CLISCADE_PROJECTS: /projects
+      CLISCADE_STATE: /data/cliscade
+      CLISCADE_AGENT_SERVER: http://agent-server:8000
+      CLISCADE_AUTOMATION_URL: http://automation:8000/api/automation
+      CLISCADE_INTERNAL_URL: http://cliscade:18002
+    volumes:
+      - /DATA/AppData/cliscade-next/projects:/projects
+      - /DATA/AppData/cliscade-next/state:/data
+    security_opt:
+      - no-new-privileges:true
+  agent-server:
+    image: ghcr.io/openhands/agent-server:1.55.1-python
+    restart: unless-stopped
+    user: "1000:1000"
+    env_file: runtime.env
+    environment:
+      OH_PERSISTENCE_DIR: /workspace
+      HOME: /workspace/home
+      OH_ENABLE_BROWSER: "false"
+    command: ["--host", "0.0.0.0", "--port", "8000"]
+    volumes:
+      - /DATA/AppData/cliscade-next/projects:/projects
+      - /DATA/AppData/cliscade-next/sessions:/workspace
+    security_opt:
+      - no-new-privileges:true
+  automation:
+    image: ghcr.io/openhands/automation:1.20.0
+    restart: unless-stopped
+    user: "1000:1000"
+    env_file: runtime.env
+    environment:
+      AUTOMATION_DB_URL: sqlite+aiosqlite:////data/automations.db
+      AUTOMATION_AGENT_SERVER_URL: http://agent-server:8000
+      AUTOMATION_SANDBOX_AGENT_SERVER_URL: http://agent-server:8000
+      AUTOMATION_BASE_URL: http://canvas:8000
+      FILE_STORE: local
+      LOCAL_STORAGE_PATH: /data/storage
+    volumes:
+      - /DATA/AppData/cliscade-next/automation:/data
+    security_opt:
+      - no-new-privileges:true
+x-casaos:
+  architectures:
+    - amd64
+    - arm64
+  main: canvas
+  port_map: "8740"
+  scheme: http
+  title:
+    custom: CLIScade Next
+  description:
+    de_de: Private Beads- und ACP-Entwicklungsumgebung auf OpenHands

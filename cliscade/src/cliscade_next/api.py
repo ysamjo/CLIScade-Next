@@ -1,15 +1,21 @@
 """Authentifizierte Aufgaben-API; Ausführung bleibt im OpenHands Agent Server."""
 
+import hashlib
 import hmac
+import json
 import sqlite3
 from typing import Annotated
 
+import httpx
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 
+from cliscade_next.automation import Automation
+from cliscade_next.backup import backup
 from cliscade_next.beads import Beads
 from cliscade_next.config import Settings
+from cliscade_next.consensus import Consensus
 from cliscade_next.orchestrator import Orchestrator
 from cliscade_next.routing import Routing
 
@@ -41,10 +47,24 @@ class StartInput(BaseModel):
     agent_id: str = Field(default="auto", min_length=1, max_length=100)
     source_id: str | None = None
     capability: str = Field(default="coding", pattern="^(coding|review|analysis)$")
+    request_key: str | None = Field(default=None, min_length=1, max_length=200)
 
 
 class DependencyInput(BaseModel):
     depends_on: str = Field(pattern=r"^[a-zA-Z][a-zA-Z0-9_.-]{1,150}$")
+
+
+class ConsensusInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    task_id: str = Field(pattern=r"^[a-zA-Z][a-zA-Z0-9_.-]{1,150}$")
+    agents: list[str] = Field(min_length=2, max_length=4)
+
+
+class ScheduleInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    cron: str = Field(min_length=1, max_length=100)
+    timezone: str = Field(default="Europe/Berlin", min_length=1, max_length=100)
+    agent_id: str = Field(default="auto", min_length=1, max_length=100)
 
 
 def create_app(settings=None, orchestrator=None):
@@ -67,6 +87,18 @@ def create_app(settings=None, orchestrator=None):
     @app.exception_handler(RuntimeError)
     def unavailable(request, error):
         return JSONResponse(status_code=503, content={"detail": str(error)})
+
+    @app.exception_handler(httpx.HTTPError)
+    def automation_unavailable(request, error):
+        return JSONResponse(
+            status_code=503,
+            content={
+                "detail": (
+                    "OpenHands-Automation nicht verfügbar oder Zeitplan abgewiesen; "
+                    "Zeitplan und Dienstdaten prüfen"
+                )
+            },
+        )
 
     @app.exception_handler(sqlite3.IntegrityError)
     def conflict(request, error):
@@ -106,6 +138,10 @@ def create_app(settings=None, orchestrator=None):
     def tasks(project: str):
         return Beads(settings.project(project)).tasks()
 
+    @app.get(prefix + "/projects/{project}/tasks/{task_id}")
+    def task(project: str, task_id: str):
+        return Beads(settings.project(project)).show(task_id)
+
     @app.post(prefix + "/projects/{project}/initialize")
     def initialize(project: str):
         return Beads.initialize(settings.project(project))
@@ -131,16 +167,38 @@ def create_app(settings=None, orchestrator=None):
 
     @app.post(prefix + "/projects/{project}/attempts", status_code=201)
     def start(project: str, body: StartInput):
+        fingerprint = hashlib.sha256(
+            json.dumps(
+                [project, body.model_dump(exclude={"request_key"})],
+                sort_keys=True,
+            ).encode()
+        ).hexdigest()
+        if body.request_key:
+            existing = service.ledger.request(body.request_key, fingerprint)
+            if existing:
+                return existing
         if body.agent_id == "auto":
             result = Routing(service).start(
-                project, body.task_id, body.capability, body.source_id
+                project,
+                body.task_id,
+                body.capability,
+                body.source_id,
+                body.request_key,
+                fingerprint,
             )
             if result["attempt"] is None:
                 raise RuntimeError(
                     "Keine verfügbare ACP-Route; Agenten und Modelle prüfen"
                 )
             return result["attempt"]
-        return service.start(project, body.task_id, body.agent_id, body.source_id)
+        return service.start(
+            project,
+            body.task_id,
+            body.agent_id,
+            body.source_id,
+            request_key=body.request_key,
+            request_fingerprint=fingerprint,
+        )
 
     @app.get(prefix + "/attempts/{attempt_id}")
     def refresh(attempt_id: str):
@@ -153,5 +211,31 @@ def create_app(settings=None, orchestrator=None):
     @app.post(prefix + "/attempts/{attempt_id}/resume")
     def resume(attempt_id: str):
         return service.resume(attempt_id)
+
+    @app.post(prefix + "/projects/{project}/backups", status_code=201)
+    def backup_project(project: str):
+        return backup(settings.project(project), settings.state)
+
+    @app.post(prefix + "/projects/{project}/consensus", status_code=201)
+    def start_consensus(project: str, body: ConsensusInput):
+        return Consensus(service).start(project, body.task_id, body.agents)
+
+    @app.get(prefix + "/projects/{project}/consensus")
+    def consensus(project: str, task_id: str):
+        settings.project(project)
+        return Consensus(service).list(project, task_id)
+
+    @app.post(prefix + "/consensus/{group_id}/cancel")
+    def cancel_consensus(group_id: str):
+        return Consensus(service).cancel(group_id)
+
+    @app.post(prefix + "/projects/{project}/tasks/{task_id}/schedule", status_code=201)
+    def schedule(project: str, task_id: str, body: ScheduleInput):
+        Beads(settings.project(project)).show(task_id)
+        if body.agent_id != "auto" and body.agent_id not in service.agents:
+            raise ValueError("ACP-Agent ist nicht freigegeben")
+        return Automation(settings).create(
+            project, task_id, body.agent_id, body.cron, body.timezone
+        )
 
     return app

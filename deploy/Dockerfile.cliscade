@@ -1,0 +1,18 @@
+FROM node:24.19.0-bookworm-slim AS node
+FROM python:3.13.12-slim-bookworm
+COPY --from=node /usr/local/bin/node /usr/local/bin/node
+COPY --from=node /usr/local/lib/node_modules /usr/local/lib/node_modules
+RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+ && ln -s /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx \
+ && apt-get update && apt-get install -y --no-install-recommends git ca-certificates \
+ && rm -rf /var/lib/apt/lists/* \
+ && npm install -g @beads/bd@1.3.1 \
+ && pip install --no-cache-dir uv==0.12.23
+WORKDIR /app
+COPY cliscade/pyproject.toml cliscade/uv.lock ./
+COPY cliscade/src ./src
+RUN uv sync --frozen --no-dev --python /usr/local/bin/python
+ENV PATH="/app/.venv/bin:/usr/local/bin:/usr/bin:/bin" HOME="/data/home"
+USER 1000:1000
+EXPOSE 18002
+CMD ["uvicorn", "cliscade_next.api:create_app", "--factory", "--host", "0.0.0.0", "--port", "18002"]

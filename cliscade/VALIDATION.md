@@ -47,3 +47,43 @@ müssen die betroffenen Upstream-Pakete und erreichbaren Codepfade geprüft werd
   Conversation, unverändertes Attempt-Ledger und Übergabe an eine zweite
   kontrollierte ACP-Session bestanden (65 Sekunden). Dies ist ein echter
   Prozess-Neustart, kein Mock und kein bloß neues Serviceobjekt.
+
+## Meilenstein 5 – Konsens, Automationen und Deployment
+
+- `uv run pytest`: 20 bestanden, 6 opt-in Prüfungen übersprungen. Darunter ein
+  echtes natives Beads-Backup mit vollständigem Aufgaben-/Memory-Vergleich nach
+  Wiederherstellung, Idempotenz, unabhängige Worktrees und sichere Compose-Grenzen.
+- `ruff check` für Integration und Deployment, Canvas-Typecheck, Produktionsbuild,
+  vollständiger Canvas-Lint und drei gezielte UI-/Transporttests bestanden.
+  Vorhandene Lint-Warnungen und die oben dokumentierten Vollsuite-Fehler bleiben.
+- Erneuter echter SDK-/Agent-Server-/Beads-Test einschließlich zweier separater
+  Konsens-Worktrees und Werkzeugbelegen bestanden (105 Sekunden). Kontrollierte
+  ACP-Protokoll-Fixtures, keine behauptete kommerzielle Anbieter-Inferenz.
+- ZimaOS amd64: beide eigenen Images gebaut; offizielle Agent-Server- und
+  Automation-Images gestartet. Alle vier Dienste anschließend tatsächlich neu
+  gestartet. Die erste gespeicherte Conversation blieb erreichbar; Aufgabe und
+  Attempt-Ledger blieben erhalten; Handoff an eine zweite ACP-Conversation im
+  bisherigen Worktree mit Prüfbelegen bestanden.
+- Native Automation: Bundle-Upload, Erstellung, manuelle native Zustellung,
+  Überspringen einer geschlossenen Aufgabe und SDK-Abschlusscallback HTTP 200
+  tatsächlich ausgeführt; nativer Status `COMPLETED`, auch nach Neustart.
+  Der Testzeitplan wurde anschließend auf `INACTIVE` gesetzt.
+- Beim realen Test behoben: Timeout auf erlaubte 1.800 Sekunden begrenzt,
+  separate interne Automation-Authentifizierung eingerichtet, Dispatch über
+  gepinnte PEP-723-/uv-Umgebung statt System-Python ohne SDK gestartet.
+- Canvas vom tatsächlichen NAS-Container über einen eigenen SSH-Testtunnel in
+  Ego Lite geprüft. Neue Konsens-/Zeitplan-/Backup-Bedienelemente bei 1440 und
+  390 Pixeln; kein horizontaler Seiten-Scroll. Die Beads-Sicherung zusätzlich
+  im laufenden lokalen Canvas angeklickt und mit Wiederherstellungsbeleg bestätigt.
+- Tailscale Serve: zusätzliche HTTPS-Route 9443 auf Loopback 8740. Bestehende
+  Routen 443/8443 unverändert; für 9443 kein `AllowFunnel`-Eintrag. TLS-Aufruf
+  auf ZimaOS mit überprüftem Zertifikat und Auflösung auf die eigene Tailnet-IP:
+  HTTP 200. Direkter Tailnet-Zugriff des Macs war nicht erreichbar; Browser-
+  Prüfung erfolgte über den temporären SSH-Tunnel, nicht als behaupteter Mac-
+  Tailscale-E2E.
+
+Lokale Rohbelege: isolierter Agent-Server-Lauf `20261016-032345-bef1-cliscade-next`,
+`CLISCADE.milestone5/consensus.json`; NAS `state/deployment-proof.json`, native
+Automation-Historie und `restart.log`. Schlüssel und vollständige private
+Sessions werden nicht in GitHub hochgeladen. Screenshots liegen als private
+PR-Artefakte unter `.pr/screenshots/`.

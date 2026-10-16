@@ -1,5 +1,7 @@
 """Beads-Arbeitseinheiten mit unabhängigen OpenHands-Conversations verbinden."""
 
+import hashlib
+import json
 import time
 from pathlib import Path
 from uuid import uuid4
@@ -112,12 +114,35 @@ class Orchestrator:
         *,
         allow_parallel=False,
         assign=True,
+        request_key=None,
+        request_fingerprint=None,
+        consensus_id=None,
+        initial_context=None,
     ):
         if agent_id not in self.agents or not self.agents[agent_id].enabled:
             raise ValueError("ACP-Agent ist nicht freigegeben")
         project = self.settings.project(project_name)
         self.settings.state.mkdir(parents=True, exist_ok=True)
         with FileLock(str(self.settings.state / "dispatch.lock"), timeout=30):
+            fingerprint = (
+                request_fingerprint
+                or hashlib.sha256(
+                    json.dumps([project_name, task_id, agent_id, source_id]).encode()
+                ).hexdigest()
+            )
+            if request_key:
+                existing = self.ledger.request(request_key, fingerprint)
+                if existing:
+                    return existing
+            with self.ledger.connect() as db:
+                group = db.execute(
+                    "SELECT id FROM consensus WHERE project=? AND task_id=? "
+                    "AND status IN ('preparing','running','needs_review') "
+                    "AND id != ?",
+                    (project_name, task_id, consensus_id or ""),
+                ).fetchone()
+            if group:
+                raise ValueError("Aufgabe besitzt einen aktiven Konsenslauf")
             self.beads_factory(project).ensure_startable(task_id)
             if not allow_parallel and any(
                 item["id"] != source_id
@@ -147,17 +172,31 @@ class Orchestrator:
                     raise ValueError("Ausführung vor der Übergabe anhalten")
                 workspace = Path(source["workspace"])
             else:
+                if git(
+                    project, "status", "--porcelain", "--", ".", ":(exclude).beads"
+                ).strip():
+                    raise ValueError(
+                        "Projekt zuerst committen; neue Worktrees beginnen bei HEAD"
+                    )
                 workspace = (
                     self.settings.projects / ".cliscade-worktrees" / str(uuid4())
                 )
                 workspace.parent.mkdir(parents=True, exist_ok=True)
                 git(project, "worktree", "add", "--detach", str(workspace), "HEAD")
             attempt = self.ledger.create(
-                project_name, task_id, agent_id, workspace, source_id
+                project_name,
+                task_id,
+                agent_id,
+                workspace,
+                source_id,
+                request_key,
+                fingerprint,
             )
             session = None
             try:
                 checkpoint = self.checkpoint(attempt)
+                if initial_context:
+                    checkpoint.update(initial_context)
                 if source:
                     checkpoint.update(
                         {
