@@ -44,9 +44,11 @@ Before changing a shared adapter, conversation builder, setting, state selector,
 - Enumerate affected consumers across Local and Cloud backends, OpenHands and ACP agents, standard/planning/delegated conversations, and standalone and embedded Canvas. Test every path with distinct control or data flow without testing an irrelevant Cartesian product.
 - Give durable frontend state one named owner and one obvious writer. Handle existing-state hydration or migration and all supported create, update, delete, default, and active-item transitions. Leave destructive transitions in a deterministic valid state or an explicit empty state handled by the UI.
 
-## PR Description Human Check
+## PR-Beschreibungen
 
-The `HUMAN:` section in PR descriptions is reserved for human contributors only. AI agents must not add to, edit, move, or remove it. If validation fails because it is missing or empty, stop and ask the human user to update it in their own words. If a human already updated it, report the exact validator error rather than editing it.
+Für `ysamjo/CLIScade-Next` schreibt der ausführende Autor die Abschnitte `Why`, `Summary` und `How to Test` mit konkreten Ergebnissen und Grenzen. UI-Änderungen benötigen weiterhin Bild- oder Videonachweise. Eine menschliche Prüfung darf nur als solche bezeichnet werden, wenn sie tatsächlich stattgefunden hat; eine separate `HUMAN:`-Pflicht und das Upstream-Label `ready-for-dev` gelten hier nicht.
+
+Bei Beiträgen an OpenHands gilt weiterhin dessen eigene HUMAN-Regel. Vorhandene menschliche Aussagen werden nicht umgeschrieben oder als Agententext ausgegeben.
 
 ## Functionality-Specific Skills
 

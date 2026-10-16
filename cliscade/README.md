@@ -101,3 +101,6 @@ Installation, Persistenz, private Tailscale-Anbindung und bekannte Grenzen:
 [ZimaOS-Anleitung](../deploy/README.md). Neue Runs verlangen einen sauberen
 Quellstand; Handoffs behalten den bisherigen Worktree. Keine automatische
 Wiederholung nach möglichem Promptversand, kein automatischer Konsens-Merge.
+
+
+PRs im privaten CLIScade-Next verwenden begründete Änderungen und konkrete Testnachweise. Eine menschliche Prüfung wird nicht durch einen KI-verfassten HUMAN-Text vorgetäuscht. Die ursprüngliche OpenHands-Regel bleibt für Upstream-Beiträge erhalten. Der `pull_request_target`-Check verwendet aus Sicherheitsgründen den Zielbranch: Die neue Regel greift dort erst nach Übernahme dieses Foundation-PRs. Upstream-GHCR-Veröffentlichungen laufen ausschließlich im OpenHands-Repository.
