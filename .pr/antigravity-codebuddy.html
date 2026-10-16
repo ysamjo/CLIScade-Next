@@ -1,0 +1,1229 @@
+<!doctype html><html lang="de"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>CLIScade Next: native ACP-Konten</title><style>body{margin:0;background:#fafaf3;color:#19372f;font:16px/1.6 system-ui}main{max-width:1100px;margin:auto;padding:40px 24px}h1{font-size:40px;line-height:1.15}h2{margin-top:44px}section{border-top:1px solid #bac9be;padding:18px 0}pre{overflow:auto;background:#eaf0e9;padding:12px;font-size:12px}a{color:#17694b}.note{background:#fff0d9;border-left:6px solid #e77b29;padding:16px}table{width:100%;border-collapse:collapse}td,th{padding:12px;text-align:left;border-bottom:1px solid #c8d0c5}svg{width:100%;height:auto}nav{font-size:13px;overflow-wrap:anywhere}code{background:#e8eee6;padding:2px 4px}</style><main><p>CLIScade Next · 0.7.0 · PR #17</p><h1>Antigravity und CodeBuddy über natives ACP</h1><p>Beide Agenten verwenden offizielle ACP-Implementierungen und das persistente CLI-Home. Antigravity ist erste, CodeBuddy zweite Routing-Priorität. Der Anbieterlogin benötigt keinen verpflichtenden API-Key.</p><p class="note">Google ist direkt bei Antigravity verifiziert. Das tatsächlich geöffnete CodeBuddy-CLI-Portal bietet E-Mail/OneID/SSO, keinen Google-Button. Google-Kontoanmeldung ist dort unbestätigt. Keine Ersatzanmeldung wurde vorgenommen.</p><h2>API und Laufzeit</h2><table><tr><th>Vorher</th><th>Nachher</th></tr><tr><td>Vier native CLI-Logins, Kiro-Rückleitungsfeld</td><td>Sechs Logins; Antigravity OAuth Personal und CodeBuddy international; gemeinsames Rückleitungsfeld</td></tr><tr><td>ACP-Prozess erbt Server-CWD</td><td>SDK-Fork setzt tatsächliches Prozess-CWD auf den Workspace</td></tr><tr><td>SDK wählt Auth nur über vorhandene Credentials</td><td>Optionales acp_auth_method muss vom Agenten angeboten werden</td></tr><tr><td>GET Login startet bei jedem Poll nativen Kontostatus</td><td>Laufender Login wird allein aus vorhandenem Prozess/Link gelesen</td></tr></table><svg viewBox="0 0 1000 255" role="img" aria-label="Native ACP-Anmeldung und Agentenausführung"><rect x="10" y="20" width="280" height="160" fill="#e7ece3" rx="10"/><text x="28" y="55">AgentLogin</text><text x="28" y="90">POST /agents/{id}/login</text><text x="28" y="125">GET: vorhandenen Login lesen</text><path d="M295 95h50" stroke="#db701a" stroke-width="4"/><rect x="350" y="20" width="290" height="160" fill="#ffd2aa" rx="10"/><text x="368" y="55">LoginService → account()</text><text x="368" y="90">initialize / authenticate</text><text x="368" y="125">keine Prompts oder Tools</text><path d="M645 95h50" stroke="#db701a" stroke-width="4"/><rect x="700" y="20" width="285" height="160" fill="#e7ece3" rx="10"/><text x="718" y="55">Native CLI + Providerportal</text><text x="718" y="90">Google / eigenes Konto</text><text x="718" y="125">persistentes HOME</text><text x="28" y="225">Task-Ausführung separat: OpenHands.attach → ACPAgent → isolierter Workspace</text></svg><section><h2>Auth besitzt einen eigenen, begrenzten Lebenszyklus</h2><p><a href="https://github.com/ysamjo/CLIScade-Next/blob/e8dbfcb96f6f8f866a679ba1e95435d8df4f7a3a/cliscade/src/cliscade_next/acp_login.py#L29">async def account · cliscade/src/cliscade_next/acp_login.py:29</a> initialisiert nur den nativen Agenten. CodeBuddy-Kontostatus wird vor Authenticate gelesen, weil Authenticate eine bestehende Anmeldung abmelden kann. Der native RPC liefert potenziell Tokens; nur ein boolescher Status verlässt den Helfer.</p><p><a href="https://github.com/ysamjo/CLIScade-Next/blob/e8dbfcb96f6f8f866a679ba1e95435d8df4f7a3a/cliscade/src/cliscade_next/login.py#L86">class LoginService · cliscade/src/cliscade_next/login.py:86</a> besitzt Prozessgruppe, Abbruch, URL-Erfassung, Timeout und private Marker. Erlaubte HTTPS-Hosts bleiben fest; localhost-Callbacks müssen Ziel und State entsprechen.</p><p><a href="https://github.com/ysamjo/CLIScade-Next/blob/e8dbfcb96f6f8f866a679ba1e95435d8df4f7a3a/cliscade/src/cliscade_next/api.py#L136">def login_state · cliscade/src/cliscade_next/api.py:136</a> startet während einer Anmeldung keinen konkurrierenden Statusprozess.</p></section><section><h2>Registry, SDK und Docker bleiben gemeinsam gepinnt</h2><p><a href="https://github.com/ysamjo/CLIScade-Next/blob/e8dbfcb96f6f8f866a679ba1e95435d8df4f7a3a/cliscade/src/cliscade_next/agents.py#L30">def registry · cliscade/src/cliscade_next/agents.py:30</a> priorisiert die neuen Agenten, bewahrt diese Priorität auch bei reiner Modellkonfiguration und lässt keine beliebigen Kommandos zu.</p><p><a href="https://github.com/ysamjo/CLIScade-Next/blob/e8dbfcb96f6f8f866a679ba1e95435d8df4f7a3a/deploy/Dockerfile.agent-server#L38">ENTRYPOINT · deploy/Dockerfile.agent-server:38</a> verwendet den Python-Agent-Server aus SDK-Fork 099e727. Das eingefrorene Upstream-Binary würde pip-Änderungen ignorieren. Quelle, Workspace-Start und Auth-Feld gehören in den separaten SDK-PR #1. Beide nativen Google-Linux-Binaries bleiben benachbart; lokal berechnete feste SHA-256-Werte prüfen Downloads.</p></section><section><h2>Nachweise und Grenzen</h2><p>41 Backend-Tests, 56 UI-Tests mit Node 24.19.0, 496 SDK-ACP-Tests bestanden. Ruff, TypeScript-Client-Build, Typecheck, ESLint und Prettier bestanden; 692 vorhandene ESLint-Warnungen. Alle sechs nativen CLI-Login-Starts und gezielter Abbruch auf ZimaOS bestanden.</p><p>CodeBuddy: lokaler authentifizierter Datei-E2E bestanden. Antigravity: Handshake und Google-Login-Start; persönliche Freigabe und Inferenz offen. Keine lokalen Credentials auf das NAS kopiert.</p><p>Docker-Neustart: Beads-Aufgabe cn-xp7, Session und Prüfergebnisse erhalten, Handoff an zweite ACP-Session im selben Workspace abgeschlossen; native Automation COMPLETED, danach deaktiviert. Kontrollierte Protokoll-Fixtures ersetzen keine Anbieter-Inferenz. Die private Serve-Route auf 9443 hat keinen Funnel-Eintrag.</p><p>Smartphone 390 px ohne horizontalen Überlauf. Kontoauswahl und nativer CodeBuddy-Anbieterlink live geprüft. UI-Belege sind zugriffsgeschützt separat unter .pr abgelegt.</p></section><h2>Dateien und prüfbarer Diff</h2><nav><ol><li><a href="#file0">.agents/skills/verify-openhands/references/feature-map/F29-cliscade-tasks.md</a></li><li><a href="#file1">AGENTS.md</a></li><li><a href="#file2">README.md</a></li><li><a href="#file3">__tests__/routes/cliscade-login.test.tsx</a></li><li><a href="#file4">cliscade/AGENTS.md</a></li><li><a href="#file5">cliscade/AGENTS_SUPPORTED.md</a></li><li><a href="#file6">cliscade/README.md</a></li><li><a href="#file7">cliscade/VALIDATION.md</a></li><li><a href="#file8">cliscade/agent-catalog.json</a></li><li><a href="#file9">cliscade/pyproject.toml</a></li><li><a href="#file10">cliscade/src/cliscade_next/acp_login.py</a></li><li><a href="#file11">cliscade/src/cliscade_next/agents.py</a></li><li><a href="#file12">cliscade/src/cliscade_next/api.py</a></li><li><a href="#file13">cliscade/src/cliscade_next/login.py</a></li><li><a href="#file14">cliscade/tests/test_acp_login.py</a></li><li><a href="#file15">cliscade/tests/test_api.py</a></li><li><a href="#file16">cliscade/tests/test_live_agents.py</a></li><li><a href="#file17">cliscade/upstream.json</a></li><li><a href="#file18">cliscade/uv.lock</a></li><li><a href="#file19">deploy/Dockerfile.agent-server</a></li><li><a href="#file20">deploy/Dockerfile.cliscade</a></li><li><a href="#file21">deploy/README.md</a></li><li><a href="#file22">deploy/docker-compose.yml</a></li><li><a href="#file23">deploy/verify-login.py</a></li><li><a href="#file24">src/components/features/cliscade/agent-login.tsx</a></li><li><a href="#file25">src/i18n/translation.json</a></li></ol></nav><section id="file0"><h3>.agents/skills/verify-openhands/references/feature-map/F29-cliscade-tasks.md</h3><p><a href="https://github.com/ysamjo/CLIScade-Next/blob/3f7987e9e7fdfbb26b15aff6e8ec45e54b6ab366/.agents/skills/verify-openhands/references/feature-map/F29-cliscade-tasks.md">Vorher</a> · <a href="https://github.com/ysamjo/CLIScade-Next/blob/e8dbfcb96f6f8f866a679ba1e95435d8df4f7a3a/.agents/skills/verify-openhands/references/feature-map/F29-cliscade-tasks.md">Geprüfter Stand</a></p><details><summary>Diff öffnen</summary><pre>diff --git a/.agents/skills/verify-openhands/references/feature-map/F29-cliscade-tasks.md b/.agents/skills/verify-openhands/references/feature-map/F29-cliscade-tasks.md
+index ce0b2db9a..066ebc6a1 100644
+--- a/.agents/skills/verify-openhands/references/feature-map/F29-cliscade-tasks.md
++++ b/.agents/skills/verify-openhands/references/feature-map/F29-cliscade-tasks.md
+@@ -46,3 +46,10 @@ Desktop- und Smartphone-Screenshots sowie sichtbare Fehler dokumentieren.
+ Unitäre Regression: `npx vitest run __tests__/routes/cliscade-tasks.test.tsx`.
+ 
+ Login-Regression: `npx vitest run __tests__/routes/cliscade-login.test.tsx __tests__/root.test.tsx`.
++
++0.7.0: `F29.login` umfasst Antigravity als erste Auswahl (Google OAuth Personal,
++localhost-Rückleitung) und CodeBuddy (internationales Portal, native Abfrage des
++Anmeldestatus). Bei Kiro/OpenCode Google wählen, soweit angeboten. Das geprüfte CodeBuddy-CLI-Portal
++zeigt E-Mail/OneID/SSO, keinen Google-Button; Google dort nicht bestätigt.
++Ein Login-Start ist kein Nachweis einer persönlichen Freigabe oder Inferenz.
++`deploy/verify-login.py` prüft alle sechs nativen Starts und den gezielten Abbruch.
+</pre></details></section><section id="file1"><h3>AGENTS.md</h3><p><a href="https://github.com/ysamjo/CLIScade-Next/blob/3f7987e9e7fdfbb26b15aff6e8ec45e54b6ab366/AGENTS.md">Vorher</a> · <a href="https://github.com/ysamjo/CLIScade-Next/blob/e8dbfcb96f6f8f866a679ba1e95435d8df4f7a3a/AGENTS.md">Geprüfter Stand</a></p><details><summary>Diff öffnen</summary><pre>diff --git a/AGENTS.md b/AGENTS.md
+index 6c722cc65..b29777cdf 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -101,3 +101,9 @@ CLIScade-Kontoanmeldung: Die lokale Route `/tasks` öffnet die eigene CLI-
+ Kontoanmeldung ohne LLM-Profil-Onboarding. Backend-Zugriffskontrollen und Cloud-
+ Onboarding bleiben erhalten. Auth-UX liegt in `agent-login.tsx`, Auth-Befehle
+ und Lebenszyklus im Integrationsdienst, Agentenausführung ausschließlich im SDK.
++
++CLIScade 0.7.0: Antigravity und CodeBuddy sind native ACP-Agenten. Der gepinnte
++SDK-Fork startet Agenten im Workspace und wählt angebotene Auth-Methoden. Das
++Agent-Server-Image führt dessen Python-Entrypoint aus; eine SDK-Installation
++neben dem eingefrorenen Upstream-Binary reicht nicht. Google ist der bevorzugte
++Kontologin, ohne API-Key-Pflicht; persönliche Anmeldung und Inferenz separat belegen.
+</pre></details></section><section id="file2"><h3>README.md</h3><p><a href="https://github.com/ysamjo/CLIScade-Next/blob/3f7987e9e7fdfbb26b15aff6e8ec45e54b6ab366/README.md">Vorher</a> · <a href="https://github.com/ysamjo/CLIScade-Next/blob/e8dbfcb96f6f8f866a679ba1e95435d8df4f7a3a/README.md">Geprüfter Stand</a></p><details><summary>Diff öffnen</summary><pre>diff --git a/README.md b/README.md
+index dcce500cf..11e7cb04d 100644
+--- a/README.md
++++ b/README.md
+@@ -1,3 +1,9 @@
++&lt;!-- CLIScade Next 0.7.0: Antigravity und CodeBuddy --&gt;
++Antigravity und CodeBuddy sind als native ACP-Agenten integriert und im Routing
++priorisiert. Kontologin bevorzugt Google im jeweiligen Anbieterportal, ohne
++verpflichtenden Anbieter-API-Key. Prüfstand und offene NAS-Anmeldungen:
++[ACP-Agenten](cliscade/AGENTS_SUPPORTED.md); [Installation](deploy/README.md).
++
+ &gt; **CLIScade Next:** Projekte und ACP-Aufgaben unter `/tasks` öffnen. Die
+ &gt; Kontoanmeldung nutzt die nativen CLIs ohne verpflichtende Anbieter-API-Keys.
+ &gt; [Installation auf ZimaOS](deploy/README.md) · [CLIScade-Dokumentation](cliscade/README.md)
+</pre></details></section><section id="file3"><h3>__tests__/routes/cliscade-login.test.tsx</h3><p><a href="https://github.com/ysamjo/CLIScade-Next/blob/3f7987e9e7fdfbb26b15aff6e8ec45e54b6ab366/__tests__/routes/cliscade-login.test.tsx">Vorher</a> · <a href="https://github.com/ysamjo/CLIScade-Next/blob/e8dbfcb96f6f8f866a679ba1e95435d8df4f7a3a/__tests__/routes/cliscade-login.test.tsx">Geprüfter Stand</a></p><details><summary>Diff öffnen</summary><pre>diff --git a/__tests__/routes/cliscade-login.test.tsx b/__tests__/routes/cliscade-login.test.tsx
+index c615040f5..07d4f52dc 100644
+--- a/__tests__/routes/cliscade-login.test.tsx
++++ b/__tests__/routes/cliscade-login.test.tsx
+@@ -28,6 +28,39 @@ function mount() {
+ }
+ 
+ describe(&quot;CLI account sign-in&quot;, () =&gt; {
++  it(&quot;prioritizes Antigravity and keeps CodeBuddy on its native browser flow&quot;, async () =&gt; {
++    vi.mocked(cliscadeRequest).mockImplementation(async (path) =&gt; ({
++      state: &quot;pending&quot;,
++      available: true,
++      mode: path.includes(&quot;codebuddy&quot;) ? &quot;browser&quot; : &quot;callback&quot;,
++      id: &quot;native-login&quot;,
++      url: path.includes(&quot;codebuddy&quot;)
++        ? &quot;https://www.codebuddy.ai/login&quot;
++        : &quot;https://accounts.google.com/o/oauth2/v2/auth&quot;,
++    }));
++    mount();
++    const selector = screen.getByLabelText(&quot;CLISCADE$LOGIN_AGENT&quot;);
++    expect(selector).toHaveValue(&quot;antigravity&quot;);
++    expect(
++      await screen.findByText(&quot;CLISCADE$LOGIN_ANTIGRAVITY&quot;),
++    ).toBeInTheDocument();
++    expect(
++      await screen.findByLabelText(&quot;CLISCADE$LOGIN_GENERIC_CALLBACK&quot;),
++    ).toBeInTheDocument();
++    fireEvent.change(selector, { target: { value: &quot;codebuddy&quot; } });
++    expect(
++      await screen.findByText(&quot;CLISCADE$LOGIN_CODEBUDDY&quot;),
++    ).toBeInTheDocument();
++    await waitFor(() =&gt;
++      expect(
++        screen.getByRole(&quot;link&quot;, { name: &quot;CLISCADE$LOGIN_OPEN&quot; }),
++      ).toHaveAttribute(&quot;href&quot;, &quot;https://www.codebuddy.ai/login&quot;),
++    );
++    expect(
++      screen.queryByLabelText(&quot;CLISCADE$LOGIN_GENERIC_CALLBACK&quot;),
++    ).not.toBeInTheDocument();
++  });
++
+   it(&quot;starts device login without API keys, displays the challenge and cancels it&quot;, async () =&gt; {
+     let state = {
+       state: &quot;idle&quot;,
+@@ -50,6 +83,9 @@ describe(&quot;CLI account sign-in&quot;, () =&gt; {
+       },
+     );
+     mount();
++    fireEvent.change(screen.getByLabelText(&quot;CLISCADE$LOGIN_AGENT&quot;), {
++      target: { value: &quot;codex&quot; },
++    });
+     fireEvent.click(
+       await screen.findByRole(&quot;button&quot;, { name: &quot;CLISCADE$LOGIN_START&quot; }),
+     );
+@@ -139,8 +175,10 @@ describe(&quot;CLI account sign-in&quot;, () =&gt; {
+     fireEvent.click(
+       screen.getByRole(&quot;button&quot;, { name: &quot;CLISCADE$LOGIN_START&quot; }),
+     );
+-    const callback = await screen.findByLabelText(&quot;CLISCADE$LOGIN_CALLBACK&quot;);
+-    expect(callback).toHaveAttribute(&quot;aria-describedby&quot;, &quot;kiro-callback-help&quot;);
++    const callback = await screen.findByLabelText(
++      &quot;CLISCADE$LOGIN_GENERIC_CALLBACK&quot;,
++    );
++    expect(callback).toHaveAttribute(&quot;aria-describedby&quot;, &quot;login-callback-help&quot;);
+     const value = &quot;http://localhost:3128/?code=one-time&amp;state=native-state&quot;;
+     fireEvent.change(callback, { target: { value } });
+     fireEvent.click(
+</pre></details></section><section id="file4"><h3>cliscade/AGENTS.md</h3><p><a href="https://github.com/ysamjo/CLIScade-Next/blob/3f7987e9e7fdfbb26b15aff6e8ec45e54b6ab366/cliscade/AGENTS.md">Vorher</a> · <a href="https://github.com/ysamjo/CLIScade-Next/blob/e8dbfcb96f6f8f866a679ba1e95435d8df4f7a3a/cliscade/AGENTS.md">Geprüfter Stand</a></p><details><summary>Diff öffnen</summary><pre>diff --git a/cliscade/AGENTS.md b/cliscade/AGENTS.md
+index a8af57a9f..14161d43d 100644
+--- a/cliscade/AGENTS.md
++++ b/cliscade/AGENTS.md
+@@ -50,3 +50,11 @@ Gerätefluss. Der Browser-Helfer übergibt nur `app.kiro.dev`-URLs privat an den
+ Login-Vorgang. Rückleitungen nur an dessen localhost-Ziel mit passendem State
+ weitergeben; keine Redirects oder Proxy-Umgebungsvariablen verwenden. OpenCode
+ meldet sein eigenes Console-Konto an; OpenAI-Credentials sind kein Nachweis dafür.
++
++Antigravity/CodeBuddy: `acp_login.py` verwendet ausschließlich den offiziellen
++ACP-Client für Initialize, Authenticate und den lesenden nativen Kontostatus.
++Keine Sessions, Prompts oder Tools in diesem Auth-Helfer. CodeBuddy vor einer
++Anmeldung auf vorhandene Credentials prüfen, da Authenticate eine bestehende
++Anmeldung sonst abmeldet. Antigravity verwendet ausschließlich `oauth-personal`.
++Google ist der bevorzugte Portal-Login; keine erfundenen OAuth-Parameter oder
++API-Key-Pflicht einführen. SDK-Fork und Agent-Server-Runtime gemeinsam pinnen.
+</pre></details></section><section id="file5"><h3>cliscade/AGENTS_SUPPORTED.md</h3><p><a href="https://github.com/ysamjo/CLIScade-Next/blob/3f7987e9e7fdfbb26b15aff6e8ec45e54b6ab366/cliscade/AGENTS_SUPPORTED.md">Vorher</a> · <a href="https://github.com/ysamjo/CLIScade-Next/blob/e8dbfcb96f6f8f866a679ba1e95435d8df4f7a3a/cliscade/AGENTS_SUPPORTED.md">Geprüfter Stand</a></p><details><summary>Diff öffnen</summary><pre>diff --git a/cliscade/AGENTS_SUPPORTED.md b/cliscade/AGENTS_SUPPORTED.md
+index e5929b9f3..52a25e3cf 100644
+--- a/cliscade/AGENTS_SUPPORTED.md
++++ b/cliscade/AGENTS_SUPPORTED.md
+@@ -7,6 +7,8 @@ Prüfstand: 16. Oktober 2026. Produktintegration, ACP-Handshake und authentifizi
+ | Claude Code | `npx -y --prefer-offline @agentclientprotocol/claude-agent-acp@0.63.0` | Authentifizierter lokaler Datei-E2E bestanden |
+ | Codex | `npx -y --prefer-offline @agentclientprotocol/codex-acp@1.10.0` | Handshake bestanden; Datei-E2E gescheitert: lokales Modell gpt-6.1-sol wird mit ChatGPT-Anmeldung abgewiesen |
+ | OpenCode | `npx -y --prefer-offline opencode-ai@1.18.23 acp` | ACP antwortet; Datei-E2E erzeugte keine angeforderte Datei. Nicht vollständig unterstützt |
++| Antigravity | `agy_acp_server.par --uid=` (Linux) | Offizieller Server 1.4.0: Handshake und Google-Login-Start bestanden; Inferenz noch offen |
++| CodeBuddy | `codebuddy --acp` | 2.168.0: authentifizierter lokaler Datei-E2E mit korrigiertem Prozess-Workspace bestanden; NAS-Konto noch offen |
+ | Kiro | `kiro-cli acp` | Kiro 2.31.1: Handshake, neun gemeldete Modelle und authentifizierter Datei-E2E bestanden |
+ 
+ Die lokalen Datei-E2Es sind keine Behauptung über vorhandene Logins im späteren NAS-Container. Dort müssen Anbieter über die bestehenden OpenHands-Secrets beziehungsweise die jeweilige CLI-Anmeldung konfiguriert und erneut geprüft werden.
+@@ -26,8 +28,6 @@ Die offizielle ACP-Registry führt die folgenden Implementierungen. Ein Registry
+ | Mistral Vibe | 2.26.1 | `Binary; Plattformliste im Katalog` | Nicht live verifiziert, nicht freigegeben |
+ | Gemini CLI | 0.64.0 | `npx --yes @google/gemini-cli@0.64.0 --acp` | Nicht live verifiziert, nicht freigegeben |
+ | pi ACP | 0.0.34 | `npx --yes pi-acp@0.0.34 ` | Nicht live verifiziert, nicht freigegeben |
+-| Codebuddy Code | 2.168.0 | `npx --yes @tencent-ai/codebuddy-code@2.168.0 --acp` | Nicht live verifiziert, nicht freigegeben |
+-| Google Antigravity | 1.4.0 | `Binary; Plattformliste im Katalog` | Nicht live verifiziert, nicht freigegeben |
+ | Grok Build | 1.0.60 | `npx --yes @xai-official/grok@1.0.60 agent stdio` | Nicht live verifiziert, nicht freigegeben |
+ 
+ Quellen und Plattformartefakte: `agent-catalog.json`; die Herkunftsrevision steht in `upstream.json`. Kiro: https://kiro.dev/docs/cli/acp/.
+@@ -54,3 +54,5 @@ Kiro/Portal mit localhost-Rückleitung. Login-Programme sind im eigenen Image en
+ Login-Starttests bestätigen Anbieterlinks/Gerätecodes und gezielten Abbruch;
+ sie bestätigen weder die persönliche Kontofreigabe noch erfolgreiche Inferenz.
+ Andere OpenCode-Modellanbieter bleiben separat; der Kontologin verwendet die eigene Console. Unternehmens-Identity-Center ist nicht live verifiziert.
++
++In 0.7.0 sind Antigravity und CodeBuddy priorisiert. Antigravity öffnet Google direkt. Im geprüften CodeBuddy-CLI-Portal war Google nicht verfügbar (E-Mail/OneID/SSO); Google-Kontoanmeldung bei CodeBuddy ist daher nicht bestätigt. Keine vollständige NAS-Unterstützung ohne persönlichen Login und erfolgreichen Inferenztest behaupten. Der SDK-Fork und seine Basis sind in `upstream.json` gepinnt.
+</pre></details></section><section id="file6"><h3>cliscade/README.md</h3><p><a href="https://github.com/ysamjo/CLIScade-Next/blob/3f7987e9e7fdfbb26b15aff6e8ec45e54b6ab366/cliscade/README.md">Vorher</a> · <a href="https://github.com/ysamjo/CLIScade-Next/blob/e8dbfcb96f6f8f866a679ba1e95435d8df4f7a3a/cliscade/README.md">Geprüfter Stand</a></p><details><summary>Diff öffnen</summary><pre>diff --git a/cliscade/README.md b/cliscade/README.md
+index 087249aed..d290d6908 100644
+--- a/cliscade/README.md
++++ b/cliscade/README.md
+@@ -1,14 +1,14 @@
+ # CLIScade Next Integration
+ 
+ Die Integration verwendet `RemoteConversation`, `RemoteWorkspace` und `ACPAgent`
+-aus OpenHands SDK 1.55.1. ACP-JSON-RPC, Permissions, Sessions, Ereignisse und
++aus dem OpenHands-SDK-Fork 1.55.1+cliscade.1 (Revision in `upstream.json`). ACP-JSON-RPC, Permissions, Sessions, Ereignisse und
+ Abbruch implementiert OpenHands. Der zusätzliche Dienst besitzt ausschließlich
+ Beads-Zugriff, Routing und ein Attempt-Ledger.
+ 
+ ## Lokal starten
+ 
+ 1. `uv sync --frozen` in diesem Verzeichnis ausführen.
+-2. Einen OpenHands Agent Server 1.55.1 mit persistentem Datenverzeichnis starten.
++2. Den gepinnten SDK-Fork mit Agent Server und persistentem Datenverzeichnis starten (siehe `../deploy/README.md`).
+ 3. `CLISCADE_PROJECTS`, `CLISCADE_STATE`, `CLISCADE_AGENT_SERVER` und
+    `CLISCADE_API_KEY` in einer lokalen, nicht eingecheckten Umgebung setzen.
+    Der Schlüssel muss dem Session-Key des Agent Servers entsprechen.
+@@ -116,3 +116,5 @@ OpenCode/Console und Kiro. Es werden keine Anbieter-API-Keys vorausgesetzt.
+ Native Login-Programme laufen ausschließlich für die Anmeldung; alle
+ Agentenaufträge verwenden weiterhin OpenHands ACP. Installation, persistente
+ Credentials, Einschränkungen und Prüfanleitung: [Deployment](../deploy/README.md).
++
++Antigravity und CodeBuddy stehen in 0.7.0 zuerst zur Auswahl. Google ist die bevorzugte Kontoanmeldung; native Portale und ACP-Authentifizierung bleiben maßgeblich. Prüfnachweise und Grenzen stehen in `AGENTS_SUPPORTED.md`.
+</pre></details></section><section id="file7"><h3>cliscade/VALIDATION.md</h3><p><a href="https://github.com/ysamjo/CLIScade-Next/blob/3f7987e9e7fdfbb26b15aff6e8ec45e54b6ab366/cliscade/VALIDATION.md">Vorher</a> · <a href="https://github.com/ysamjo/CLIScade-Next/blob/e8dbfcb96f6f8f866a679ba1e95435d8df4f7a3a/cliscade/VALIDATION.md">Geprüfter Stand</a></p><details><summary>Diff öffnen</summary><pre>diff --git a/cliscade/VALIDATION.md b/cliscade/VALIDATION.md
+index 83712cdcf..0350eb36c 100644
+--- a/cliscade/VALIDATION.md
++++ b/cliscade/VALIDATION.md
+@@ -152,3 +152,48 @@ Quellvertrag OpenCode 1.18.23:
+ Kiro: [offizielle CLI-Anmeldung](https://kiro.dev/docs/cli/authentication/); der
+ Gerätefluss der tatsächlich gepinnten Linux-CLI 2.31.1 wählte beim Test AWS und
+ wird deshalb für die allgemeine Kontowahl nicht verwendet.
++
++## 0.7.0: Antigravity, CodeBuddy und Google-Kontoanmeldung
++
++- Backend: 41 bestanden, 8 opt-in Prüfungen übersprungen. Ruff bestanden.
++- UI: 56 Tests in vier Dateien mit Node 24.19.0 bestanden (Login, Aufgaben,
++  Root und Sidebar). Der Shell-Standard Node 22 führte zu Timeouts bei lazy
++  geladenem Cloud-Onboarding; mit der geforderten Node-Version bestanden.
++- Lint/Typecheck/Prettier bestanden; 692 vorhandene ESLint-Warnungen, keine Fehler.
++  Übersetzungen vollständig, F29-Feature-Map gültig. Canvas-Docker-Build bestanden.
++- SDK-Fork: 496 ACP-Tests, Ruff und TypeScript-Client-Build bestanden.
++  Auth-Auswahl, echte Prozess-Arbeitsverzeichnisse und Discovery geprüft.
++- CodeBuddy 2.168.0: lokaler authentifizierter Datei-E2E mit vorhandenem Konto
++  bestanden. Der SDK-Fix setzt das Prozess-CWD, weil CodeBuddy session/new.cwd
++  nicht übernimmt. Keine lokale Anmeldung auf das NAS kopiert.
++- Alle sechs nativen CLI-Login-Starts im isolierten NAS-Container bestanden:
++  Codex → auth.openai.com, Claude → claude.com, OpenCode → opencode.ai,
++  Kiro → app.kiro.dev, Antigravity → accounts.google.com,
++  CodeBuddy → www.codebuddy.ai. Eigene Login-Prozesse gezielt beendet.
++- SDK-Fork im tatsächlichen Python-Agent-Server-Entrypoint geprüft:
++  OpenAPI enthält acp_auth_method; /ready liefert 200. Das Upstream-Binary
++  selbst verwendet diesen Python-SDK-Patch nicht.
++- NAS: eigene Images 0.7.0 gebaut; alte Session weiterhin HTTP 200.
++  Neues Beads-Smoke-Task cn-xp7, ACP-Session und verifiziertes Backup angelegt.
++
++Persönliche Google-Freigabe für Antigravity und NAS-CodeBuddy-Inferenz sind
++noch offen. Login-Link, Handshake und Mock-Tests ersetzen diese Nachweise nicht.
++
++Nach vollständigem Neustart des Agent Servers und Integrationsdienstes:
++Session `6cfabdfa-9f2c-4837-95a5-100dcfa1d663` wieder angebunden, Handoff an
++zweite ACP-Session `6725566b-9cc0-492a-8cba-fca725cd32ae` abgeschlossen.
++Aufgabe `cn-xp7`, derselbe Workspace, Git-Stand und verifizierte Prüfergebnisse
++blieben erhalten. Native Automation meldet `COMPLETED`; danach deaktiviert.
++Protokoll-Fixtures, keine Anbieter-Inferenz. Alle Health-Endpunkte HTTP 200.
++
++Live-UI: Antigravity öffnet Google, CodeBuddy öffnet sein internationales Portal.
++390 px Smartphone-Breite: kein horizontaler Überlauf; CodeBuddy verlangt keine
++localhost-Rückleitung. Das echte CodeBuddy-Portal zeigt aktuell E-Mail, Tencent
++OneID und Enterprise-SSO, keinen Google-Button. Google-Kontoanmeldung ist dort
++nicht bestätigt; keine Ersatzanmeldung vorgenommen. Der frühere allgemeine
++Google-Hinweis wurde nach dieser Live-Prüfung korrigiert.
++
++Login-Polling prüft während laufender Anmeldung ausschließlich den vorhandenen
++Prozess und dessen erfassten Anbieterlink. Es startet keinen konkurrierenden
++nativen Statusprozess. Neuer API-Regressionstest zunächst rot, danach grün;
++41 Backend-Tests bestanden, 8 opt-in Prüfungen übersprungen.
+</pre></details></section><section id="file8"><h3>cliscade/agent-catalog.json</h3><p><a href="https://github.com/ysamjo/CLIScade-Next/blob/3f7987e9e7fdfbb26b15aff6e8ec45e54b6ab366/cliscade/agent-catalog.json">Vorher</a> · <a href="https://github.com/ysamjo/CLIScade-Next/blob/e8dbfcb96f6f8f866a679ba1e95435d8df4f7a3a/cliscade/agent-catalog.json">Geprüfter Stand</a></p><details><summary>Diff öffnen</summary><pre>diff --git a/cliscade/agent-catalog.json b/cliscade/agent-catalog.json
+index 360121ebf..0eb56c741 100644
+--- a/cliscade/agent-catalog.json
++++ b/cliscade/agent-catalog.json
+@@ -379,7 +379,10 @@
+       }
+     },
+     &quot;source&quot;: &quot;https://github.com/agentclientprotocol/registry/blob/main/codebuddy-code/agent.json&quot;,
+-    &quot;product_status&quot;: &quot;not_live_verified&quot;
++    &quot;product_status&quot;: &quot;local_file_e2e_verified&quot;,
++    &quot;source_revision&quot;: &quot;43c4f27d8d579789c4a2eb55e46f64153bc89709&quot;,
++    &quot;nas_account_verified&quot;: false,
++    &quot;google_login&quot;: &quot;not_offered_in_checked_native_portal&quot;
+   },
+   {
+     &quot;id&quot;: &quot;antigravity-acp&quot;,
+@@ -421,7 +424,9 @@
+       }
+     },
+     &quot;source&quot;: &quot;https://github.com/agentclientprotocol/registry/blob/main/antigravity-acp/agent.json&quot;,
+-    &quot;product_status&quot;: &quot;not_live_verified&quot;
++    &quot;product_status&quot;: &quot;protocol_and_login_start_verified&quot;,
++    &quot;source_revision&quot;: &quot;43c4f27d8d579789c4a2eb55e46f64153bc89709&quot;,
++    &quot;nas_account_verified&quot;: false
+   },
+   {
+     &quot;id&quot;: &quot;grok-build&quot;,
+</pre></details></section><section id="file9"><h3>cliscade/pyproject.toml</h3><p><a href="https://github.com/ysamjo/CLIScade-Next/blob/3f7987e9e7fdfbb26b15aff6e8ec45e54b6ab366/cliscade/pyproject.toml">Vorher</a> · <a href="https://github.com/ysamjo/CLIScade-Next/blob/e8dbfcb96f6f8f866a679ba1e95435d8df4f7a3a/cliscade/pyproject.toml">Geprüfter Stand</a></p><details><summary>Diff öffnen</summary><pre>diff --git a/cliscade/pyproject.toml b/cliscade/pyproject.toml
+index d60553c32..5b862cea7 100644
+--- a/cliscade/pyproject.toml
++++ b/cliscade/pyproject.toml
+@@ -1,17 +1,18 @@
+ [project]
+ name = &quot;cliscade-next&quot;
+-version = &quot;0.6.1&quot;
++version = &quot;0.7.0&quot;
+ description = &quot;Beads- und ACP-Orchestrierung für OpenHands Agent Canvas&quot;
+ requires-python = &quot;&gt;=3.13&quot;
+ dependencies = [
+   &quot;fastapi==0.136.3&quot;,
+   &quot;filelock==3.32.7&quot;,
+   &quot;httpx==0.28.1&quot;,
+-  &quot;openhands-sdk==1.55.1&quot;,
++  &quot;openhands-sdk==1.55.1+cliscade.1&quot;,
+   &quot;uvicorn==0.54.0&quot;,
+ ]
+ 
+ [project.scripts]
++cliscade-acp-login = &quot;cliscade_next.acp_login:main&quot;
+ cliscade-login-browser = &quot;cliscade_next.login:capture_browser&quot;
+ 
+ [build-system]
+@@ -33,3 +34,6 @@ testpaths = [&quot;tests&quot;]
+ 
+ [tool.ruff.lint.isort]
+ known-first-party = [&quot;cliscade_next&quot;]
++
++[tool.uv.sources]
++openhands-sdk = { git = &quot;https://github.com/ysamjo/CLIScade-Next-SDK.git&quot;, rev = &quot;099e727faeb869171564a4d09276f576a07c4400&quot;, subdirectory = &quot;openhands-sdk&quot; }
+</pre></details></section><section id="file10"><h3>cliscade/src/cliscade_next/acp_login.py</h3><p><a href="https://github.com/ysamjo/CLIScade-Next/blob/3f7987e9e7fdfbb26b15aff6e8ec45e54b6ab366/cliscade/src/cliscade_next/acp_login.py">Vorher</a> · <a href="https://github.com/ysamjo/CLIScade-Next/blob/e8dbfcb96f6f8f866a679ba1e95435d8df4f7a3a/cliscade/src/cliscade_next/acp_login.py">Geprüfter Stand</a></p><details><summary>Diff öffnen</summary><pre>diff --git a/cliscade/src/cliscade_next/acp_login.py b/cliscade/src/cliscade_next/acp_login.py
+new file mode 100644
+index 000000000..0826c10f5
+--- /dev/null
++++ b/cliscade/src/cliscade_next/acp_login.py
+@@ -0,0 +1,78 @@
++&quot;&quot;&quot;Kontoanmeldung über ACP; keine Prompts, Tools oder Agenten-Ausführungen.&quot;&quot;&quot;
++
++import asyncio
++import os
++import subprocess
++import sys
++import tempfile
++from pathlib import Path
++
++from acp import Client, spawn_agent_process
++from acp.schema import CreateElicitationResponse
++
++from cliscade_next.agents import registry
++
++METHODS = {&quot;antigravity&quot;: &quot;oauth-personal&quot;, &quot;codebuddy&quot;: &quot;external&quot;}
++
++
++class LoginClient(Client):
++    async def request_permission(self, **kwargs):
++        raise ValueError(&quot;Werkzeugaufrufe sind bei der Kontoanmeldung nicht erlaubt&quot;)
++
++    async def ext_method(self, method, params):
++        raise ValueError(&quot;Unbekannte Anfrage während der Kontoanmeldung&quot;)
++
++    async def create_elicitation(self, message, mode, **kwargs):
++        return CreateElicitationResponse(action=&quot;decline&quot;)
++
++
++async def account(agent_id, action):
++    command = registry()[agent_id].command
++    env = dict(os.environ)
++    if action == &quot;status&quot; and agent_id == &quot;antigravity&quot;:
++        marker = Path.home() / &quot;.cliscade-accounts&quot; / agent_id
++        if not marker.is_file():
++            return False
++        env[&quot;BROWSER&quot;] = &quot;/usr/bin/false&quot;
++    with tempfile.TemporaryDirectory(prefix=&quot;cliscade-auth-&quot;) as cwd:
++        async with spawn_agent_process(
++            LoginClient(),
++            *command,
++            env=env,
++            cwd=cwd,
++            transport_kwargs={&quot;stderr&quot;: subprocess.DEVNULL},
++        ) as (connection, process):
++            response = await connection.initialize(protocol_version=1)
++            methods = {method.id for method in response.auth_methods or []}
++            method = METHODS[agent_id]
++            if method not in methods:
++                return False
++            if agent_id == &quot;codebuddy&quot;:
++                info = await connection.ext_method(&quot;codebuddy.ai/getUserInfo&quot;, {})
++                connected = bool((info.get(&quot;userInfo&quot;) or {}).get(&quot;userId&quot;))
++                if action == &quot;status&quot; or connected:
++                    return connected
++            await connection.authenticate(method_id=method)
++            return True
++
++
++def main():
++    if (
++        len(sys.argv) != 3
++        or sys.argv[1] not in METHODS
++        or sys.argv[2] not in (&quot;login&quot;, &quot;status&quot;)
++    ):
++        raise SystemExit(2)
++    try:
++        timeout = 12 if sys.argv[2] == &quot;status&quot; else 900
++        connected = asyncio.run(
++            asyncio.wait_for(account(sys.argv[1], sys.argv[2]), timeout)
++        )
++    except Exception:
++        raise SystemExit(1) from None
++    print(&quot;connected&quot; if connected else &quot;disconnected&quot;)
++    raise SystemExit(0 if connected else 1)
++
++
++if __name__ == &quot;__main__&quot;:
++    main()
+</pre></details></section><section id="file11"><h3>cliscade/src/cliscade_next/agents.py</h3><p><a href="https://github.com/ysamjo/CLIScade-Next/blob/3f7987e9e7fdfbb26b15aff6e8ec45e54b6ab366/cliscade/src/cliscade_next/agents.py">Vorher</a> · <a href="https://github.com/ysamjo/CLIScade-Next/blob/e8dbfcb96f6f8f866a679ba1e95435d8df4f7a3a/cliscade/src/cliscade_next/agents.py">Geprüfter Stand</a></p><details><summary>Diff öffnen</summary><pre>diff --git a/cliscade/src/cliscade_next/agents.py b/cliscade/src/cliscade_next/agents.py
+index f1e955639..a7be8dcf8 100644
+--- a/cliscade/src/cliscade_next/agents.py
++++ b/cliscade/src/cliscade_next/agents.py
+@@ -2,6 +2,7 @@
+ 
+ import json
+ import os
++import sys
+ from dataclasses import dataclass
+ from pathlib import Path
+ from urllib.parse import quote
+@@ -32,6 +33,12 @@ def registry():
+         for key in (&quot;codex&quot;, &quot;claude-code&quot;, &quot;opencode&quot;)
+     }
+     agents[&quot;kiro&quot;] = Agent(&quot;kiro&quot;, (&quot;kiro-cli&quot;, &quot;acp&quot;))
++    agents[&quot;antigravity&quot;] = Agent(
++        &quot;antigravity&quot;,
++        (&quot;agy_acp_server.par&quot;,) + ((&quot;--uid=&quot;,) if sys.platform == &quot;linux&quot; else ()),
++        priority=1,
++    )
++    agents[&quot;codebuddy&quot;] = Agent(&quot;codebuddy&quot;, (&quot;codebuddy&quot;, &quot;--acp&quot;), priority=2)
+     config = os.environ.get(&quot;CLISCADE_AGENT_CONFIG&quot;)
+     if config:
+         policies = json.loads(Path(config).read_text())
+@@ -44,7 +51,7 @@ def registry():
+             }:
+                 raise ValueError(&quot;Unbekannte ACP-Route oder ungültige Registry-Felder&quot;)
+             model = policy.get(&quot;model&quot;)
+-            priority = policy.get(&quot;priority&quot;, 10)
++            priority = policy.get(&quot;priority&quot;, agents[key].priority)
+             enabled = policy.get(&quot;enabled&quot;, True)
+             capabilities = policy.get(&quot;capabilities&quot;, [&quot;coding&quot;, &quot;review&quot;])
+             if (
+@@ -126,6 +133,7 @@ class OpenHands:
+                 acp_server=agent.id if agent.id in ACP_PROVIDERS else &quot;custom&quot;,
+                 acp_command=list(agent.command),
+                 acp_startup_timeout=45,
++                acp_auth_method=&quot;oauth-personal&quot; if agent.id == &quot;antigravity&quot; else None,
+             )
+             response = workspace.client.post(
+                 &quot;/api/acp/models&quot;,
+@@ -163,6 +171,9 @@ class OpenHands:
+                     agent=ACPAgent(
+                         acp_command=list(agent.command),
+                         acp_model=agent.model,
++                        acp_auth_method=&quot;oauth-personal&quot;
++                        if agent.id == &quot;antigravity&quot;
++                        else None,
+                         acp_server=agent.id if agent.id in ACP_PROVIDERS else None,
+                         acp_file_secrets=list(ACP_PROVIDERS[agent.id].file_secrets)
+                         if agent.id in ACP_PROVIDERS
+</pre></details></section><section id="file12"><h3>cliscade/src/cliscade_next/api.py</h3><p><a href="https://github.com/ysamjo/CLIScade-Next/blob/3f7987e9e7fdfbb26b15aff6e8ec45e54b6ab366/cliscade/src/cliscade_next/api.py">Vorher</a> · <a href="https://github.com/ysamjo/CLIScade-Next/blob/e8dbfcb96f6f8f866a679ba1e95435d8df4f7a3a/cliscade/src/cliscade_next/api.py">Geprüfter Stand</a></p><details><summary>Diff öffnen</summary><pre>diff --git a/cliscade/src/cliscade_next/api.py b/cliscade/src/cliscade_next/api.py
+index 87c797bbc..071763ed4 100644
+--- a/cliscade/src/cliscade_next/api.py
++++ b/cliscade/src/cliscade_next/api.py
+@@ -134,7 +134,10 @@ def create_app(settings=None, orchestrator=None):
+ 
+     @app.get(prefix + &quot;/agents/{agent_id}/login&quot;)
+     def login_state(agent_id: str):
+-        return {**login.current(agent_id), **login.status(agent_id)}
++        state = login.current(agent_id)
++        if state[&quot;state&quot;] == &quot;pending&quot;:
++            return {**state, &quot;available&quot;: True, &quot;connected&quot;: False}
++        return {**state, **login.status(agent_id)}
+ 
+     @app.post(prefix + &quot;/agents/{agent_id}/login&quot;)
+     def login_start(agent_id: str, body: LoginInput):
+</pre></details></section><section id="file13"><h3>cliscade/src/cliscade_next/login.py</h3><p><a href="https://github.com/ysamjo/CLIScade-Next/blob/3f7987e9e7fdfbb26b15aff6e8ec45e54b6ab366/cliscade/src/cliscade_next/login.py">Vorher</a> · <a href="https://github.com/ysamjo/CLIScade-Next/blob/e8dbfcb96f6f8f866a679ba1e95435d8df4f7a3a/cliscade/src/cliscade_next/login.py">Geprüfter Stand</a></p><details><summary>Diff öffnen</summary><pre>diff --git a/cliscade/src/cliscade_next/login.py b/cliscade/src/cliscade_next/login.py
+index d1b24ccad..ec2bda662 100644
+--- a/cliscade/src/cliscade_next/login.py
++++ b/cliscade/src/cliscade_next/login.py
+@@ -9,6 +9,7 @@ import shutil
+ import signal
+ import sqlite3
+ import subprocess
++import sys
+ import tempfile
+ import threading
+ import time
+@@ -37,6 +38,16 @@ PROVIDERS = {
+         &quot;status&quot;: (&quot;kiro-cli&quot;, &quot;whoami&quot;, &quot;--format&quot;, &quot;json&quot;),
+         &quot;mode&quot;: &quot;callback&quot;,
+     },
++    &quot;antigravity&quot;: {
++        &quot;login&quot;: (&quot;cliscade-acp-login&quot;, &quot;antigravity&quot;, &quot;login&quot;),
++        &quot;status&quot;: (&quot;cliscade-acp-login&quot;, &quot;antigravity&quot;, &quot;status&quot;),
++        &quot;mode&quot;: &quot;callback&quot;,
++    },
++    &quot;codebuddy&quot;: {
++        &quot;login&quot;: (&quot;cliscade-acp-login&quot;, &quot;codebuddy&quot;, &quot;login&quot;),
++        &quot;status&quot;: (&quot;cliscade-acp-login&quot;, &quot;codebuddy&quot;, &quot;status&quot;),
++        &quot;mode&quot;: &quot;browser&quot;,
++    },
+ }
+ HOSTS = {
+     &quot;codex&quot;: {&quot;auth.openai.com&quot;},
+@@ -48,6 +59,8 @@ HOSTS = {
+         &quot;console.anthropic.com&quot;,
+     },
+     &quot;kiro&quot;: {&quot;app.kiro.dev&quot;},
++    &quot;antigravity&quot;: {&quot;accounts.google.com&quot;},
++    &quot;codebuddy&quot;: {&quot;www.codebuddy.ai&quot;, &quot;codebuddy.ai&quot;},
+ }
+ ANSI = re.compile(r&quot;\x1b\[[0-?]*[ -/]*[@-~]&quot;)
+ LOGIN_TIMEOUT = 900
+@@ -62,7 +75,7 @@ def login_challenge(provider, output):
+     code_text = re.sub(r&quot;https://[^\s&lt;&gt;\x1b]+&quot;, &quot;&quot;, text)
+     code = (
+         None
+-        if provider in (&quot;claude-code&quot;, &quot;kiro&quot;)
++        if provider in (&quot;claude-code&quot;, &quot;kiro&quot;, &quot;antigravity&quot;, &quot;codebuddy&quot;)
+         else re.search(
+             r&quot;(?&lt;![\w/-])[A-Za-z0-9]{4}-[A-Za-z0-9]{4,6}(?![\w/-])&quot;, code_text
+         )
+@@ -94,6 +107,9 @@ class LoginService:
+                 &quot;NO_PROXY&quot;,
+             )
+         }
++        env[&quot;PATH&quot;] = (
++            str(Path(sys.executable).parent) + os.pathsep + env.get(&quot;PATH&quot;, &quot;&quot;)
++        )
+         env.update(HOME=str(self.home), BROWSER=&quot;true&quot;, NO_COLOR=&quot;1&quot;, TERM=&quot;dumb&quot;)
+         return env
+ 
+@@ -104,6 +120,16 @@ class LoginService:
+ 
+     def status(self, provider):
+         spec = self.provider(provider)
++        if provider in (&quot;antigravity&quot;, &quot;codebuddy&quot;):
++            from cliscade_next.agents import registry
++
++            if (
++                shutil.which(
++                    registry()[provider].command[0], path=self.environment().get(&quot;PATH&quot;)
++                )
++                is None
++            ):
++                return {&quot;available&quot;: False, &quot;connected&quot;: False}
+         if provider == &quot;opencode&quot;:
+             available = (
+                 shutil.which(spec[&quot;login&quot;][0], path=self.environment().get(&quot;PATH&quot;))
+@@ -183,11 +209,12 @@ class LoginService:
+             self.home.mkdir(parents=True, exist_ok=True, mode=0o700)
+             browser = None
+             env = self.environment()
+-            if spec[&quot;mode&quot;] == &quot;callback&quot;:
++            if spec[&quot;mode&quot;] in (&quot;callback&quot;, &quot;browser&quot;):
+                 browser = tempfile.TemporaryDirectory(prefix=&quot;cliscade-login-&quot;)
+                 env[&quot;BROWSER&quot;] = (
+                     shutil.which(&quot;cliscade-login-browser&quot;) or &quot;cliscade-login-browser&quot;
+                 )
++                env[&quot;CLISCADE_LOGIN_AGENT&quot;] = provider
+                 env[&quot;CLISCADE_LOGIN_URL_FILE&quot;] = str(Path(browser.name) / &quot;url&quot;)
+             try:
+                 process = subprocess.Popen(
+@@ -241,7 +268,10 @@ class LoginService:
+                             if value:
+                                 job[&quot;challenge&quot;][key] = value
+             code = process.wait()
+-            connected = code == 0 and self.status(provider)[&quot;connected&quot;]
++            connected = code == 0 and (
++                provider in (&quot;antigravity&quot;, &quot;codebuddy&quot;)
++                or self.status(provider)[&quot;connected&quot;]
++            )
+             if connected and self.on_complete:
+                 try:
+                     self.on_complete(provider, self.home)
+@@ -305,17 +335,15 @@ class LoginService:
+             or not params.get(&quot;state&quot;)
+             or not hmac.compare_digest(query.get(&quot;state&quot;, [&quot;&quot;])[0], params[&quot;state&quot;][0])
+         ):
+-            raise ValueError(
+-                &quot;Rückleitungsadresse gehört nicht zu dieser Kiro-Anmeldung&quot;
+-            )
++            raise ValueError(&quot;Rückleitungsadresse gehört nicht zu dieser Anmeldung&quot;)
+         connection = http.client.HTTPConnection(&quot;127.0.0.1&quot;, expected.port, timeout=15)
+         try:
+             connection.request(&quot;GET&quot;, f&quot;{expected.path or &#x27;/&#x27;}?{actual.query}&quot;)
+             if connection.getresponse().status &gt;= 400:
+-                raise ValueError(&quot;Kiro hat die Rückleitung abgewiesen&quot;)
++                raise ValueError(&quot;Der Anbieter hat die Rückleitung abgewiesen&quot;)
+         except (OSError, http.client.HTTPException) as error:
+             raise ValueError(
+-                &quot;Kiro hat die Rückleitung abgewiesen; Anmeldung neu starten&quot;
++                &quot;Der Anbieter hat die Rückleitung abgewiesen; Anmeldung neu starten&quot;
+             ) from error
+         finally:
+             connection.close()
+@@ -356,7 +384,11 @@ def capture_browser():
+ 
+     target = Path(os.environ[&quot;CLISCADE_LOGIN_URL_FILE&quot;])
+     url = sys.argv[1]
+-    if urlsplit(url).scheme != &quot;https&quot; or urlsplit(url).hostname != &quot;app.kiro.dev&quot;:
++    if (
++        urlsplit(url).scheme != &quot;https&quot;
++        or urlsplit(url).hostname
++        not in HOSTS[os.environ.get(&quot;CLISCADE_LOGIN_AGENT&quot;, &quot;kiro&quot;)]
++    ):
+         raise SystemExit(1)
+     descriptor = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+     with os.fdopen(descriptor, &quot;w&quot;) as stream:
+</pre></details></section><section id="file14"><h3>cliscade/tests/test_acp_login.py</h3><p><a href="https://github.com/ysamjo/CLIScade-Next/blob/3f7987e9e7fdfbb26b15aff6e8ec45e54b6ab366/cliscade/tests/test_acp_login.py">Vorher</a> · <a href="https://github.com/ysamjo/CLIScade-Next/blob/e8dbfcb96f6f8f866a679ba1e95435d8df4f7a3a/cliscade/tests/test_acp_login.py">Geprüfter Stand</a></p><details><summary>Diff öffnen</summary><pre>diff --git a/cliscade/tests/test_acp_login.py b/cliscade/tests/test_acp_login.py
+new file mode 100644
+index 000000000..39d7ff0f3
+--- /dev/null
++++ b/cliscade/tests/test_acp_login.py
+@@ -0,0 +1,112 @@
++import asyncio
++from contextlib import asynccontextmanager
++from types import SimpleNamespace
++from unittest.mock import AsyncMock
++
++from cliscade_next import acp_login
++from cliscade_next.agents import Agent, registry
++
++
++def transport(monkeypatch, connected=False, method=&quot;external&quot;):
++    connection = SimpleNamespace(
++        initialize=AsyncMock(
++            return_value=SimpleNamespace(
++                auth_methods=[SimpleNamespace(id=method)],
++            )
++        ),
++        ext_method=AsyncMock(
++            return_value={
++                &quot;userInfo&quot;: {
++                    &quot;userId&quot;: &quot;fixture-account&quot; if connected else &quot;&quot;,
++                    &quot;accessToken&quot;: &quot;never-export&quot;,
++                }
++            }
++        ),
++        authenticate=AsyncMock(),
++    )
++    launches = []
++
++    @asynccontextmanager
++    async def spawn(client, *command, **options):
++        launches.append((command, options))
++        yield connection, None
++
++    monkeypatch.setattr(acp_login, &quot;spawn_agent_process&quot;, spawn)
++    monkeypatch.setattr(
++        acp_login,
++        &quot;registry&quot;,
++        lambda: {
++            &quot;codebuddy&quot;: Agent(&quot;codebuddy&quot;, (&quot;native-codebuddy&quot;, &quot;--acp&quot;)),
++            &quot;antigravity&quot;: Agent(&quot;antigravity&quot;, (&quot;native-antigravity&quot;,)),
++        },
++    )
++    return connection, launches
++
++
++def test_codebuddy_keeps_existing_account_without_forcing_reauthentication(monkeypatch):
++    connection, launches = transport(monkeypatch, connected=True)
++    assert asyncio.run(acp_login.account(&quot;codebuddy&quot;, &quot;login&quot;)) is True
++    connection.authenticate.assert_not_awaited()
++    assert len(launches) == 1
++    assert launches[0][1][&quot;cwd&quot;]
++
++
++def test_codebuddy_login_uses_native_international_method_and_status_never_logs_in(
++    monkeypatch,
++):
++    connection, _ = transport(monkeypatch)
++    assert asyncio.run(acp_login.account(&quot;codebuddy&quot;, &quot;status&quot;)) is False
++    connection.authenticate.assert_not_awaited()
++    assert asyncio.run(acp_login.account(&quot;codebuddy&quot;, &quot;login&quot;)) is True
++    connection.authenticate.assert_awaited_once_with(method_id=&quot;external&quot;)
++
++
++def test_unadvertised_auth_is_rejected(monkeypatch):
++    connection, _ = transport(monkeypatch, method=&quot;other&quot;)
++    assert asyncio.run(acp_login.account(&quot;codebuddy&quot;, &quot;login&quot;)) is False
++    connection.authenticate.assert_not_awaited()
++
++
++def test_antigravity_uses_google_and_status_does_not_open_a_browser(
++    tmp_path, monkeypatch
++):
++    monkeypatch.setenv(&quot;HOME&quot;, str(tmp_path))
++    connection, launches = transport(monkeypatch, method=&quot;oauth-personal&quot;)
++    assert asyncio.run(acp_login.account(&quot;antigravity&quot;, &quot;status&quot;)) is False
++    assert not launches
++    assert asyncio.run(acp_login.account(&quot;antigravity&quot;, &quot;login&quot;)) is True
++    marker = tmp_path / &quot;.cliscade-accounts&quot; / &quot;antigravity&quot;
++    marker.parent.mkdir()
++    marker.touch()
++    assert asyncio.run(acp_login.account(&quot;antigravity&quot;, &quot;status&quot;)) is True
++    assert launches[-1][1][&quot;env&quot;][&quot;BROWSER&quot;] == &quot;/usr/bin/false&quot;
++    assert connection.authenticate.await_count == 2
++
++
++def test_priority_agents_can_be_configured_without_replacing_commands(
++    tmp_path, monkeypatch
++):
++    import json
++
++    agents = registry()
++    assert [agent.id for agent in sorted(agents.values(), key=lambda a: a.priority)][
++        :2
++    ] == [
++        &quot;antigravity&quot;,
++        &quot;codebuddy&quot;,
++    ]
++    path = tmp_path / &quot;routing.json&quot;
++    path.write_text(
++        json.dumps(
++            {
++                &quot;antigravity&quot;: {&quot;enabled&quot;: False},
++                &quot;codebuddy&quot;: {&quot;model&quot;: &quot;reported-model&quot;},
++            }
++        )
++    )
++    monkeypatch.setenv(&quot;CLISCADE_AGENT_CONFIG&quot;, str(path))
++    configured = registry()
++    assert configured[&quot;antigravity&quot;].enabled is False
++    assert configured[&quot;codebuddy&quot;].model == &quot;reported-model&quot;
++    assert configured[&quot;codebuddy&quot;].priority == agents[&quot;codebuddy&quot;].priority
++    assert configured[&quot;codebuddy&quot;].command == agents[&quot;codebuddy&quot;].command
+</pre></details></section><section id="file15"><h3>cliscade/tests/test_api.py</h3><p><a href="https://github.com/ysamjo/CLIScade-Next/blob/3f7987e9e7fdfbb26b15aff6e8ec45e54b6ab366/cliscade/tests/test_api.py">Vorher</a> · <a href="https://github.com/ysamjo/CLIScade-Next/blob/e8dbfcb96f6f8f866a679ba1e95435d8df4f7a3a/cliscade/tests/test_api.py">Geprüfter Stand</a></p><details><summary>Diff öffnen</summary><pre>diff --git a/cliscade/tests/test_api.py b/cliscade/tests/test_api.py
+index 98cf0ccaf..c41b3531c 100644
+--- a/cliscade/tests/test_api.py
++++ b/cliscade/tests/test_api.py
+@@ -95,3 +95,34 @@ def test_structured_agent_report_cannot_claim_verified_checks():
+         )
+         is None
+     )
++
++
++def test_pending_login_poll_does_not_start_a_competing_native_status_process(
++    tmp_path, monkeypatch
++):
++    from cliscade_next.login import LoginService
++
++    monkeypatch.setattr(
++        LoginService,
++        &quot;current&quot;,
++        lambda self, provider: {
++            &quot;state&quot;: &quot;pending&quot;,
++            &quot;mode&quot;: &quot;browser&quot;,
++            &quot;url&quot;: &quot;https://www.codebuddy.ai/login&quot;,
++        },
++    )
++
++    def competing_status(self, provider):
++        raise AssertionError(&quot;Keinen zweiten ACP-Prozess während der Anmeldung starten&quot;)
++
++    monkeypatch.setattr(LoginService, &quot;status&quot;, competing_status)
++    with TestClient(
++        create_app(Settings(tmp_path, tmp_path / &quot;state&quot;, &quot;http://localhost&quot;, &quot;test&quot;))
++    ) as client:
++        response = client.get(
++            &quot;/cliscade/v1/agents/codebuddy/login&quot;,
++            headers={&quot;X-Session-API-Key&quot;: &quot;test&quot;},
++        )
++    assert response.status_code == 200
++    assert response.json()[&quot;url&quot;] == &quot;https://www.codebuddy.ai/login&quot;
++    assert response.json()[&quot;connected&quot;] is False
+</pre></details></section><section id="file16"><h3>cliscade/tests/test_live_agents.py</h3><p><a href="https://github.com/ysamjo/CLIScade-Next/blob/3f7987e9e7fdfbb26b15aff6e8ec45e54b6ab366/cliscade/tests/test_live_agents.py">Vorher</a> · <a href="https://github.com/ysamjo/CLIScade-Next/blob/e8dbfcb96f6f8f866a679ba1e95435d8df4f7a3a/cliscade/tests/test_live_agents.py">Geprüfter Stand</a></p><details><summary>Diff öffnen</summary><pre>diff --git a/cliscade/tests/test_live_agents.py b/cliscade/tests/test_live_agents.py
+index 77f1ac48b..95c670b60 100644
+--- a/cliscade/tests/test_live_agents.py
++++ b/cliscade/tests/test_live_agents.py
+@@ -9,7 +9,9 @@ from openhands.sdk.agent import ACPAgent
+ from cliscade_next.agents import registry
+ 
+ 
+-@pytest.mark.parametrize(&quot;provider&quot;, [&quot;kiro&quot;, &quot;codex&quot;, &quot;claude-code&quot;, &quot;opencode&quot;])
++@pytest.mark.parametrize(
++    &quot;provider&quot;, [&quot;kiro&quot;, &quot;codex&quot;, &quot;claude-code&quot;, &quot;opencode&quot;, &quot;antigravity&quot;, &quot;codebuddy&quot;]
++)
+ def test_authenticated_acp_provider_writes_requested_file(tmp_path, provider):
+     enabled = os.environ.get(&quot;CLISCADE_LIVE_AGENTS&quot;, &quot;&quot;).split(&quot;,&quot;)
+     if provider not in enabled:
+@@ -17,6 +19,7 @@ def test_authenticated_acp_provider_writes_requested_file(tmp_path, provider):
+     agent = ACPAgent(
+         acp_command=list(registry()[provider].command),
+         acp_startup_timeout=45,
++        acp_auth_method=&quot;oauth-personal&quot; if provider == &quot;antigravity&quot; else None,
+         acp_prompt_timeout=90,
+     )
+     conversation = Conversation(
+</pre></details></section><section id="file17"><h3>cliscade/upstream.json</h3><p><a href="https://github.com/ysamjo/CLIScade-Next/blob/3f7987e9e7fdfbb26b15aff6e8ec45e54b6ab366/cliscade/upstream.json">Vorher</a> · <a href="https://github.com/ysamjo/CLIScade-Next/blob/e8dbfcb96f6f8f866a679ba1e95435d8df4f7a3a/cliscade/upstream.json">Geprüfter Stand</a></p><details><summary>Diff öffnen</summary><pre>diff --git a/cliscade/upstream.json b/cliscade/upstream.json
+index 7451ca16a..5fc139aa1 100644
+--- a/cliscade/upstream.json
++++ b/cliscade/upstream.json
+@@ -22,5 +22,10 @@
+   &quot;acp_registry&quot;: {
+     &quot;url&quot;: &quot;https://github.com/agentclientprotocol/registry&quot;,
+     &quot;revision&quot;: &quot;b97b76201d16d32c376eab693ab46d65bd42faf5&quot;
++  },
++  &quot;cliscade_sdk&quot;: {
++    &quot;revision&quot;: &quot;099e727faeb869171564a4d09276f576a07c4400&quot;,
++    &quot;url&quot;: &quot;https://github.com/ysamjo/CLIScade-Next-SDK.git&quot;,
++    &quot;version&quot;: &quot;1.55.1+cliscade.1&quot;
+   }
+ }
+</pre></details></section><section id="file18"><h3>cliscade/uv.lock</h3><p><a href="https://github.com/ysamjo/CLIScade-Next/blob/3f7987e9e7fdfbb26b15aff6e8ec45e54b6ab366/cliscade/uv.lock">Vorher</a> · <a href="https://github.com/ysamjo/CLIScade-Next/blob/e8dbfcb96f6f8f866a679ba1e95435d8df4f7a3a/cliscade/uv.lock">Geprüfter Stand</a></p><details><summary>Diff öffnen</summary><pre>diff --git a/cliscade/uv.lock b/cliscade/uv.lock
+index 103afae67..b99860dc3 100644
+--- a/cliscade/uv.lock
++++ b/cliscade/uv.lock
+@@ -1,5 +1,5 @@
+ version = 1
+-revision = 3
++revision = 5
+ requires-python = &quot;&gt;=3.13&quot;
+ resolution-markers = [
+     &quot;python_full_version &gt;= &#x27;3.14&#x27;&quot;,
+@@ -594,7 +594,7 @@ wheels = [
+ 
+ [[package]]
+ name = &quot;cliscade-next&quot;
+-version = &quot;0.6.1&quot;
++version = &quot;0.7.0&quot;
+ source = { editable = &quot;.&quot; }
+ dependencies = [
+     { name = &quot;fastapi&quot; },
+@@ -615,7 +615,7 @@ requires-dist = [
+     { name = &quot;fastapi&quot;, specifier = &quot;==0.136.3&quot; },
+     { name = &quot;filelock&quot;, specifier = &quot;==3.32.7&quot; },
+     { name = &quot;httpx&quot;, specifier = &quot;==0.28.1&quot; },
+-    { name = &quot;openhands-sdk&quot;, specifier = &quot;==1.55.1&quot; },
++    { name = &quot;openhands-sdk&quot;, git = &quot;https://github.com/ysamjo/CLIScade-Next-SDK.git?subdirectory=openhands-sdk&amp;rev=099e727faeb869171564a4d09276f576a07c4400&quot; },
+     { name = &quot;uvicorn&quot;, specifier = &quot;==0.54.0&quot; },
+ ]
+ 
+@@ -1905,8 +1905,8 @@ wheels = [
+ 
+ [[package]]
+ name = &quot;openhands-sdk&quot;
+-version = &quot;1.55.1&quot;
+-source = { registry = &quot;https://pypi.org/simple&quot; }
++version = &quot;1.55.1+cliscade.1&quot;
++source = { git = &quot;https://github.com/ysamjo/CLIScade-Next-SDK.git?subdirectory=openhands-sdk&amp;rev=099e727faeb869171564a4d09276f576a07c4400#099e727faeb869171564a4d09276f576a07c4400&quot; }
+ dependencies = [
+     { name = &quot;agent-client-protocol&quot; },
+     { name = &quot;deprecation&quot; },
+@@ -1927,10 +1927,6 @@ dependencies = [
+     { name = &quot;tree-sitter-bash&quot; },
+     { name = &quot;websockets&quot; },
+ ]
+-sdist = { url = &quot;https://files.pythonhosted.org/packages/8c/62/a916fa63483d59e5bdab304232c7885be1afb63b15645d3af58f2f87f79c/openhands_sdk-1.55.1.tar.gz&quot;, hash = &quot;sha256:d26962779e38e7043bd4ef8aa7264425b800488d6543089962d5bd2ff8ffdfa0&quot;, size = 795669, upload-time = &quot;2026-10-16T01:59:18.627Z&quot; }
+-wheels = [
+-    { url = &quot;https://files.pythonhosted.org/packages/5a/c6/55b9fdf093585d3be7d8f70b877543880fdf4cbe99a911e1e125802ad26e/openhands_sdk-1.55.1-py3-none-any.whl&quot;, hash = &quot;sha256:59c8c12417d42a349a199f38ab8d4b71c10d6863268f828e91200d54d049b4c3&quot;, size = 944650, upload-time = &quot;2026-10-16T01:59:13.254Z&quot; },
+-]
+ 
+ [[package]]
+ name = &quot;opentelemetry-api&quot;
+</pre></details></section><section id="file19"><h3>deploy/Dockerfile.agent-server</h3><p><a href="https://github.com/ysamjo/CLIScade-Next/blob/3f7987e9e7fdfbb26b15aff6e8ec45e54b6ab366/deploy/Dockerfile.agent-server">Vorher</a> · <a href="https://github.com/ysamjo/CLIScade-Next/blob/e8dbfcb96f6f8f866a679ba1e95435d8df4f7a3a/deploy/Dockerfile.agent-server">Geprüfter Stand</a></p><details><summary>Diff öffnen</summary><pre>diff --git a/deploy/Dockerfile.agent-server b/deploy/Dockerfile.agent-server
+index d12679175..a5426a03d 100644
+--- a/deploy/Dockerfile.agent-server
++++ b/deploy/Dockerfile.agent-server
+@@ -1,7 +1,7 @@
+ FROM node:24.19.0-bookworm-slim AS login-cli
+-RUN apt-get update &amp;&amp; apt-get install -y --no-install-recommends ca-certificates curl \
++RUN apt-get update &amp;&amp; apt-get install -y --no-install-recommends ca-certificates curl unzip \
+  &amp;&amp; rm -rf /var/lib/apt/lists/* \
+- &amp;&amp; npm install -g @openai/codex@0.163.0 @anthropic-ai/claude-code@2.1.301 opencode-ai@1.18.23
++ &amp;&amp; npm install -g @openai/codex@0.163.0 @anthropic-ai/claude-code@2.1.301 opencode-ai@1.18.23 @tencent-ai/codebuddy-code@2.168.0
+ RUN case &quot;$(dpkg --print-architecture)&quot; in \
+  amd64) arch=x86_64; checksum=486067b0eee176bab0309d64ec40f5113ab65d687f0f2d581d8f820c8cd57a4b ;; \
+  arm64) arch=aarch64; checksum=7e1b74ee1750784f910c23ed3a732efc2cafdc0a7787d49ecd1ad6f1d38fac5f ;; \
+@@ -13,11 +13,34 @@ RUN case &quot;$(dpkg --print-architecture)&quot; in \
+  &amp;&amp; test -x /usr/local/bin/kiro-cli \
+  &amp;&amp; rm -rf /tmp/kiro /tmp/kiro.tar.gz
+ 
++RUN case &quot;$(dpkg --print-architecture)&quot; in \
++ amd64) arch=x86_64; checksum=fbb2d54dd94fb897845308d3b6b46187c627f1c60078ded81adeeaf8b90c5d7a ;; \
++ arm64) arch=arm64; checksum=3dc43a21f5402b23a4dba7b320a6745e9dbf4b6ead912ce9fc76011ea3a08a7e ;; \
++ *) exit 1 ;; esac \
++ &amp;&amp; curl -fsSL &quot;https://dl.google.com/agy-extensions/releases/linux/agy-acp-server-1.4.0-linux-${arch}.zip&quot; -o /tmp/agy.zip \
++ &amp;&amp; echo &quot;$checksum  /tmp/agy.zip&quot; | sha256sum -c - \
++ &amp;&amp; unzip -q /tmp/agy.zip -d /tmp/agy \
++ &amp;&amp; install -m 755 /tmp/agy/agy_acp_server.par /tmp/agy/localharness_external /usr/local/bin/ \
++ &amp;&amp; rm -rf /tmp/agy /tmp/agy.zip
++
++FROM ghcr.io/astral-sh/uv:0.12.23 AS uv
+ FROM ghcr.io/openhands/agent-server:1.55.1-python
+ USER root
++COPY --from=uv /uv /usr/local/bin/uv
++# Der Upstream-Entrypoint ist eingefroren. Der gepinnte SDK-Fork muss deshalb
++# als Python-Paket laufen; pip im System-Python ändert den Upstream-Binary nicht.
++RUN mkdir -p /opt/cliscade-sdk \
++ &amp;&amp; curl -fsSL https://codeload.github.com/ysamjo/CLIScade-Next-SDK/tar.gz/099e727faeb869171564a4d09276f576a07c4400 \
++ | tar -xz --strip-components=1 -C /opt/cliscade-sdk \
++ &amp;&amp; cd /opt/cliscade-sdk \
++ &amp;&amp; uv sync --frozen --no-dev --package openhands-agent-server --python /usr/local/bin/python
++ENV PATH=&quot;/opt/cliscade-sdk/.venv/bin:$PATH&quot;
++ENTRYPOINT [&quot;tini&quot;, &quot;--&quot;, &quot;/opt/cliscade-sdk/.venv/bin/agent-server&quot;]
+ COPY --from=login-cli /usr/local/lib/node_modules /usr/local/lib/node_modules
+ COPY --from=login-cli /usr/local/bin/kiro-cli* /usr/local/bin/
++COPY --from=login-cli /usr/local/bin/agy_acp_server.par /usr/local/bin/localharness_external /usr/local/bin/
+ RUN ln -sf /usr/local/lib/node_modules/@openai/codex/bin/codex.js /usr/local/bin/codex \
+  &amp;&amp; ln -sf /usr/local/lib/node_modules/@anthropic-ai/claude-code/bin/claude.exe /usr/local/bin/claude \
+- &amp;&amp; ln -sf /usr/local/lib/node_modules/opencode-ai/bin/opencode.exe /usr/local/bin/opencode
++ &amp;&amp; ln -sf /usr/local/lib/node_modules/opencode-ai/bin/opencode.exe /usr/local/bin/opencode \
++ &amp;&amp; ln -sf /usr/local/lib/node_modules/@tencent-ai/codebuddy-code/bin/codebuddy /usr/local/bin/codebuddy
+ USER 1000:1000
+</pre></details></section><section id="file20"><h3>deploy/Dockerfile.cliscade</h3><p><a href="https://github.com/ysamjo/CLIScade-Next/blob/3f7987e9e7fdfbb26b15aff6e8ec45e54b6ab366/deploy/Dockerfile.cliscade">Vorher</a> · <a href="https://github.com/ysamjo/CLIScade-Next/blob/e8dbfcb96f6f8f866a679ba1e95435d8df4f7a3a/deploy/Dockerfile.cliscade">Geprüfter Stand</a></p><details><summary>Diff öffnen</summary><pre>diff --git a/deploy/Dockerfile.cliscade b/deploy/Dockerfile.cliscade
+index f0da37d54..39bbae348 100644
+--- a/deploy/Dockerfile.cliscade
++++ b/deploy/Dockerfile.cliscade
+@@ -1,4 +1,4 @@
+-FROM cliscade-next-agent-server:0.6.1 AS login-cli
++FROM cliscade-next-agent-server:0.7.0 AS login-cli
+ FROM node:24.19.0-bookworm-slim AS node
+ FROM python:3.13.12-slim-bookworm
+ COPY --from=node /usr/local/bin/node /usr/local/bin/node
+@@ -11,9 +11,11 @@ RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+  &amp;&amp; pip install --no-cache-dir uv==0.12.23
+ COPY --from=login-cli /usr/local/lib/node_modules /usr/local/lib/node_modules
+ COPY --from=login-cli /usr/local/bin/kiro-cli* /usr/local/bin/
++COPY --from=login-cli /usr/local/bin/agy_acp_server.par /usr/local/bin/localharness_external /usr/local/bin/
+ RUN ln -s /usr/local/lib/node_modules/@openai/codex/bin/codex.js /usr/local/bin/codex \
+  &amp;&amp; ln -s /usr/local/lib/node_modules/@anthropic-ai/claude-code/bin/claude.exe /usr/local/bin/claude \
+- &amp;&amp; ln -s /usr/local/lib/node_modules/opencode-ai/bin/opencode.exe /usr/local/bin/opencode
++ &amp;&amp; ln -s /usr/local/lib/node_modules/opencode-ai/bin/opencode.exe /usr/local/bin/opencode \
++ &amp;&amp; ln -s /usr/local/lib/node_modules/@tencent-ai/codebuddy-code/bin/codebuddy /usr/local/bin/codebuddy
+ WORKDIR /app
+ COPY cliscade/pyproject.toml cliscade/uv.lock ./
+ COPY cliscade/src ./src
+</pre></details></section><section id="file21"><h3>deploy/README.md</h3><p><a href="https://github.com/ysamjo/CLIScade-Next/blob/3f7987e9e7fdfbb26b15aff6e8ec45e54b6ab366/deploy/README.md">Vorher</a> · <a href="https://github.com/ysamjo/CLIScade-Next/blob/e8dbfcb96f6f8f866a679ba1e95435d8df4f7a3a/deploy/README.md">Geprüfter Stand</a></p><details><summary>Diff öffnen</summary><pre>diff --git a/deploy/README.md b/deploy/README.md
+index a0929e7ab..5ec3c18a4 100644
+--- a/deploy/README.md
++++ b/deploy/README.md
+@@ -1,7 +1,7 @@
+ # CLIScade Next auf ZimaOS
+ 
+-Stand 0.6.1. Vier Dienste verwenden den vorhandenen Canvas-Proxy, den offiziellen
+-OpenHands Agent Server 1.55.1 mit nativen Login-CLIs und die offizielle Automation 1.20.0. Beads 1.3.1
++Stand 0.7.0. Vier Dienste verwenden den vorhandenen Canvas-Proxy, den offiziellen
++OpenHands Agent Server 1.55.1 aus dem gepinnten CLIScade-SDK-Fork mit nativen Login-CLIs und die offizielle Automation 1.20.0. Beads 1.3.1
+ läuft ausschließlich im Integrationsdienst. Kein Docker-Socket wird eingebunden.
+ 
+ ## Installation
+@@ -15,9 +15,9 @@ mkdir -p /DATA/AppData/cliscade-next/projects \
+   /DATA/AppData/cliscade-next/automation
+ chmod -R g+rwX /DATA/AppData/cliscade-next
+ # Die Container verwenden UID/GID 1000:1000. Die Verzeichnisse müssen für GID 1000 schreibbar sein.
+-docker build -f deploy/Dockerfile.agent-server -t cliscade-next-agent-server:0.6.1 .
+-docker build -f deploy/Dockerfile.cliscade -t cliscade-next-service:0.6.1 .
+-docker build -f deploy/Dockerfile.canvas -t cliscade-next-canvas:0.6.1 .
++docker build -f deploy/Dockerfile.agent-server -t cliscade-next-agent-server:0.7.0 .
++docker build -f deploy/Dockerfile.cliscade -t cliscade-next-service:0.7.0 .
++docker build -f deploy/Dockerfile.canvas -t cliscade-next-canvas:0.7.0 .
+ python3 deploy/init-secrets.py
+ cd deploy
+ docker compose config -q
+@@ -176,3 +176,27 @@ Agent-Server-Home-Cache. Ein System-Python ohne SDK genügt nicht. Die interne
+ Authentifizierung Automation → Agent Server benötigt
+ `AUTOMATION_AGENT_SERVER_API_KEY`; `AUTOMATION_LOCAL_API_KEY` authentifiziert
+ separat die Automations-API und deren Callbacks.
++
++## Google-Anmeldung und neue ACP-Agenten in 0.7.0
++
++Antigravity 1.4.0 verwendet den offiziellen Google-ACP-Server mit
++`oauth-personal`. CodeBuddy 2.168.0 verwendet `codebuddy --acp` und die
++internationale Anmeldung `external`. Im Kiro- und OpenCode-Portal Google auswählen, soweit angeboten. Der tatsächlich
++geöffnete CodeBuddy-CLI-Link zeigte im Test E-Mail, OneID und SSO, keinen
++Google-Button. CodeBuddy mit Google ist deshalb derzeit nicht bestätigt. Die CLI speichert ihre Anmeldung im persistenten Home;
++kein Google-API-Key und kein Kopieren lokaler Mac-Zugangsdaten sind erforderlich.
++Andere Agenten behalten ihren jeweiligen Kontologin; Google ist nur nutzbar,
++wenn der Anbieter es in seinem Portal anbietet.
++
++Der SDK-Fork ist auf `099e727faeb869171564a4d09276f576a07c4400` gepinnt.
++Er startet native ACP-Prozesse im zugewiesenen Workspace und unterstützt die
++explizite Auswahl einer tatsächlich angebotenen ACP-Anmeldemethode. Das
++Agent-Server-Image führt den Python-Entrypoint dieses Forks aus: Das eingefrorene
++Upstream-Binary würde eine nachträglich installierte SDK-Korrektur ignorieren.
++Die Google-Linux-Archive werden für amd64/arm64 anhand lokal berechneter,
++fest eingetragener SHA-256-Werte geprüft; diese sind keine von Google
++veröffentlichten Signaturen. Beide nativen Programme bleiben benachbart.
++
++CodeBuddy hat lokal einen authentifizierten Datei-E2E bestanden. Antigravity
++hat Handshake und Google-Login-Start bestanden; persönliche Kontofreigabe und
++Inferenz auf dem NAS sind noch offen. Login-Starttests ersetzen keine Anmeldung.
+</pre></details></section><section id="file22"><h3>deploy/docker-compose.yml</h3><p><a href="https://github.com/ysamjo/CLIScade-Next/blob/3f7987e9e7fdfbb26b15aff6e8ec45e54b6ab366/deploy/docker-compose.yml">Vorher</a> · <a href="https://github.com/ysamjo/CLIScade-Next/blob/e8dbfcb96f6f8f866a679ba1e95435d8df4f7a3a/deploy/docker-compose.yml">Geprüfter Stand</a></p><details><summary>Diff öffnen</summary><pre>diff --git a/deploy/docker-compose.yml b/deploy/docker-compose.yml
+index 15b313547..d06808aa4 100644
+--- a/deploy/docker-compose.yml
++++ b/deploy/docker-compose.yml
+@@ -1,7 +1,7 @@
+ name: cliscade-next
+ services:
+   canvas:
+-    image: cliscade-next-canvas:0.6.1
++    image: cliscade-next-canvas:0.7.0
+     restart: unless-stopped
+     env_file: runtime.env
+     ports:
+@@ -18,7 +18,7 @@ services:
+           description:
+             de_de: Privater Zugang über Tailscale Serve
+   cliscade:
+-    image: cliscade-next-service:0.6.1
++    image: cliscade-next-service:0.7.0
+     restart: unless-stopped
+     env_file: runtime.env
+     environment:
+@@ -35,12 +35,14 @@ services:
+     security_opt:
+       - no-new-privileges:true
+   agent-server:
+-    image: cliscade-next-agent-server:0.6.1
++    image: cliscade-next-agent-server:0.7.0
+     restart: unless-stopped
+     user: &quot;1000:1000&quot;
+     env_file: runtime.env
+     environment:
+-      OH_PERSISTENCE_DIR: /workspace
++      OH_CONVERSATIONS_PATH: /workspace/conversations
++      OH_WORKSPACE_PATH: /workspace/project
++      OH_BASH_EVENTS_DIR: /workspace/bash_events
+       HOME: /workspace/home
+       OH_ENABLE_BROWSER: &quot;false&quot;
+     command: [&quot;--host&quot;, &quot;0.0.0.0&quot;, &quot;--port&quot;, &quot;8000&quot;]
+</pre></details></section><section id="file23"><h3>deploy/verify-login.py</h3><p><a href="https://github.com/ysamjo/CLIScade-Next/blob/3f7987e9e7fdfbb26b15aff6e8ec45e54b6ab366/deploy/verify-login.py">Vorher</a> · <a href="https://github.com/ysamjo/CLIScade-Next/blob/e8dbfcb96f6f8f866a679ba1e95435d8df4f7a3a/deploy/verify-login.py">Geprüfter Stand</a></p><details><summary>Diff öffnen</summary><pre>diff --git a/deploy/verify-login.py b/deploy/verify-login.py
+index fd8abe3ba..15d27db76 100644
+--- a/deploy/verify-login.py
++++ b/deploy/verify-login.py
+@@ -39,6 +39,8 @@ def main():
+                     &quot;claude-code&quot;: &quot;claude.com&quot;,
+                     &quot;opencode&quot;: &quot;opencode.ai&quot;,
+                     &quot;kiro&quot;: &quot;app.kiro.dev&quot;,
++                    &quot;antigravity&quot;: &quot;accounts.google.com&quot;,
++                    &quot;codebuddy&quot;: &quot;www.codebuddy.ai&quot;,
+                 }[provider]
+                 ready = (
+                     ready and urlsplit(state.get(&quot;url&quot;) or &quot;&quot;).hostname == expected_host
+</pre></details></section><section id="file24"><h3>src/components/features/cliscade/agent-login.tsx</h3><p><a href="https://github.com/ysamjo/CLIScade-Next/blob/3f7987e9e7fdfbb26b15aff6e8ec45e54b6ab366/src/components/features/cliscade/agent-login.tsx">Vorher</a> · <a href="https://github.com/ysamjo/CLIScade-Next/blob/e8dbfcb96f6f8f866a679ba1e95435d8df4f7a3a/src/components/features/cliscade/agent-login.tsx">Geprüfter Stand</a></p><details><summary>Diff öffnen</summary><pre>diff --git a/src/components/features/cliscade/agent-login.tsx b/src/components/features/cliscade/agent-login.tsx
+index b72d4a6bb..84127805f 100644
+--- a/src/components/features/cliscade/agent-login.tsx
++++ b/src/components/features/cliscade/agent-login.tsx
+@@ -6,14 +6,21 @@ import { cliscadeRequest } from &quot;#/api/cliscade-service&quot;;
+ import { CLISCADE_QUERY_KEYS } from &quot;#/hooks/query/query-keys&quot;;
+ import { I18nKey } from &quot;#/i18n/declaration&quot;;
+ 
+-const LOGIN_AGENTS = [&quot;codex&quot;, &quot;claude-code&quot;, &quot;opencode&quot;, &quot;kiro&quot;] as const;
++const LOGIN_AGENTS = [
++  &quot;antigravity&quot;,
++  &quot;codebuddy&quot;,
++  &quot;codex&quot;,
++  &quot;claude-code&quot;,
++  &quot;opencode&quot;,
++  &quot;kiro&quot;,
++] as const;
+ const POLL_MS = 3000;
+ const CONTROL =
+   &quot;min-h-11 w-full rounded-lg border border-border bg-canvas-base p-2&quot;;
+ interface LoginState {
+   id?: string;
+   state: &quot;idle&quot; | &quot;pending&quot; | &quot;completed&quot; | &quot;failed&quot; | &quot;cancelled&quot; | &quot;expired&quot;;
+-  mode: &quot;code&quot; | &quot;device&quot; | &quot;callback&quot;;
++  mode: &quot;code&quot; | &quot;device&quot; | &quot;callback&quot; | &quot;browser&quot;;
+   connected?: boolean;
+   available?: boolean;
+   url?: string | null;
+@@ -82,6 +89,10 @@ export function AgentLogin() {
+           ))}
+         &lt;/select&gt;
+       &lt;/label&gt;
++      {agent === &quot;antigravity&quot; &amp;&amp; (
++        &lt;p&gt;{t(I18nKey.CLISCADE$LOGIN_ANTIGRAVITY)}&lt;/p&gt;
++      )}
++      {agent === &quot;codebuddy&quot; &amp;&amp; &lt;p&gt;{t(I18nKey.CLISCADE$LOGIN_CODEBUDDY)}&lt;/p&gt;}
+       {agent === &quot;opencode&quot; &amp;&amp; &lt;p&gt;{t(I18nKey.CLISCADE$LOGIN_OPENCODE)}&lt;/p&gt;}
+       {agent === &quot;kiro&quot; &amp;&amp; &lt;p&gt;{t(I18nKey.CLISCADE$LOGIN_KIRO)}&lt;/p&gt;}
+       &lt;p role=&quot;status&quot; aria-live=&quot;polite&quot;&gt;
+@@ -130,14 +141,14 @@ export function AgentLogin() {
+               }}
+             &gt;
+               {state.mode === &quot;callback&quot; &amp;&amp; (
+-                &lt;p id=&quot;kiro-callback-help&quot;&gt;
+-                  {t(I18nKey.CLISCADE$LOGIN_CALLBACK_HELP)}
++                &lt;p id=&quot;login-callback-help&quot;&gt;
++                  {t(I18nKey.CLISCADE$LOGIN_GENERIC_CALLBACK_HELP)}
+                 &lt;/p&gt;
+               )}
+               &lt;label className=&quot;block&quot;&gt;
+                 {t(
+                   state.mode === &quot;callback&quot;
+-                    ? I18nKey.CLISCADE$LOGIN_CALLBACK
++                    ? I18nKey.CLISCADE$LOGIN_GENERIC_CALLBACK
+                     : I18nKey.CLISCADE$LOGIN_CODE,
+                 )}
+                 &lt;input
+@@ -151,7 +162,9 @@ export function AgentLogin() {
+                   autoCorrect=&quot;off&quot;
+                   spellCheck={false}
+                   aria-describedby={
+-                    state.mode === &quot;callback&quot; ? &quot;kiro-callback-help&quot; : undefined
++                    state.mode === &quot;callback&quot;
++                      ? &quot;login-callback-help&quot;
++                      : undefined
+                   }
+                   required
+                   value={code}
+</pre></details></section><section id="file25"><h3>src/i18n/translation.json</h3><p><a href="https://github.com/ysamjo/CLIScade-Next/blob/3f7987e9e7fdfbb26b15aff6e8ec45e54b6ab366/src/i18n/translation.json">Vorher</a> · <a href="https://github.com/ysamjo/CLIScade-Next/blob/e8dbfcb96f6f8f866a679ba1e95435d8df4f7a3a/src/i18n/translation.json">Geprüfter Stand</a></p><details><summary>Diff öffnen</summary><pre>diff --git a/src/i18n/translation.json b/src/i18n/translation.json
+index bd310afc1..2fb030cd4 100644
+--- a/src/i18n/translation.json
++++ b/src/i18n/translation.json
+@@ -53388,40 +53388,40 @@
+     &quot;id&quot;: &quot;CLI account&quot;
+   },
+   &quot;CLISCADE$LOGIN_OPENCODE&quot;: {
+-    &quot;en&quot;: &quot;Sign in to your OpenCode account for Zen/Go.&quot;,
+-    &quot;ja&quot;: &quot;Sign in to your OpenCode account for Zen/Go.&quot;,
+-    &quot;zh-CN&quot;: &quot;Sign in to your OpenCode account for Zen/Go.&quot;,
+-    &quot;zh-TW&quot;: &quot;Sign in to your OpenCode account for Zen/Go.&quot;,
+-    &quot;ko-KR&quot;: &quot;Sign in to your OpenCode account for Zen/Go.&quot;,
+-    &quot;no&quot;: &quot;Sign in to your OpenCode account for Zen/Go.&quot;,
+-    &quot;ar&quot;: &quot;Sign in to your OpenCode account for Zen/Go.&quot;,
+-    &quot;de&quot;: &quot;Anmeldung am eigenen OpenCode-Konto für Zen/Go.&quot;,
+-    &quot;fr&quot;: &quot;Sign in to your OpenCode account for Zen/Go.&quot;,
+-    &quot;it&quot;: &quot;Sign in to your OpenCode account for Zen/Go.&quot;,
+-    &quot;pt&quot;: &quot;Sign in to your OpenCode account for Zen/Go.&quot;,
+-    &quot;es&quot;: &quot;Sign in to your OpenCode account for Zen/Go.&quot;,
+-    &quot;ca&quot;: &quot;Sign in to your OpenCode account for Zen/Go.&quot;,
+-    &quot;tr&quot;: &quot;Sign in to your OpenCode account for Zen/Go.&quot;,
+-    &quot;uk&quot;: &quot;Sign in to your OpenCode account for Zen/Go.&quot;,
+-    &quot;id&quot;: &quot;Sign in to your OpenCode account for Zen/Go.&quot;
++    &quot;en&quot;: &quot;Sign in with Google in the OpenCode portal for Zen/Go.&quot;,
++    &quot;ja&quot;: &quot;Sign in with Google in the OpenCode portal for Zen/Go.&quot;,
++    &quot;zh-CN&quot;: &quot;Sign in with Google in the OpenCode portal for Zen/Go.&quot;,
++    &quot;zh-TW&quot;: &quot;Sign in with Google in the OpenCode portal for Zen/Go.&quot;,
++    &quot;ko-KR&quot;: &quot;Sign in with Google in the OpenCode portal for Zen/Go.&quot;,
++    &quot;no&quot;: &quot;Sign in with Google in the OpenCode portal for Zen/Go.&quot;,
++    &quot;ar&quot;: &quot;Sign in with Google in the OpenCode portal for Zen/Go.&quot;,
++    &quot;de&quot;: &quot;Melde dich im OpenCode-Portal für Zen/Go mit Google an.&quot;,
++    &quot;fr&quot;: &quot;Sign in with Google in the OpenCode portal for Zen/Go.&quot;,
++    &quot;it&quot;: &quot;Sign in with Google in the OpenCode portal for Zen/Go.&quot;,
++    &quot;pt&quot;: &quot;Sign in with Google in the OpenCode portal for Zen/Go.&quot;,
++    &quot;es&quot;: &quot;Sign in with Google in the OpenCode portal for Zen/Go.&quot;,
++    &quot;ca&quot;: &quot;Sign in with Google in the OpenCode portal for Zen/Go.&quot;,
++    &quot;tr&quot;: &quot;Sign in with Google in the OpenCode portal for Zen/Go.&quot;,
++    &quot;uk&quot;: &quot;Sign in with Google in the OpenCode portal for Zen/Go.&quot;,
++    &quot;id&quot;: &quot;Sign in with Google in the OpenCode portal for Zen/Go.&quot;
+   },
+   &quot;CLISCADE$LOGIN_KIRO&quot;: {
+-    &quot;en&quot;: &quot;Choose Google, GitHub or another sign-in method in the Kiro portal.&quot;,
+-    &quot;ja&quot;: &quot;Choose Google, GitHub or another sign-in method in the Kiro portal.&quot;,
+-    &quot;zh-CN&quot;: &quot;Choose Google, GitHub or another sign-in method in the Kiro portal.&quot;,
+-    &quot;zh-TW&quot;: &quot;Choose Google, GitHub or another sign-in method in the Kiro portal.&quot;,
+-    &quot;ko-KR&quot;: &quot;Choose Google, GitHub or another sign-in method in the Kiro portal.&quot;,
+-    &quot;no&quot;: &quot;Choose Google, GitHub or another sign-in method in the Kiro portal.&quot;,
+-    &quot;ar&quot;: &quot;Choose Google, GitHub or another sign-in method in the Kiro portal.&quot;,
+-    &quot;de&quot;: &quot;Das Kiro-Portal bietet Google, GitHub und weitere Anmeldewege zur Auswahl.&quot;,
+-    &quot;fr&quot;: &quot;Choose Google, GitHub or another sign-in method in the Kiro portal.&quot;,
+-    &quot;it&quot;: &quot;Choose Google, GitHub or another sign-in method in the Kiro portal.&quot;,
+-    &quot;pt&quot;: &quot;Choose Google, GitHub or another sign-in method in the Kiro portal.&quot;,
+-    &quot;es&quot;: &quot;Choose Google, GitHub or another sign-in method in the Kiro portal.&quot;,
+-    &quot;ca&quot;: &quot;Choose Google, GitHub or another sign-in method in the Kiro portal.&quot;,
+-    &quot;tr&quot;: &quot;Choose Google, GitHub or another sign-in method in the Kiro portal.&quot;,
+-    &quot;uk&quot;: &quot;Choose Google, GitHub or another sign-in method in the Kiro portal.&quot;,
+-    &quot;id&quot;: &quot;Choose Google, GitHub or another sign-in method in the Kiro portal.&quot;
++    &quot;en&quot;: &quot;Choose Google sign-in in the Kiro portal.&quot;,
++    &quot;ja&quot;: &quot;Choose Google sign-in in the Kiro portal.&quot;,
++    &quot;zh-CN&quot;: &quot;Choose Google sign-in in the Kiro portal.&quot;,
++    &quot;zh-TW&quot;: &quot;Choose Google sign-in in the Kiro portal.&quot;,
++    &quot;ko-KR&quot;: &quot;Choose Google sign-in in the Kiro portal.&quot;,
++    &quot;no&quot;: &quot;Choose Google sign-in in the Kiro portal.&quot;,
++    &quot;ar&quot;: &quot;Choose Google sign-in in the Kiro portal.&quot;,
++    &quot;de&quot;: &quot;Wähle im Kiro-Portal die Anmeldung mit Google.&quot;,
++    &quot;fr&quot;: &quot;Choose Google sign-in in the Kiro portal.&quot;,
++    &quot;it&quot;: &quot;Choose Google sign-in in the Kiro portal.&quot;,
++    &quot;pt&quot;: &quot;Choose Google sign-in in the Kiro portal.&quot;,
++    &quot;es&quot;: &quot;Choose Google sign-in in the Kiro portal.&quot;,
++    &quot;ca&quot;: &quot;Choose Google sign-in in the Kiro portal.&quot;,
++    &quot;tr&quot;: &quot;Choose Google sign-in in the Kiro portal.&quot;,
++    &quot;uk&quot;: &quot;Choose Google sign-in in the Kiro portal.&quot;,
++    &quot;id&quot;: &quot;Choose Google sign-in in the Kiro portal.&quot;
+   },
+   &quot;CLISCADE$LOGIN_CALLBACK&quot;: {
+     &quot;en&quot;: &quot;Full Kiro callback address&quot;,
+@@ -53458,5 +53458,77 @@
+     &quot;tr&quot;: &quot;After sign-in, Kiro redirects to localhost. Paste the full address from the browser address bar here, even if that page cannot be reached.&quot;,
+     &quot;uk&quot;: &quot;After sign-in, Kiro redirects to localhost. Paste the full address from the browser address bar here, even if that page cannot be reached.&quot;,
+     &quot;id&quot;: &quot;After sign-in, Kiro redirects to localhost. Paste the full address from the browser address bar here, even if that page cannot be reached.&quot;
++  },
++  &quot;CLISCADE$LOGIN_ANTIGRAVITY&quot;: {
++    &quot;en&quot;: &quot;Sign in to Antigravity with your Google account.&quot;,
++    &quot;ja&quot;: &quot;Sign in to Antigravity with your Google account.&quot;,
++    &quot;zh-CN&quot;: &quot;Sign in to Antigravity with your Google account.&quot;,
++    &quot;zh-TW&quot;: &quot;Sign in to Antigravity with your Google account.&quot;,
++    &quot;ko-KR&quot;: &quot;Sign in to Antigravity with your Google account.&quot;,
++    &quot;no&quot;: &quot;Sign in to Antigravity with your Google account.&quot;,
++    &quot;ar&quot;: &quot;Sign in to Antigravity with your Google account.&quot;,
++    &quot;de&quot;: &quot;Melde dich mit deinem Google-Konto bei Antigravity an.&quot;,
++    &quot;fr&quot;: &quot;Sign in to Antigravity with your Google account.&quot;,
++    &quot;it&quot;: &quot;Sign in to Antigravity with your Google account.&quot;,
++    &quot;pt&quot;: &quot;Sign in to Antigravity with your Google account.&quot;,
++    &quot;es&quot;: &quot;Sign in to Antigravity with your Google account.&quot;,
++    &quot;ca&quot;: &quot;Sign in to Antigravity with your Google account.&quot;,
++    &quot;tr&quot;: &quot;Sign in to Antigravity with your Google account.&quot;,
++    &quot;uk&quot;: &quot;Sign in to Antigravity with your Google account.&quot;,
++    &quot;id&quot;: &quot;Sign in to Antigravity with your Google account.&quot;
++  },
++  &quot;CLISCADE$LOGIN_CODEBUDDY&quot;: {
++    &quot;en&quot;: &quot;Google sign-in was not offered in the checked CodeBuddy portal (email/SSO). Google account sign-in remains unverified.&quot;,
++    &quot;ja&quot;: &quot;Google sign-in was not offered in the checked CodeBuddy portal (email/SSO). Google account sign-in remains unverified.&quot;,
++    &quot;zh-CN&quot;: &quot;Google sign-in was not offered in the checked CodeBuddy portal (email/SSO). Google account sign-in remains unverified.&quot;,
++    &quot;zh-TW&quot;: &quot;Google sign-in was not offered in the checked CodeBuddy portal (email/SSO). Google account sign-in remains unverified.&quot;,
++    &quot;ko-KR&quot;: &quot;Google sign-in was not offered in the checked CodeBuddy portal (email/SSO). Google account sign-in remains unverified.&quot;,
++    &quot;no&quot;: &quot;Google sign-in was not offered in the checked CodeBuddy portal (email/SSO). Google account sign-in remains unverified.&quot;,
++    &quot;ar&quot;: &quot;Google sign-in was not offered in the checked CodeBuddy portal (email/SSO). Google account sign-in remains unverified.&quot;,
++    &quot;de&quot;: &quot;Im geprüften CodeBuddy-Portal wurde Google nicht angeboten (E-Mail/SSO). Die Google-Kontoanmeldung ist derzeit nicht bestätigt.&quot;,
++    &quot;fr&quot;: &quot;Google sign-in was not offered in the checked CodeBuddy portal (email/SSO). Google account sign-in remains unverified.&quot;,
++    &quot;it&quot;: &quot;Google sign-in was not offered in the checked CodeBuddy portal (email/SSO). Google account sign-in remains unverified.&quot;,
++    &quot;pt&quot;: &quot;Google sign-in was not offered in the checked CodeBuddy portal (email/SSO). Google account sign-in remains unverified.&quot;,
++    &quot;es&quot;: &quot;Google sign-in was not offered in the checked CodeBuddy portal (email/SSO). Google account sign-in remains unverified.&quot;,
++    &quot;ca&quot;: &quot;Google sign-in was not offered in the checked CodeBuddy portal (email/SSO). Google account sign-in remains unverified.&quot;,
++    &quot;tr&quot;: &quot;Google sign-in was not offered in the checked CodeBuddy portal (email/SSO). Google account sign-in remains unverified.&quot;,
++    &quot;uk&quot;: &quot;Google sign-in was not offered in the checked CodeBuddy portal (email/SSO). Google account sign-in remains unverified.&quot;,
++    &quot;id&quot;: &quot;Google sign-in was not offered in the checked CodeBuddy portal (email/SSO). Google account sign-in remains unverified.&quot;
++  },
++  &quot;CLISCADE$LOGIN_GENERIC_CALLBACK&quot;: {
++    &quot;en&quot;: &quot;Full callback address&quot;,
++    &quot;ja&quot;: &quot;Full callback address&quot;,
++    &quot;zh-CN&quot;: &quot;Full callback address&quot;,
++    &quot;zh-TW&quot;: &quot;Full callback address&quot;,
++    &quot;ko-KR&quot;: &quot;Full callback address&quot;,
++    &quot;no&quot;: &quot;Full callback address&quot;,
++    &quot;ar&quot;: &quot;Full callback address&quot;,
++    &quot;de&quot;: &quot;Vollständige Rückleitungsadresse&quot;,
++    &quot;fr&quot;: &quot;Full callback address&quot;,
++    &quot;it&quot;: &quot;Full callback address&quot;,
++    &quot;pt&quot;: &quot;Full callback address&quot;,
++    &quot;es&quot;: &quot;Full callback address&quot;,
++    &quot;ca&quot;: &quot;Full callback address&quot;,
++    &quot;tr&quot;: &quot;Full callback address&quot;,
++    &quot;uk&quot;: &quot;Full callback address&quot;,
++    &quot;id&quot;: &quot;Full callback address&quot;
++  },
++  &quot;CLISCADE$LOGIN_GENERIC_CALLBACK_HELP&quot;: {
++    &quot;en&quot;: &quot;After sign-in, the browser opens a localhost or 127.0.0.1 address. Paste the full address from the browser address bar here, even if that page cannot be reached.&quot;,
++    &quot;ja&quot;: &quot;After sign-in, the browser opens a localhost or 127.0.0.1 address. Paste the full address from the browser address bar here, even if that page cannot be reached.&quot;,
++    &quot;zh-CN&quot;: &quot;After sign-in, the browser opens a localhost or 127.0.0.1 address. Paste the full address from the browser address bar here, even if that page cannot be reached.&quot;,
++    &quot;zh-TW&quot;: &quot;After sign-in, the browser opens a localhost or 127.0.0.1 address. Paste the full address from the browser address bar here, even if that page cannot be reached.&quot;,
++    &quot;ko-KR&quot;: &quot;After sign-in, the browser opens a localhost or 127.0.0.1 address. Paste the full address from the browser address bar here, even if that page cannot be reached.&quot;,
++    &quot;no&quot;: &quot;After sign-in, the browser opens a localhost or 127.0.0.1 address. Paste the full address from the browser address bar here, even if that page cannot be reached.&quot;,
++    &quot;ar&quot;: &quot;After sign-in, the browser opens a localhost or 127.0.0.1 address. Paste the full address from the browser address bar here, even if that page cannot be reached.&quot;,
++    &quot;de&quot;: &quot;Nach der Anmeldung öffnet sich eine localhost- oder 127.0.0.1-Adresse. Kopiere die vollständige Adresse aus der Browser-Adresszeile hierher, auch wenn die Seite nicht erreichbar ist.&quot;,
++    &quot;fr&quot;: &quot;After sign-in, the browser opens a localhost or 127.0.0.1 address. Paste the full address from the browser address bar here, even if that page cannot be reached.&quot;,
++    &quot;it&quot;: &quot;After sign-in, the browser opens a localhost or 127.0.0.1 address. Paste the full address from the browser address bar here, even if that page cannot be reached.&quot;,
++    &quot;pt&quot;: &quot;After sign-in, the browser opens a localhost or 127.0.0.1 address. Paste the full address from the browser address bar here, even if that page cannot be reached.&quot;,
++    &quot;es&quot;: &quot;After sign-in, the browser opens a localhost or 127.0.0.1 address. Paste the full address from the browser address bar here, even if that page cannot be reached.&quot;,
++    &quot;ca&quot;: &quot;After sign-in, the browser opens a localhost or 127.0.0.1 address. Paste the full address from the browser address bar here, even if that page cannot be reached.&quot;,
++    &quot;tr&quot;: &quot;After sign-in, the browser opens a localhost or 127.0.0.1 address. Paste the full address from the browser address bar here, even if that page cannot be reached.&quot;,
++    &quot;uk&quot;: &quot;After sign-in, the browser opens a localhost or 127.0.0.1 address. Paste the full address from the browser address bar here, even if that page cannot be reached.&quot;,
++    &quot;id&quot;: &quot;After sign-in, the browser opens a localhost or 127.0.0.1 address. Paste the full address from the browser address bar here, even if that page cannot be reached.&quot;
+   }
+ }
+</pre></details></section></main></html>
