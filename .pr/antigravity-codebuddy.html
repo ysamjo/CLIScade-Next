@@ -4,7 +4,7 @@ index ce0b2db9a..066ebc6a1 100644
 +++ b/.agents/skills/verify-openhands/references/feature-map/F29-cliscade-tasks.md
 @@ -46,3 +46,10 @@ Desktop- und Smartphone-Screenshots sowie sichtbare Fehler dokumentieren.
  Unitäre Regression: `npx vitest run __tests__/routes/cliscade-tasks.test.tsx`.
- 
+
  Login-Regression: `npx vitest run __tests__/routes/cliscade-login.test.tsx __tests__/root.test.tsx`.
 +
 +0.7.0: `F29.login` umfasst Antigravity als erste Auswahl (Google OAuth Personal,
@@ -47,7 +47,7 @@ index c615040f5..07d4f52dc 100644
 +++ b/__tests__/routes/cliscade-login.test.tsx
 @@ -28,6 +28,39 @@ function mount() {
  }
- 
+
  describe(&quot;CLI account sign-in&quot;, () =&gt; {
 +  it(&quot;prioritizes Antigravity and keeps CodeBuddy on its native browser flow&quot;, async () =&gt; {
 +    vi.mocked(cliscadeRequest).mockImplementation(async (path) =&gt; ({
@@ -135,7 +135,7 @@ index e5929b9f3..52a25e3cf 100644
 +| Antigravity | `agy_acp_server.par --uid=` (Linux) | Offizieller Server 1.4.0: Handshake und Google-Login-Start bestanden; Inferenz noch offen |
 +| CodeBuddy | `codebuddy --acp` | 2.168.0: authentifizierter lokaler Datei-E2E mit korrigiertem Prozess-Workspace bestanden; NAS-Konto noch offen |
  | Kiro | `kiro-cli acp` | Kiro 2.31.1: Handshake, neun gemeldete Modelle und authentifizierter Datei-E2E bestanden |
- 
+
  Die lokalen Datei-E2Es sind keine Behauptung über vorhandene Logins im späteren NAS-Container. Dort müssen Anbieter über die bestehenden OpenHands-Secrets beziehungsweise die jeweilige CLI-Anmeldung konfiguriert und erneut geprüft werden.
 @@ -26,8 +28,6 @@ Die offizielle ACP-Registry führt die folgenden Implementierungen. Ein Registry
  | Mistral Vibe | 2.26.1 | `Binary; Plattformliste im Katalog` | Nicht live verifiziert, nicht freigegeben |
@@ -144,7 +144,7 @@ index e5929b9f3..52a25e3cf 100644
 -| Codebuddy Code | 2.168.0 | `npx --yes @tencent-ai/codebuddy-code@2.168.0 --acp` | Nicht live verifiziert, nicht freigegeben |
 -| Google Antigravity | 1.4.0 | `Binary; Plattformliste im Katalog` | Nicht live verifiziert, nicht freigegeben |
  | Grok Build | 1.0.60 | `npx --yes @xai-official/grok@1.0.60 agent stdio` | Nicht live verifiziert, nicht freigegeben |
- 
+
  Quellen und Plattformartefakte: `agent-catalog.json`; die Herkunftsrevision steht in `upstream.json`. Kiro: https://kiro.dev/docs/cli/acp/.
 @@ -54,3 +54,5 @@ Kiro/Portal mit localhost-Rückleitung. Login-Programme sind im eigenen Image en
  Login-Starttests bestätigen Anbieterlinks/Gerätecodes und gezielten Abbruch;
@@ -158,15 +158,15 @@ index 087249aed..d290d6908 100644
 +++ b/cliscade/README.md
 @@ -1,14 +1,14 @@
  # CLIScade Next Integration
- 
+
  Die Integration verwendet `RemoteConversation`, `RemoteWorkspace` und `ACPAgent`
 -aus OpenHands SDK 1.55.1. ACP-JSON-RPC, Permissions, Sessions, Ereignisse und
 +aus dem OpenHands-SDK-Fork 1.55.1+cliscade.1 (Revision in `upstream.json`). ACP-JSON-RPC, Permissions, Sessions, Ereignisse und
  Abbruch implementiert OpenHands. Der zusätzliche Dienst besitzt ausschließlich
  Beads-Zugriff, Routing und ein Attempt-Ledger.
- 
+
  ## Lokal starten
- 
+
  1. `uv sync --frozen` in diesem Verzeichnis ausführen.
 -2. Einen OpenHands Agent Server 1.55.1 mit persistentem Datenverzeichnis starten.
 +2. Den gepinnten SDK-Fork mit Agent Server und persistentem Datenverzeichnis starten (siehe `../deploy/README.md`).
@@ -278,14 +278,14 @@ index d60553c32..5b862cea7 100644
 +  &quot;openhands-sdk==1.55.1+cliscade.1&quot;,
    &quot;uvicorn==0.54.0&quot;,
  ]
- 
+
  [project.scripts]
 +cliscade-acp-login = &quot;cliscade_next.acp_login:main&quot;
  cliscade-login-browser = &quot;cliscade_next.login:capture_browser&quot;
- 
+
  [build-system]
 @@ -33,3 +34,6 @@ testpaths = [&quot;tests&quot;]
- 
+
  [tool.ruff.lint.isort]
  known-first-party = [&quot;cliscade_next&quot;]
 +
@@ -380,7 +380,7 @@ index f1e955639..a7be8dcf8 100644
 --- a/cliscade/src/cliscade_next/agents.py
 +++ b/cliscade/src/cliscade_next/agents.py
 @@ -2,6 +2,7 @@
- 
+
  import json
  import os
 +import sys
@@ -432,7 +432,7 @@ index 87c797bbc..071763ed4 100644
 --- a/cliscade/src/cliscade_next/api.py
 +++ b/cliscade/src/cliscade_next/api.py
 @@ -134,7 +134,10 @@ def create_app(settings=None, orchestrator=None):
- 
+
      @app.get(prefix + &quot;/agents/{agent_id}/login&quot;)
      def login_state(agent_id: str):
 -        return {**login.current(agent_id), **login.status(agent_id)}
@@ -440,7 +440,7 @@ index 87c797bbc..071763ed4 100644
 +        if state[&quot;state&quot;] == &quot;pending&quot;:
 +            return {**state, &quot;available&quot;: True, &quot;connected&quot;: False}
 +        return {**state, **login.status(agent_id)}
- 
+
      @app.post(prefix + &quot;/agents/{agent_id}/login&quot;)
      def login_start(agent_id: str, body: LoginInput):
 </pre></details></section><section id="file13"><h3>cliscade/src/cliscade_next/login.py</h3><p><a href="https://github.com/ysamjo/CLIScade-Next/blob/3f7987e9e7fdfbb26b15aff6e8ec45e54b6ab366/cliscade/src/cliscade_next/login.py">Vorher</a> · <a href="https://github.com/ysamjo/CLIScade-Next/blob/e8dbfcb96f6f8f866a679ba1e95435d8df4f7a3a/cliscade/src/cliscade_next/login.py">Geprüfter Stand</a></p><details><summary>Diff öffnen</summary><pre>diff --git a/cliscade/src/cliscade_next/login.py b/cliscade/src/cliscade_next/login.py
@@ -499,9 +499,9 @@ index d1b24ccad..ec2bda662 100644
 +        )
          env.update(HOME=str(self.home), BROWSER=&quot;true&quot;, NO_COLOR=&quot;1&quot;, TERM=&quot;dumb&quot;)
          return env
- 
+
 @@ -104,6 +120,16 @@ class LoginService:
- 
+
      def status(self, provider):
          spec = self.provider(provider)
 +        if provider in (&quot;antigravity&quot;, &quot;codebuddy&quot;):
@@ -565,7 +565,7 @@ index d1b24ccad..ec2bda662 100644
          finally:
              connection.close()
 @@ -356,7 +384,11 @@ def capture_browser():
- 
+
      target = Path(os.environ[&quot;CLISCADE_LOGIN_URL_FILE&quot;])
      url = sys.argv[1]
 -    if urlsplit(url).scheme != &quot;https&quot; or urlsplit(url).hostname != &quot;app.kiro.dev&quot;:
@@ -740,8 +740,8 @@ index 77f1ac48b..95c670b60 100644
 +++ b/cliscade/tests/test_live_agents.py
 @@ -9,7 +9,9 @@ from openhands.sdk.agent import ACPAgent
  from cliscade_next.agents import registry
- 
- 
+
+
 -@pytest.mark.parametrize(&quot;provider&quot;, [&quot;kiro&quot;, &quot;codex&quot;, &quot;claude-code&quot;, &quot;opencode&quot;])
 +@pytest.mark.parametrize(
 +    &quot;provider&quot;, [&quot;kiro&quot;, &quot;codex&quot;, &quot;claude-code&quot;, &quot;opencode&quot;, &quot;antigravity&quot;, &quot;codebuddy&quot;]
@@ -784,7 +784,7 @@ index 103afae67..b99860dc3 100644
  resolution-markers = [
      &quot;python_full_version &gt;= &#x27;3.14&#x27;&quot;,
 @@ -594,7 +594,7 @@ wheels = [
- 
+
  [[package]]
  name = &quot;cliscade-next&quot;
 -version = &quot;0.6.1&quot;
@@ -800,9 +800,9 @@ index 103afae67..b99860dc3 100644
 +    { name = &quot;openhands-sdk&quot;, git = &quot;https://github.com/ysamjo/CLIScade-Next-SDK.git?subdirectory=openhands-sdk&amp;rev=099e727faeb869171564a4d09276f576a07c4400&quot; },
      { name = &quot;uvicorn&quot;, specifier = &quot;==0.54.0&quot; },
  ]
- 
+
 @@ -1905,8 +1905,8 @@ wheels = [
- 
+
  [[package]]
  name = &quot;openhands-sdk&quot;
 -version = &quot;1.55.1&quot;
@@ -820,7 +820,7 @@ index 103afae67..b99860dc3 100644
 -wheels = [
 -    { url = &quot;https://files.pythonhosted.org/packages/5a/c6/55b9fdf093585d3be7d8f70b877543880fdf4cbe99a911e1e125802ad26e/openhands_sdk-1.55.1-py3-none-any.whl&quot;, hash = &quot;sha256:59c8c12417d42a349a199f38ab8d4b71c10d6863268f828e91200d54d049b4c3&quot;, size = 944650, upload-time = &quot;2026-10-16T01:59:13.254Z&quot; },
 -]
- 
+
  [[package]]
  name = &quot;opentelemetry-api&quot;
 </pre></details></section><section id="file19"><h3>deploy/Dockerfile.agent-server</h3><p><a href="https://github.com/ysamjo/CLIScade-Next/blob/3f7987e9e7fdfbb26b15aff6e8ec45e54b6ab366/deploy/Dockerfile.agent-server">Vorher</a> · <a href="https://github.com/ysamjo/CLIScade-Next/blob/e8dbfcb96f6f8f866a679ba1e95435d8df4f7a3a/deploy/Dockerfile.agent-server">Geprüfter Stand</a></p><details><summary>Diff öffnen</summary><pre>diff --git a/deploy/Dockerfile.agent-server b/deploy/Dockerfile.agent-server
@@ -840,7 +840,7 @@ index d12679175..a5426a03d 100644
 @@ -13,11 +13,34 @@ RUN case &quot;$(dpkg --print-architecture)&quot; in \
   &amp;&amp; test -x /usr/local/bin/kiro-cli \
   &amp;&amp; rm -rf /tmp/kiro /tmp/kiro.tar.gz
- 
+
 +RUN case &quot;$(dpkg --print-architecture)&quot; in \
 + amd64) arch=x86_64; checksum=fbb2d54dd94fb897845308d3b6b46187c627f1c60078ded81adeeaf8b90c5d7a ;; \
 + arm64) arch=arm64; checksum=3dc43a21f5402b23a4dba7b320a6745e9dbf4b6ead912ce9fc76011ea3a08a7e ;; \
@@ -902,13 +902,13 @@ index a0929e7ab..5ec3c18a4 100644
 +++ b/deploy/README.md
 @@ -1,7 +1,7 @@
  # CLIScade Next auf ZimaOS
- 
+
 -Stand 0.6.1. Vier Dienste verwenden den vorhandenen Canvas-Proxy, den offiziellen
 -OpenHands Agent Server 1.55.1 mit nativen Login-CLIs und die offizielle Automation 1.20.0. Beads 1.3.1
 +Stand 0.7.0. Vier Dienste verwenden den vorhandenen Canvas-Proxy, den offiziellen
 +OpenHands Agent Server 1.55.1 aus dem gepinnten CLIScade-SDK-Fork mit nativen Login-CLIs und die offizielle Automation 1.20.0. Beads 1.3.1
  läuft ausschließlich im Integrationsdienst. Kein Docker-Socket wird eingebunden.
- 
+
  ## Installation
 @@ -15,9 +15,9 @@ mkdir -p /DATA/AppData/cliscade-next/projects \
    /DATA/AppData/cliscade-next/automation
@@ -1010,7 +1010,7 @@ index b72d4a6bb..84127805f 100644
 @@ -6,14 +6,21 @@ import { cliscadeRequest } from &quot;#/api/cliscade-service&quot;;
  import { CLISCADE_QUERY_KEYS } from &quot;#/hooks/query/query-keys&quot;;
  import { I18nKey } from &quot;#/i18n/declaration&quot;;
- 
+
 -const LOGIN_AGENTS = [&quot;codex&quot;, &quot;claude-code&quot;, &quot;opencode&quot;, &quot;kiro&quot;] as const;
 +const LOGIN_AGENTS = [
 +  &quot;antigravity&quot;,
