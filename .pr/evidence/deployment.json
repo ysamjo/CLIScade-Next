@@ -1,11 +1,13 @@
 {
   "proof_type": "actual_docker_stack_with_controlled_acp_fixture",
+  "integration_version": "0.5.1",
   "attempts": [
     {
       "id": "58588fb9-ad90-46b1-a0c5-94035129d020",
       "session_id": "fc9f3286-f048-40c9-80e6-74fbcf654fd6",
       "source_id": null,
       "status": "completed",
+      "base_revision": null,
       "check_count": 1,
       "revision": "1acbc3749fff03cb174cac1551e70cdbe170924c"
     },
@@ -14,6 +16,7 @@
       "session_id": "e7ab8622-825c-4296-8305-9effc6c2b8d6",
       "source_id": null,
       "status": "completed",
+      "base_revision": null,
       "check_count": 1,
       "revision": "1acbc3749fff03cb174cac1551e70cdbe170924c"
     },
@@ -22,26 +25,50 @@
       "session_id": "8d0a0a99-f15f-41e8-ac37-1fa68d7f595d",
       "source_id": "f692e9ed-dec3-4332-a638-c700b678dc20",
       "status": "completed",
+      "base_revision": null,
+      "check_count": 1,
+      "revision": "1acbc3749fff03cb174cac1551e70cdbe170924c"
+    },
+    {
+      "id": "67b62b7b-63f6-450f-8fa0-ea1088433588",
+      "session_id": "7c8ec06a-f5c5-4bc7-9306-f2388497f572",
+      "source_id": null,
+      "status": "completed",
+      "base_revision": "1acbc3749fff03cb174cac1551e70cdbe170924c",
+      "check_count": 1,
+      "revision": "1acbc3749fff03cb174cac1551e70cdbe170924c"
+    },
+    {
+      "id": "bed425a0-e5cb-4f5a-b944-d30a0f93f2f9",
+      "session_id": "073a503e-2e99-477b-86f9-62e8edc93195",
+      "source_id": "67b62b7b-63f6-450f-8fa0-ea1088433588",
+      "status": "completed",
+      "base_revision": "1acbc3749fff03cb174cac1551e70cdbe170924c",
       "check_count": 1,
       "revision": "1acbc3749fff03cb174cac1551e70cdbe170924c"
     }
   ],
+  "handoff_after_restart": {
+    "first": "67b62b7b-63f6-450f-8fa0-ea1088433588",
+    "second": "bed425a0-e5cb-4f5a-b944-d30a0f93f2f9",
+    "same_base_revision": true
+  },
   "native_automation": {
-    "id": "7e119247-29a0-45de-aacc-b869a37ad290",
+    "id": "44c767f2-ca29-4156-bcb4-b6f32553df5e",
     "state": "INACTIVE",
     "runs": [
       {
-        "id": "ddc10515-5c74-4d93-a64f-911e55012b9c",
+        "id": "056cd273-42e4-49d1-8cd2-146835ec4523",
         "status": "COMPLETED",
         "error_detail": null,
-        "completed_at": "2026-10-16T09:53:21.457719Z"
+        "completed_at": "2026-10-16T10:12:25.552374Z"
       }
     ]
   },
   "backup": {
-    "id": "b2ab5482-a949-4ea5-bf46-30dcbe1f96c7",
-    "sha256": "2801fc8e42e074c571d51d2dcc8714f1e3e197796fb6fa96d24d325a0bc98d2b",
-    "tasks": 3,
+    "id": "743caea4-a938-411b-b228-7de2ea2a123e",
+    "sha256": "c753a3a9e24f9615777652737970c8825348190b7c17b7f7484062768b53e82f",
+    "tasks": 5,
     "restore_verified": true
   },
   "actual_restart": "all four own compose services",

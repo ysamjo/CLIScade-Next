@@ -1,0 +1,25 @@
+{
+  "before_revision": "b8486c43b66bbbe113c413e0e311385858001f67",
+  "before_result": {
+    "passed": 2,
+    "failed": 3,
+    "cases": [
+      "committed text solutions",
+      "committed binary solutions",
+      "symlink versus regular file"
+    ]
+  },
+  "after_revision": "74a120b9d26a5efe66d38ea82a21a23c4e52bd0d",
+  "after_result": {
+    "full_backend_passed": 25,
+    "full_backend_opt_in_skipped": 6,
+    "targeted_consensus_orchestrator_passed": 12,
+    "ruff": "passed"
+  },
+  "additional_regressions": [
+    "handoff keeps committed changes",
+    "existing ledger schema migration preserves attempts"
+  ],
+  "git_is_real": true,
+  "agent_transport_in_these_regressions": "controlled fake; separate real ACP integration evidence retained"
+}

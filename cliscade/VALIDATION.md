@@ -99,3 +99,8 @@ Handoff und Resume erhalten die Ausgangsrevision. Eine zusätzliche Regression
 prüft committete Änderungen im Handoff; eine weitere die verlustfreie Erweiterung
 eines vorhandenen Ledgers. Alte Konsens-Checkpoints ohne passende Ausgangsrevision
 werden nicht nachträglich als Patch-Übereinstimmung ausgegeben.
+
+Auch 0.5.1 wurde auf ZimaOS gebaut und erneut durch den vollständigen Container-
+Neustart/Handoff-Test geprüft. Die neue Attempt-Ausgangsrevision blieb erhalten;
+die native Automation war nach dem Neustart `COMPLETED` und anschließend
+`INACTIVE`. TLS blieb mit überprüftem Zertifikat HTTP 200.
