@@ -87,3 +87,6 @@ Agenten können Entscheidungen und offene Schritte mit dem schema-validierten
 `<cliscade-report>`-Block liefern (`report-v1.schema.json`). Der Block kann keine
 Prüfbelege als verifiziert deklarieren. Anbieterfehler werden getrennt als
 OpenHands-Laufzeitfehler im Checkpoint geführt.
+
+
+PRs im privaten CLIScade-Next verwenden begründete Änderungen und konkrete Testnachweise. Eine menschliche Prüfung wird nicht durch einen KI-verfassten HUMAN-Text vorgetäuscht. Die ursprüngliche OpenHands-Regel bleibt für Upstream-Beiträge erhalten. Der `pull_request_target`-Check verwendet aus Sicherheitsgründen den Zielbranch: Die neue Regel greift dort erst nach Übernahme dieses Foundation-PRs. Upstream-GHCR-Veröffentlichungen laufen ausschließlich im OpenHands-Repository.

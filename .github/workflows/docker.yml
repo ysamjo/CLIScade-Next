@@ -46,10 +46,11 @@ jobs:
     name: Build & Push (${{ matrix.arch }})
     # Skip fork PRs — they cannot authenticate to GHCR.
     if: >
+      github.repository == 'OpenHands/OpenHands' && (
       github.event_name == 'push' ||
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'pull_request' &&
-       !github.event.pull_request.head.repo.fork)
+       !github.event.pull_request.head.repo.fork))
     strategy:
       fail-fast: false
       matrix:
