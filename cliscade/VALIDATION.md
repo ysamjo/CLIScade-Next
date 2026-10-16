@@ -178,3 +178,10 @@ wird deshalb für die allgemeine Kontowahl nicht verwendet.
 
 Persönliche Google-Freigabe für Antigravity und NAS-CodeBuddy-Inferenz sind
 noch offen. Login-Link, Handshake und Mock-Tests ersetzen diese Nachweise nicht.
+
+Nach vollständigem Neustart des Agent Servers und Integrationsdienstes:
+Session `6cfabdfa-9f2c-4837-95a5-100dcfa1d663` wieder angebunden, Handoff an
+zweite ACP-Session `6725566b-9cc0-492a-8cba-fca725cd32ae` abgeschlossen.
+Aufgabe `cn-xp7`, derselbe Workspace, Git-Stand und verifizierte Prüfergebnisse
+blieben erhalten. Native Automation meldet `COMPLETED`; danach deaktiviert.
+Protokoll-Fixtures, keine Anbieter-Inferenz. Alle Health-Endpunkte HTTP 200.
