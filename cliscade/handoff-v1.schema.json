@@ -1,0 +1,95 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "task": {
+      "additionalProperties": true,
+      "title": "Task",
+      "type": "object"
+    },
+    "rules": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Rules",
+      "type": "array"
+    },
+    "project_knowledge": {
+      "additionalProperties": true,
+      "title": "Project Knowledge",
+      "type": "object"
+    },
+    "git": {
+      "additionalProperties": true,
+      "title": "Git",
+      "type": "object"
+    },
+    "verified_checks": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Verified Checks",
+      "type": "array"
+    },
+    "agent_claims": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Agent Claims",
+      "type": "array"
+    },
+    "decisions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Decisions",
+      "type": "array"
+    },
+    "open_steps": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Open Steps",
+      "type": "array"
+    },
+    "source_attempt": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Attempt"
+    },
+    "omitted": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Omitted",
+      "type": "array"
+    },
+    "captured_at": {
+      "title": "Captured At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "task",
+    "rules",
+    "project_knowledge",
+    "git"
+  ],
+  "title": "Handoff",
+  "type": "object"
+}
