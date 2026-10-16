@@ -1,4 +1,4 @@
-FROM cliscade-next-agent-server:0.6.1 AS login-cli
+FROM cliscade-next-agent-server:0.7.0 AS login-cli
 FROM node:24.19.0-bookworm-slim AS node
 FROM python:3.13.12-slim-bookworm
 COPY --from=node /usr/local/bin/node /usr/local/bin/node
@@ -11,9 +11,11 @@ RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
  && pip install --no-cache-dir uv==0.12.23
 COPY --from=login-cli /usr/local/lib/node_modules /usr/local/lib/node_modules
 COPY --from=login-cli /usr/local/bin/kiro-cli* /usr/local/bin/
+COPY --from=login-cli /usr/local/bin/agy_acp_server.par /usr/local/bin/localharness_external /usr/local/bin/
 RUN ln -s /usr/local/lib/node_modules/@openai/codex/bin/codex.js /usr/local/bin/codex \
  && ln -s /usr/local/lib/node_modules/@anthropic-ai/claude-code/bin/claude.exe /usr/local/bin/claude \
- && ln -s /usr/local/lib/node_modules/opencode-ai/bin/opencode.exe /usr/local/bin/opencode
+ && ln -s /usr/local/lib/node_modules/opencode-ai/bin/opencode.exe /usr/local/bin/opencode \
+ && ln -s /usr/local/lib/node_modules/@tencent-ai/codebuddy-code/bin/codebuddy /usr/local/bin/codebuddy
 WORKDIR /app
 COPY cliscade/pyproject.toml cliscade/uv.lock ./
 COPY cliscade/src ./src

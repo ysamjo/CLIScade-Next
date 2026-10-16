@@ -101,3 +101,9 @@ CLIScade-Kontoanmeldung: Die lokale Route `/tasks` öffnet die eigene CLI-
 Kontoanmeldung ohne LLM-Profil-Onboarding. Backend-Zugriffskontrollen und Cloud-
 Onboarding bleiben erhalten. Auth-UX liegt in `agent-login.tsx`, Auth-Befehle
 und Lebenszyklus im Integrationsdienst, Agentenausführung ausschließlich im SDK.
+
+CLIScade 0.7.0: Antigravity und CodeBuddy sind native ACP-Agenten. Der gepinnte
+SDK-Fork startet Agenten im Workspace und wählt angebotene Auth-Methoden. Das
+Agent-Server-Image führt dessen Python-Entrypoint aus; eine SDK-Installation
+neben dem eingefrorenen Upstream-Binary reicht nicht. Google ist der bevorzugte
+Kontologin, ohne API-Key-Pflicht; persönliche Anmeldung und Inferenz separat belegen.

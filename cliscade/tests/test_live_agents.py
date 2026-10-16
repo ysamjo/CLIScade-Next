@@ -9,7 +9,9 @@ from openhands.sdk.agent import ACPAgent
 from cliscade_next.agents import registry
 
 
-@pytest.mark.parametrize("provider", ["kiro", "codex", "claude-code", "opencode"])
+@pytest.mark.parametrize(
+    "provider", ["kiro", "codex", "claude-code", "opencode", "antigravity", "codebuddy"]
+)
 def test_authenticated_acp_provider_writes_requested_file(tmp_path, provider):
     enabled = os.environ.get("CLISCADE_LIVE_AGENTS", "").split(",")
     if provider not in enabled:
@@ -17,6 +19,7 @@ def test_authenticated_acp_provider_writes_requested_file(tmp_path, provider):
     agent = ACPAgent(
         acp_command=list(registry()[provider].command),
         acp_startup_timeout=45,
+        acp_auth_method="oauth-personal" if provider == "antigravity" else None,
         acp_prompt_timeout=90,
     )
     conversation = Conversation(

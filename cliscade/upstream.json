@@ -22,5 +22,10 @@
   "acp_registry": {
     "url": "https://github.com/agentclientprotocol/registry",
     "revision": "b97b76201d16d32c376eab693ab46d65bd42faf5"
+  },
+  "cliscade_sdk": {
+    "revision": "099e727faeb869171564a4d09276f576a07c4400",
+    "url": "https://github.com/ysamjo/CLIScade-Next-SDK.git",
+    "version": "1.55.1+cliscade.1"
   }
 }

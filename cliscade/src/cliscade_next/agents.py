@@ -2,6 +2,7 @@
 
 import json
 import os
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import quote
@@ -32,6 +33,12 @@ def registry():
         for key in ("codex", "claude-code", "opencode")
     }
     agents["kiro"] = Agent("kiro", ("kiro-cli", "acp"))
+    agents["antigravity"] = Agent(
+        "antigravity",
+        ("agy_acp_server.par",) + (("--uid=",) if sys.platform == "linux" else ()),
+        priority=1,
+    )
+    agents["codebuddy"] = Agent("codebuddy", ("codebuddy", "--acp"), priority=2)
     config = os.environ.get("CLISCADE_AGENT_CONFIG")
     if config:
         policies = json.loads(Path(config).read_text())
@@ -44,7 +51,7 @@ def registry():
             }:
                 raise ValueError("Unbekannte ACP-Route oder ungültige Registry-Felder")
             model = policy.get("model")
-            priority = policy.get("priority", 10)
+            priority = policy.get("priority", agents[key].priority)
             enabled = policy.get("enabled", True)
             capabilities = policy.get("capabilities", ["coding", "review"])
             if (
@@ -126,6 +133,7 @@ class OpenHands:
                 acp_server=agent.id if agent.id in ACP_PROVIDERS else "custom",
                 acp_command=list(agent.command),
                 acp_startup_timeout=45,
+                acp_auth_method="oauth-personal" if agent.id == "antigravity" else None,
             )
             response = workspace.client.post(
                 "/api/acp/models",
@@ -163,6 +171,9 @@ class OpenHands:
                     agent=ACPAgent(
                         acp_command=list(agent.command),
                         acp_model=agent.model,
+                        acp_auth_method="oauth-personal"
+                        if agent.id == "antigravity"
+                        else None,
                         acp_server=agent.id if agent.id in ACP_PROVIDERS else None,
                         acp_file_secrets=list(ACP_PROVIDERS[agent.id].file_secrets)
                         if agent.id in ACP_PROVIDERS

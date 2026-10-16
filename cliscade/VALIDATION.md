@@ -152,3 +152,29 @@ Quellvertrag OpenCode 1.18.23:
 Kiro: [offizielle CLI-Anmeldung](https://kiro.dev/docs/cli/authentication/); der
 Gerätefluss der tatsächlich gepinnten Linux-CLI 2.31.1 wählte beim Test AWS und
 wird deshalb für die allgemeine Kontowahl nicht verwendet.
+
+## 0.7.0: Antigravity, CodeBuddy und Google-Kontoanmeldung
+
+- Backend: 40 bestanden, 8 opt-in Prüfungen übersprungen. Ruff bestanden.
+- UI: 56 Tests in vier Dateien mit Node 24.19.0 bestanden (Login, Aufgaben,
+  Root und Sidebar). Der Shell-Standard Node 22 führte zu Timeouts bei lazy
+  geladenem Cloud-Onboarding; mit der geforderten Node-Version bestanden.
+- Lint/Typecheck/Prettier bestanden; 692 vorhandene ESLint-Warnungen, keine Fehler.
+  Übersetzungen vollständig, F29-Feature-Map gültig. Canvas-Docker-Build bestanden.
+- SDK-Fork: 496 ACP-Tests, Ruff und TypeScript-Client-Build bestanden.
+  Auth-Auswahl, echte Prozess-Arbeitsverzeichnisse und Discovery geprüft.
+- CodeBuddy 2.168.0: lokaler authentifizierter Datei-E2E mit vorhandenem Konto
+  bestanden. Der SDK-Fix setzt das Prozess-CWD, weil CodeBuddy session/new.cwd
+  nicht übernimmt. Keine lokale Anmeldung auf das NAS kopiert.
+- Alle sechs nativen CLI-Login-Starts im isolierten NAS-Container bestanden:
+  Codex → auth.openai.com, Claude → claude.com, OpenCode → opencode.ai,
+  Kiro → app.kiro.dev, Antigravity → accounts.google.com,
+  CodeBuddy → www.codebuddy.ai. Eigene Login-Prozesse gezielt beendet.
+- SDK-Fork im tatsächlichen Python-Agent-Server-Entrypoint geprüft:
+  OpenAPI enthält acp_auth_method; /ready liefert 200. Das Upstream-Binary
+  selbst verwendet diesen Python-SDK-Patch nicht.
+- NAS: eigene Images 0.7.0 gebaut; alte Session weiterhin HTTP 200.
+  Neues Beads-Smoke-Task cn-xp7, ACP-Session und verifiziertes Backup angelegt.
+
+Persönliche Google-Freigabe für Antigravity und NAS-CodeBuddy-Inferenz sind
+noch offen. Login-Link, Handshake und Mock-Tests ersetzen diese Nachweise nicht.

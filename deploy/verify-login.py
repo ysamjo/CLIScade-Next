@@ -39,6 +39,8 @@ def main():
                     "claude-code": "claude.com",
                     "opencode": "opencode.ai",
                     "kiro": "app.kiro.dev",
+                    "antigravity": "accounts.google.com",
+                    "codebuddy": "www.codebuddy.ai",
                 }[provider]
                 ready = (
                     ready and urlsplit(state.get("url") or "").hostname == expected_host

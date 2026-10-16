@@ -379,7 +379,9 @@
       }
     },
     "source": "https://github.com/agentclientprotocol/registry/blob/main/codebuddy-code/agent.json",
-    "product_status": "not_live_verified"
+    "product_status": "local_file_e2e_verified",
+    "source_revision": "43c4f27d8d579789c4a2eb55e46f64153bc89709",
+    "nas_account_verified": false
   },
   {
     "id": "antigravity-acp",
@@ -421,7 +423,9 @@
       }
     },
     "source": "https://github.com/agentclientprotocol/registry/blob/main/antigravity-acp/agent.json",
-    "product_status": "not_live_verified"
+    "product_status": "protocol_and_login_start_verified",
+    "source_revision": "43c4f27d8d579789c4a2eb55e46f64153bc89709",
+    "nas_account_verified": false
   },
   {
     "id": "grok-build",

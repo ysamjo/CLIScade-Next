@@ -1,3 +1,9 @@
+<!-- CLIScade Next 0.7.0: Antigravity und CodeBuddy -->
+Antigravity und CodeBuddy sind als native ACP-Agenten integriert und im Routing
+priorisiert. Kontologin bevorzugt Google im jeweiligen Anbieterportal, ohne
+verpflichtenden Anbieter-API-Key. Prüfstand und offene NAS-Anmeldungen:
+[ACP-Agenten](cliscade/AGENTS_SUPPORTED.md); [Installation](deploy/README.md).
+
 > **CLIScade Next:** Projekte und ACP-Aufgaben unter `/tasks` öffnen. Die
 > Kontoanmeldung nutzt die nativen CLIs ohne verpflichtende Anbieter-API-Keys.
 > [Installation auf ZimaOS](deploy/README.md) · [CLIScade-Dokumentation](cliscade/README.md)

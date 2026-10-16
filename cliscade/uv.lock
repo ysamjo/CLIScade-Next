@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.13"
 resolution-markers = [
     "python_full_version >= '3.14'",
@@ -594,7 +594,7 @@ wheels = [
 
 [[package]]
 name = "cliscade-next"
-version = "0.6.1"
+version = "0.7.0"
 source = { editable = "." }
 dependencies = [
     { name = "fastapi" },
@@ -615,7 +615,7 @@ requires-dist = [
     { name = "fastapi", specifier = "==0.136.3" },
     { name = "filelock", specifier = "==3.32.7" },
     { name = "httpx", specifier = "==0.28.1" },
-    { name = "openhands-sdk", specifier = "==1.55.1" },
+    { name = "openhands-sdk", git = "https://github.com/ysamjo/CLIScade-Next-SDK.git?subdirectory=openhands-sdk&rev=099e727faeb869171564a4d09276f576a07c4400" },
     { name = "uvicorn", specifier = "==0.54.0" },
 ]
 
@@ -1905,8 +1905,8 @@ wheels = [
 
 [[package]]
 name = "openhands-sdk"
-version = "1.55.1"
-source = { registry = "https://pypi.org/simple" }
+version = "1.55.1+cliscade.1"
+source = { git = "https://github.com/ysamjo/CLIScade-Next-SDK.git?subdirectory=openhands-sdk&rev=099e727faeb869171564a4d09276f576a07c4400#099e727faeb869171564a4d09276f576a07c4400" }
 dependencies = [
     { name = "agent-client-protocol" },
     { name = "deprecation" },
@@ -1926,10 +1926,6 @@ dependencies = [
     { name = "tree-sitter" },
     { name = "tree-sitter-bash" },
     { name = "websockets" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/8c/62/a916fa63483d59e5bdab304232c7885be1afb63b15645d3af58f2f87f79c/openhands_sdk-1.55.1.tar.gz", hash = "sha256:d26962779e38e7043bd4ef8aa7264425b800488d6543089962d5bd2ff8ffdfa0", size = 795669, upload-time = "2026-10-16T01:59:18.627Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/5a/c6/55b9fdf093585d3be7d8f70b877543880fdf4cbe99a911e1e125802ad26e/openhands_sdk-1.55.1-py3-none-any.whl", hash = "sha256:59c8c12417d42a349a199f38ab8d4b71c10d6863268f828e91200d54d049b4c3", size = 944650, upload-time = "2026-10-16T01:59:13.254Z" },
 ]
 
 [[package]]

@@ -46,3 +46,9 @@ Desktop- und Smartphone-Screenshots sowie sichtbare Fehler dokumentieren.
 Unitäre Regression: `npx vitest run __tests__/routes/cliscade-tasks.test.tsx`.
 
 Login-Regression: `npx vitest run __tests__/routes/cliscade-login.test.tsx __tests__/root.test.tsx`.
+
+0.7.0: `F29.login` umfasst Antigravity als erste Auswahl (Google OAuth Personal,
+localhost-Rückleitung) und CodeBuddy (internationales Portal, native Abfrage des
+Anmeldestatus). Im jeweiligen Kiro-/OpenCode-/CodeBuddy-Portal Google auswählen.
+Ein Login-Start ist kein Nachweis einer persönlichen Freigabe oder Inferenz.
+`deploy/verify-login.py` prüft alle sechs nativen Starts und den gezielten Abbruch.

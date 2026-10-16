@@ -6,14 +6,21 @@ import { cliscadeRequest } from "#/api/cliscade-service";
 import { CLISCADE_QUERY_KEYS } from "#/hooks/query/query-keys";
 import { I18nKey } from "#/i18n/declaration";
 
-const LOGIN_AGENTS = ["codex", "claude-code", "opencode", "kiro"] as const;
+const LOGIN_AGENTS = [
+  "antigravity",
+  "codebuddy",
+  "codex",
+  "claude-code",
+  "opencode",
+  "kiro",
+] as const;
 const POLL_MS = 3000;
 const CONTROL =
   "min-h-11 w-full rounded-lg border border-border bg-canvas-base p-2";
 interface LoginState {
   id?: string;
   state: "idle" | "pending" | "completed" | "failed" | "cancelled" | "expired";
-  mode: "code" | "device" | "callback";
+  mode: "code" | "device" | "callback" | "browser";
   connected?: boolean;
   available?: boolean;
   url?: string | null;
@@ -82,6 +89,10 @@ export function AgentLogin() {
           ))}
         </select>
       </label>
+      {agent === "antigravity" && (
+        <p>{t(I18nKey.CLISCADE$LOGIN_ANTIGRAVITY)}</p>
+      )}
+      {agent === "codebuddy" && <p>{t(I18nKey.CLISCADE$LOGIN_CODEBUDDY)}</p>}
       {agent === "opencode" && <p>{t(I18nKey.CLISCADE$LOGIN_OPENCODE)}</p>}
       {agent === "kiro" && <p>{t(I18nKey.CLISCADE$LOGIN_KIRO)}</p>}
       <p role="status" aria-live="polite">
@@ -130,14 +141,14 @@ export function AgentLogin() {
               }}
             >
               {state.mode === "callback" && (
-                <p id="kiro-callback-help">
-                  {t(I18nKey.CLISCADE$LOGIN_CALLBACK_HELP)}
+                <p id="login-callback-help">
+                  {t(I18nKey.CLISCADE$LOGIN_GENERIC_CALLBACK_HELP)}
                 </p>
               )}
               <label className="block">
                 {t(
                   state.mode === "callback"
-                    ? I18nKey.CLISCADE$LOGIN_CALLBACK
+                    ? I18nKey.CLISCADE$LOGIN_GENERIC_CALLBACK
                     : I18nKey.CLISCADE$LOGIN_CODE,
                 )}
                 <input
@@ -151,7 +162,9 @@ export function AgentLogin() {
                   autoCorrect="off"
                   spellCheck={false}
                   aria-describedby={
-                    state.mode === "callback" ? "kiro-callback-help" : undefined
+                    state.mode === "callback"
+                      ? "login-callback-help"
+                      : undefined
                   }
                   required
                   value={code}

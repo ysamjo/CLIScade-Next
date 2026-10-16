@@ -28,6 +28,39 @@ function mount() {
 }
 
 describe("CLI account sign-in", () => {
+  it("prioritizes Antigravity and keeps CodeBuddy on its native browser flow", async () => {
+    vi.mocked(cliscadeRequest).mockImplementation(async (path) => ({
+      state: "pending",
+      available: true,
+      mode: path.includes("codebuddy") ? "browser" : "callback",
+      id: "native-login",
+      url: path.includes("codebuddy")
+        ? "https://www.codebuddy.ai/login"
+        : "https://accounts.google.com/o/oauth2/v2/auth",
+    }));
+    mount();
+    const selector = screen.getByLabelText("CLISCADE$LOGIN_AGENT");
+    expect(selector).toHaveValue("antigravity");
+    expect(
+      await screen.findByText("CLISCADE$LOGIN_ANTIGRAVITY"),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByLabelText("CLISCADE$LOGIN_GENERIC_CALLBACK"),
+    ).toBeInTheDocument();
+    fireEvent.change(selector, { target: { value: "codebuddy" } });
+    expect(
+      await screen.findByText("CLISCADE$LOGIN_CODEBUDDY"),
+    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        screen.getByRole("link", { name: "CLISCADE$LOGIN_OPEN" }),
+      ).toHaveAttribute("href", "https://www.codebuddy.ai/login"),
+    );
+    expect(
+      screen.queryByLabelText("CLISCADE$LOGIN_GENERIC_CALLBACK"),
+    ).not.toBeInTheDocument();
+  });
+
   it("starts device login without API keys, displays the challenge and cancels it", async () => {
     let state = {
       state: "idle",
@@ -50,6 +83,9 @@ describe("CLI account sign-in", () => {
       },
     );
     mount();
+    fireEvent.change(screen.getByLabelText("CLISCADE$LOGIN_AGENT"), {
+      target: { value: "codex" },
+    });
     fireEvent.click(
       await screen.findByRole("button", { name: "CLISCADE$LOGIN_START" }),
     );
@@ -139,8 +175,10 @@ describe("CLI account sign-in", () => {
     fireEvent.click(
       screen.getByRole("button", { name: "CLISCADE$LOGIN_START" }),
     );
-    const callback = await screen.findByLabelText("CLISCADE$LOGIN_CALLBACK");
-    expect(callback).toHaveAttribute("aria-describedby", "kiro-callback-help");
+    const callback = await screen.findByLabelText(
+      "CLISCADE$LOGIN_GENERIC_CALLBACK",
+    );
+    expect(callback).toHaveAttribute("aria-describedby", "login-callback-help");
     const value = "http://localhost:3128/?code=one-time&state=native-state";
     fireEvent.change(callback, { target: { value } });
     fireEvent.click(

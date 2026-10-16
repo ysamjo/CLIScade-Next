@@ -50,3 +50,11 @@ Gerätefluss. Der Browser-Helfer übergibt nur `app.kiro.dev`-URLs privat an den
 Login-Vorgang. Rückleitungen nur an dessen localhost-Ziel mit passendem State
 weitergeben; keine Redirects oder Proxy-Umgebungsvariablen verwenden. OpenCode
 meldet sein eigenes Console-Konto an; OpenAI-Credentials sind kein Nachweis dafür.
+
+Antigravity/CodeBuddy: `acp_login.py` verwendet ausschließlich den offiziellen
+ACP-Client für Initialize, Authenticate und den lesenden nativen Kontostatus.
+Keine Sessions, Prompts oder Tools in diesem Auth-Helfer. CodeBuddy vor einer
+Anmeldung auf vorhandene Credentials prüfen, da Authenticate eine bestehende
+Anmeldung sonst abmeldet. Antigravity verwendet ausschließlich `oauth-personal`.
+Google ist der bevorzugte Portal-Login; keine erfundenen OAuth-Parameter oder
+API-Key-Pflicht einführen. SDK-Fork und Agent-Server-Runtime gemeinsam pinnen.

@@ -7,6 +7,8 @@ Prüfstand: 16. Oktober 2026. Produktintegration, ACP-Handshake und authentifizi
 | Claude Code | `npx -y --prefer-offline @agentclientprotocol/claude-agent-acp@0.63.0` | Authentifizierter lokaler Datei-E2E bestanden |
 | Codex | `npx -y --prefer-offline @agentclientprotocol/codex-acp@1.10.0` | Handshake bestanden; Datei-E2E gescheitert: lokales Modell gpt-6.1-sol wird mit ChatGPT-Anmeldung abgewiesen |
 | OpenCode | `npx -y --prefer-offline opencode-ai@1.18.23 acp` | ACP antwortet; Datei-E2E erzeugte keine angeforderte Datei. Nicht vollständig unterstützt |
+| Antigravity | `agy_acp_server.par --uid=` (Linux) | Offizieller Server 1.4.0: Handshake und Google-Login-Start bestanden; Inferenz noch offen |
+| CodeBuddy | `codebuddy --acp` | 2.168.0: authentifizierter lokaler Datei-E2E mit korrigiertem Prozess-Workspace bestanden; NAS-Konto noch offen |
 | Kiro | `kiro-cli acp` | Kiro 2.31.1: Handshake, neun gemeldete Modelle und authentifizierter Datei-E2E bestanden |
 
 Die lokalen Datei-E2Es sind keine Behauptung über vorhandene Logins im späteren NAS-Container. Dort müssen Anbieter über die bestehenden OpenHands-Secrets beziehungsweise die jeweilige CLI-Anmeldung konfiguriert und erneut geprüft werden.
@@ -26,8 +28,6 @@ Die offizielle ACP-Registry führt die folgenden Implementierungen. Ein Registry
 | Mistral Vibe | 2.26.1 | `Binary; Plattformliste im Katalog` | Nicht live verifiziert, nicht freigegeben |
 | Gemini CLI | 0.64.0 | `npx --yes @google/gemini-cli@0.64.0 --acp` | Nicht live verifiziert, nicht freigegeben |
 | pi ACP | 0.0.34 | `npx --yes pi-acp@0.0.34 ` | Nicht live verifiziert, nicht freigegeben |
-| Codebuddy Code | 2.168.0 | `npx --yes @tencent-ai/codebuddy-code@2.168.0 --acp` | Nicht live verifiziert, nicht freigegeben |
-| Google Antigravity | 1.4.0 | `Binary; Plattformliste im Katalog` | Nicht live verifiziert, nicht freigegeben |
 | Grok Build | 1.0.60 | `npx --yes @xai-official/grok@1.0.60 agent stdio` | Nicht live verifiziert, nicht freigegeben |
 
 Quellen und Plattformartefakte: `agent-catalog.json`; die Herkunftsrevision steht in `upstream.json`. Kiro: https://kiro.dev/docs/cli/acp/.
@@ -54,3 +54,5 @@ Kiro/Portal mit localhost-Rückleitung. Login-Programme sind im eigenen Image en
 Login-Starttests bestätigen Anbieterlinks/Gerätecodes und gezielten Abbruch;
 sie bestätigen weder die persönliche Kontofreigabe noch erfolgreiche Inferenz.
 Andere OpenCode-Modellanbieter bleiben separat; der Kontologin verwendet die eigene Console. Unternehmens-Identity-Center ist nicht live verifiziert.
+
+In 0.7.0 sind Antigravity und CodeBuddy priorisiert. Google wird direkt bei Antigravity beziehungsweise im jeweiligen Anbieterportal gewählt. Keine vollständige NAS-Unterstützung ohne persönlichen Login und erfolgreichen Inferenztest behaupten. Der SDK-Fork und seine Basis sind in `upstream.json` gepinnt.

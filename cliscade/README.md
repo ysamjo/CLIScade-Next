@@ -1,14 +1,14 @@
 # CLIScade Next Integration
 
 Die Integration verwendet `RemoteConversation`, `RemoteWorkspace` und `ACPAgent`
-aus OpenHands SDK 1.55.1. ACP-JSON-RPC, Permissions, Sessions, Ereignisse und
+aus dem OpenHands-SDK-Fork 1.55.1+cliscade.1 (Revision in `upstream.json`). ACP-JSON-RPC, Permissions, Sessions, Ereignisse und
 Abbruch implementiert OpenHands. Der zusätzliche Dienst besitzt ausschließlich
 Beads-Zugriff, Routing und ein Attempt-Ledger.
 
 ## Lokal starten
 
 1. `uv sync --frozen` in diesem Verzeichnis ausführen.
-2. Einen OpenHands Agent Server 1.55.1 mit persistentem Datenverzeichnis starten.
+2. Den gepinnten SDK-Fork mit Agent Server und persistentem Datenverzeichnis starten (siehe `../deploy/README.md`).
 3. `CLISCADE_PROJECTS`, `CLISCADE_STATE`, `CLISCADE_AGENT_SERVER` und
    `CLISCADE_API_KEY` in einer lokalen, nicht eingecheckten Umgebung setzen.
    Der Schlüssel muss dem Session-Key des Agent Servers entsprechen.
@@ -116,3 +116,5 @@ OpenCode/Console und Kiro. Es werden keine Anbieter-API-Keys vorausgesetzt.
 Native Login-Programme laufen ausschließlich für die Anmeldung; alle
 Agentenaufträge verwenden weiterhin OpenHands ACP. Installation, persistente
 Credentials, Einschränkungen und Prüfanleitung: [Deployment](../deploy/README.md).
+
+Antigravity und CodeBuddy stehen in 0.7.0 zuerst zur Auswahl. Google ist die bevorzugte Kontoanmeldung; native Portale und ACP-Authentifizierung bleiben maßgeblich. Prüfnachweise und Grenzen stehen in `AGENTS_SUPPORTED.md`.

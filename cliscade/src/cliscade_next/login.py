@@ -9,6 +9,7 @@ import shutil
 import signal
 import sqlite3
 import subprocess
+import sys
 import tempfile
 import threading
 import time
@@ -37,6 +38,16 @@ PROVIDERS = {
         "status": ("kiro-cli", "whoami", "--format", "json"),
         "mode": "callback",
     },
+    "antigravity": {
+        "login": ("cliscade-acp-login", "antigravity", "login"),
+        "status": ("cliscade-acp-login", "antigravity", "status"),
+        "mode": "callback",
+    },
+    "codebuddy": {
+        "login": ("cliscade-acp-login", "codebuddy", "login"),
+        "status": ("cliscade-acp-login", "codebuddy", "status"),
+        "mode": "browser",
+    },
 }
 HOSTS = {
     "codex": {"auth.openai.com"},
@@ -48,6 +59,8 @@ HOSTS = {
         "console.anthropic.com",
     },
     "kiro": {"app.kiro.dev"},
+    "antigravity": {"accounts.google.com"},
+    "codebuddy": {"www.codebuddy.ai", "codebuddy.ai"},
 }
 ANSI = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
 LOGIN_TIMEOUT = 900
@@ -62,7 +75,7 @@ def login_challenge(provider, output):
     code_text = re.sub(r"https://[^\s<>\x1b]+", "", text)
     code = (
         None
-        if provider in ("claude-code", "kiro")
+        if provider in ("claude-code", "kiro", "antigravity", "codebuddy")
         else re.search(
             r"(?<![\w/-])[A-Za-z0-9]{4}-[A-Za-z0-9]{4,6}(?![\w/-])", code_text
         )
@@ -94,6 +107,9 @@ class LoginService:
                 "NO_PROXY",
             )
         }
+        env["PATH"] = (
+            str(Path(sys.executable).parent) + os.pathsep + env.get("PATH", "")
+        )
         env.update(HOME=str(self.home), BROWSER="true", NO_COLOR="1", TERM="dumb")
         return env
 
@@ -104,6 +120,16 @@ class LoginService:
 
     def status(self, provider):
         spec = self.provider(provider)
+        if provider in ("antigravity", "codebuddy"):
+            from cliscade_next.agents import registry
+
+            if (
+                shutil.which(
+                    registry()[provider].command[0], path=self.environment().get("PATH")
+                )
+                is None
+            ):
+                return {"available": False, "connected": False}
         if provider == "opencode":
             available = (
                 shutil.which(spec["login"][0], path=self.environment().get("PATH"))
@@ -183,11 +209,12 @@ class LoginService:
             self.home.mkdir(parents=True, exist_ok=True, mode=0o700)
             browser = None
             env = self.environment()
-            if spec["mode"] == "callback":
+            if spec["mode"] in ("callback", "browser"):
                 browser = tempfile.TemporaryDirectory(prefix="cliscade-login-")
                 env["BROWSER"] = (
                     shutil.which("cliscade-login-browser") or "cliscade-login-browser"
                 )
+                env["CLISCADE_LOGIN_AGENT"] = provider
                 env["CLISCADE_LOGIN_URL_FILE"] = str(Path(browser.name) / "url")
             try:
                 process = subprocess.Popen(
@@ -241,7 +268,10 @@ class LoginService:
                             if value:
                                 job["challenge"][key] = value
             code = process.wait()
-            connected = code == 0 and self.status(provider)["connected"]
+            connected = code == 0 and (
+                provider in ("antigravity", "codebuddy")
+                or self.status(provider)["connected"]
+            )
             if connected and self.on_complete:
                 try:
                     self.on_complete(provider, self.home)
@@ -305,17 +335,15 @@ class LoginService:
             or not params.get("state")
             or not hmac.compare_digest(query.get("state", [""])[0], params["state"][0])
         ):
-            raise ValueError(
-                "Rückleitungsadresse gehört nicht zu dieser Kiro-Anmeldung"
-            )
+            raise ValueError("Rückleitungsadresse gehört nicht zu dieser Anmeldung")
         connection = http.client.HTTPConnection("127.0.0.1", expected.port, timeout=15)
         try:
             connection.request("GET", f"{expected.path or '/'}?{actual.query}")
             if connection.getresponse().status >= 400:
-                raise ValueError("Kiro hat die Rückleitung abgewiesen")
+                raise ValueError("Der Anbieter hat die Rückleitung abgewiesen")
         except (OSError, http.client.HTTPException) as error:
             raise ValueError(
-                "Kiro hat die Rückleitung abgewiesen; Anmeldung neu starten"
+                "Der Anbieter hat die Rückleitung abgewiesen; Anmeldung neu starten"
             ) from error
         finally:
             connection.close()
@@ -356,7 +384,11 @@ def capture_browser():
 
     target = Path(os.environ["CLISCADE_LOGIN_URL_FILE"])
     url = sys.argv[1]
-    if urlsplit(url).scheme != "https" or urlsplit(url).hostname != "app.kiro.dev":
+    if (
+        urlsplit(url).scheme != "https"
+        or urlsplit(url).hostname
+        not in HOSTS[os.environ.get("CLISCADE_LOGIN_AGENT", "kiro")]
+    ):
         raise SystemExit(1)
     descriptor = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     with os.fdopen(descriptor, "w") as stream:

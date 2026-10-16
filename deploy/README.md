@@ -1,7 +1,7 @@
 # CLIScade Next auf ZimaOS
 
-Stand 0.6.1. Vier Dienste verwenden den vorhandenen Canvas-Proxy, den offiziellen
-OpenHands Agent Server 1.55.1 mit nativen Login-CLIs und die offizielle Automation 1.20.0. Beads 1.3.1
+Stand 0.7.0. Vier Dienste verwenden den vorhandenen Canvas-Proxy, den offiziellen
+OpenHands Agent Server 1.55.1 aus dem gepinnten CLIScade-SDK-Fork mit nativen Login-CLIs und die offizielle Automation 1.20.0. Beads 1.3.1
 läuft ausschließlich im Integrationsdienst. Kein Docker-Socket wird eingebunden.
 
 ## Installation
@@ -15,9 +15,9 @@ mkdir -p /DATA/AppData/cliscade-next/projects \
   /DATA/AppData/cliscade-next/automation
 chmod -R g+rwX /DATA/AppData/cliscade-next
 # Die Container verwenden UID/GID 1000:1000. Die Verzeichnisse müssen für GID 1000 schreibbar sein.
-docker build -f deploy/Dockerfile.agent-server -t cliscade-next-agent-server:0.6.1 .
-docker build -f deploy/Dockerfile.cliscade -t cliscade-next-service:0.6.1 .
-docker build -f deploy/Dockerfile.canvas -t cliscade-next-canvas:0.6.1 .
+docker build -f deploy/Dockerfile.agent-server -t cliscade-next-agent-server:0.7.0 .
+docker build -f deploy/Dockerfile.cliscade -t cliscade-next-service:0.7.0 .
+docker build -f deploy/Dockerfile.canvas -t cliscade-next-canvas:0.7.0 .
 python3 deploy/init-secrets.py
 cd deploy
 docker compose config -q
@@ -176,3 +176,26 @@ Agent-Server-Home-Cache. Ein System-Python ohne SDK genügt nicht. Die interne
 Authentifizierung Automation → Agent Server benötigt
 `AUTOMATION_AGENT_SERVER_API_KEY`; `AUTOMATION_LOCAL_API_KEY` authentifiziert
 separat die Automations-API und deren Callbacks.
+
+## Google-Anmeldung und neue ACP-Agenten in 0.7.0
+
+Antigravity 1.4.0 verwendet den offiziellen Google-ACP-Server mit
+`oauth-personal`. CodeBuddy 2.168.0 verwendet `codebuddy --acp` und die
+internationale Anmeldung `external`. Im CodeBuddy-, Kiro- und OpenCode-Portal
+Google auswählen. Die CLI speichert ihre Anmeldung im persistenten Home;
+kein Google-API-Key und kein Kopieren lokaler Mac-Zugangsdaten sind erforderlich.
+Andere Agenten behalten ihren jeweiligen Kontologin; Google ist nur nutzbar,
+wenn der Anbieter es in seinem Portal anbietet.
+
+Der SDK-Fork ist auf `099e727faeb869171564a4d09276f576a07c4400` gepinnt.
+Er startet native ACP-Prozesse im zugewiesenen Workspace und unterstützt die
+explizite Auswahl einer tatsächlich angebotenen ACP-Anmeldemethode. Das
+Agent-Server-Image führt den Python-Entrypoint dieses Forks aus: Das eingefrorene
+Upstream-Binary würde eine nachträglich installierte SDK-Korrektur ignorieren.
+Die Google-Linux-Archive werden für amd64/arm64 anhand lokal berechneter,
+fest eingetragener SHA-256-Werte geprüft; diese sind keine von Google
+veröffentlichten Signaturen. Beide nativen Programme bleiben benachbart.
+
+CodeBuddy hat lokal einen authentifizierten Datei-E2E bestanden. Antigravity
+hat Handshake und Google-Login-Start bestanden; persönliche Kontofreigabe und
+Inferenz auf dem NAS sind noch offen. Login-Starttests ersetzen keine Anmeldung.

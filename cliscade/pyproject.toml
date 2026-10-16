@@ -1,17 +1,18 @@
 [project]
 name = "cliscade-next"
-version = "0.6.1"
+version = "0.7.0"
 description = "Beads- und ACP-Orchestrierung für OpenHands Agent Canvas"
 requires-python = ">=3.13"
 dependencies = [
   "fastapi==0.136.3",
   "filelock==3.32.7",
   "httpx==0.28.1",
-  "openhands-sdk==1.55.1",
+  "openhands-sdk==1.55.1+cliscade.1",
   "uvicorn==0.54.0",
 ]
 
 [project.scripts]
+cliscade-acp-login = "cliscade_next.acp_login:main"
 cliscade-login-browser = "cliscade_next.login:capture_browser"
 
 [build-system]
@@ -33,3 +34,6 @@ testpaths = ["tests"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["cliscade_next"]
+
+[tool.uv.sources]
+openhands-sdk = { git = "https://github.com/ysamjo/CLIScade-Next-SDK.git", rev = "099e727faeb869171564a4d09276f576a07c4400", subdirectory = "openhands-sdk" }
