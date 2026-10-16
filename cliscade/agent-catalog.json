@@ -381,7 +381,8 @@
     "source": "https://github.com/agentclientprotocol/registry/blob/main/codebuddy-code/agent.json",
     "product_status": "local_file_e2e_verified",
     "source_revision": "43c4f27d8d579789c4a2eb55e46f64153bc89709",
-    "nas_account_verified": false
+    "nas_account_verified": false,
+    "google_login": "not_offered_in_checked_native_portal"
   },
   {
     "id": "antigravity-acp",

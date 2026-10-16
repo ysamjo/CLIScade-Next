@@ -181,8 +181,9 @@ separat die Automations-API und deren Callbacks.
 
 Antigravity 1.4.0 verwendet den offiziellen Google-ACP-Server mit
 `oauth-personal`. CodeBuddy 2.168.0 verwendet `codebuddy --acp` und die
-internationale Anmeldung `external`. Im CodeBuddy-, Kiro- und OpenCode-Portal
-Google auswählen. Die CLI speichert ihre Anmeldung im persistenten Home;
+internationale Anmeldung `external`. Im Kiro- und OpenCode-Portal Google auswählen, soweit angeboten. Der tatsächlich
+geöffnete CodeBuddy-CLI-Link zeigte im Test E-Mail, OneID und SSO, keinen
+Google-Button. CodeBuddy mit Google ist deshalb derzeit nicht bestätigt. Die CLI speichert ihre Anmeldung im persistenten Home;
 kein Google-API-Key und kein Kopieren lokaler Mac-Zugangsdaten sind erforderlich.
 Andere Agenten behalten ihren jeweiligen Kontologin; Google ist nur nutzbar,
 wenn der Anbieter es in seinem Portal anbietet.

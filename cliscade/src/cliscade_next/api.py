@@ -134,7 +134,10 @@ def create_app(settings=None, orchestrator=None):
 
     @app.get(prefix + "/agents/{agent_id}/login")
     def login_state(agent_id: str):
-        return {**login.current(agent_id), **login.status(agent_id)}
+        state = login.current(agent_id)
+        if state["state"] == "pending":
+            return {**state, "available": True, "connected": False}
+        return {**state, **login.status(agent_id)}
 
     @app.post(prefix + "/agents/{agent_id}/login")
     def login_start(agent_id: str, body: LoginInput):

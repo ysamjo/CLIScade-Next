@@ -155,7 +155,7 @@ wird deshalb für die allgemeine Kontowahl nicht verwendet.
 
 ## 0.7.0: Antigravity, CodeBuddy und Google-Kontoanmeldung
 
-- Backend: 40 bestanden, 8 opt-in Prüfungen übersprungen. Ruff bestanden.
+- Backend: 41 bestanden, 8 opt-in Prüfungen übersprungen. Ruff bestanden.
 - UI: 56 Tests in vier Dateien mit Node 24.19.0 bestanden (Login, Aufgaben,
   Root und Sidebar). Der Shell-Standard Node 22 führte zu Timeouts bei lazy
   geladenem Cloud-Onboarding; mit der geforderten Node-Version bestanden.
@@ -185,3 +185,15 @@ zweite ACP-Session `6725566b-9cc0-492a-8cba-fca725cd32ae` abgeschlossen.
 Aufgabe `cn-xp7`, derselbe Workspace, Git-Stand und verifizierte Prüfergebnisse
 blieben erhalten. Native Automation meldet `COMPLETED`; danach deaktiviert.
 Protokoll-Fixtures, keine Anbieter-Inferenz. Alle Health-Endpunkte HTTP 200.
+
+Live-UI: Antigravity öffnet Google, CodeBuddy öffnet sein internationales Portal.
+390 px Smartphone-Breite: kein horizontaler Überlauf; CodeBuddy verlangt keine
+localhost-Rückleitung. Das echte CodeBuddy-Portal zeigt aktuell E-Mail, Tencent
+OneID und Enterprise-SSO, keinen Google-Button. Google-Kontoanmeldung ist dort
+nicht bestätigt; keine Ersatzanmeldung vorgenommen. Der frühere allgemeine
+Google-Hinweis wurde nach dieser Live-Prüfung korrigiert.
+
+Login-Polling prüft während laufender Anmeldung ausschließlich den vorhandenen
+Prozess und dessen erfassten Anbieterlink. Es startet keinen konkurrierenden
+nativen Statusprozess. Neuer API-Regressionstest zunächst rot, danach grün;
+41 Backend-Tests bestanden, 8 opt-in Prüfungen übersprungen.

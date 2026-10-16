@@ -95,3 +95,34 @@ def test_structured_agent_report_cannot_claim_verified_checks():
         )
         is None
     )
+
+
+def test_pending_login_poll_does_not_start_a_competing_native_status_process(
+    tmp_path, monkeypatch
+):
+    from cliscade_next.login import LoginService
+
+    monkeypatch.setattr(
+        LoginService,
+        "current",
+        lambda self, provider: {
+            "state": "pending",
+            "mode": "browser",
+            "url": "https://www.codebuddy.ai/login",
+        },
+    )
+
+    def competing_status(self, provider):
+        raise AssertionError("Keinen zweiten ACP-Prozess während der Anmeldung starten")
+
+    monkeypatch.setattr(LoginService, "status", competing_status)
+    with TestClient(
+        create_app(Settings(tmp_path, tmp_path / "state", "http://localhost", "test"))
+    ) as client:
+        response = client.get(
+            "/cliscade/v1/agents/codebuddy/login",
+            headers={"X-Session-API-Key": "test"},
+        )
+    assert response.status_code == 200
+    assert response.json()["url"] == "https://www.codebuddy.ai/login"
+    assert response.json()["connected"] is False

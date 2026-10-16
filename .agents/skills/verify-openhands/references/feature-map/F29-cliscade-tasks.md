@@ -49,6 +49,7 @@ Login-Regression: `npx vitest run __tests__/routes/cliscade-login.test.tsx __tes
 
 0.7.0: `F29.login` umfasst Antigravity als erste Auswahl (Google OAuth Personal,
 localhost-Rückleitung) und CodeBuddy (internationales Portal, native Abfrage des
-Anmeldestatus). Im jeweiligen Kiro-/OpenCode-/CodeBuddy-Portal Google auswählen.
+Anmeldestatus). Bei Kiro/OpenCode Google wählen, soweit angeboten. Das geprüfte CodeBuddy-CLI-Portal
+zeigt E-Mail/OneID/SSO, keinen Google-Button; Google dort nicht bestätigt.
 Ein Login-Start ist kein Nachweis einer persönlichen Freigabe oder Inferenz.
 `deploy/verify-login.py` prüft alle sechs nativen Starts und den gezielten Abbruch.
