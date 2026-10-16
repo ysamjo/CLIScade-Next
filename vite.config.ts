@@ -400,6 +400,10 @@ export default defineConfig(({ mode }) => {
       host: VITE_BIND_HOST,
       allowedHosts: true,
       proxy: {
+        "/cliscade": {
+          target: process.env.CLISCADE_BACKEND_URL ?? "http://127.0.0.1:18002",
+          changeOrigin: true,
+        },
         "/api": {
           target: API_URL,
           changeOrigin: true,

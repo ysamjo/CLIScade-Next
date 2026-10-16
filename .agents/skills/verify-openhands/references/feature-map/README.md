@@ -258,7 +258,9 @@ How to write and prove new entries: [../mapping.md](../mapping.md).
 | F27 | [Workspace tools](F27-workspace-tools.md) | terminal, browser, planner, task list, usage, `canvas_ui_control` | drawer tabs | LLM | 30 |
 | F28 | [Automation setup page](F28-automation-setup-page.md) | blank form, kind toggle, schedule presets, event fields, timeout, draft save and validation, draft Test, Create | **Add Automation → Create Automation**, `/automations/setup`, draft Resume, kebab Edit | automation service; no LLM | 13 |
 
-28 families, 778 sub-features. `control-openhands map ids` lists every ID with its file.
+| F29 | [CLIScade Beads-Aufgaben](F29-cliscade-tasks.md) | Aufgabenbaum, CRUD, ACP-Runs, Handoff, Checkpoints und Mobile | Seitenleiste, `/tasks` | CLIScade + Beads + Agent Server | 8 |
+
+29 families, 786 sub-features. `control-openhands map ids` lists every ID with its file.
 
 ### Neighbouring families
 

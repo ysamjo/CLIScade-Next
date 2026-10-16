@@ -1,6 +1,7 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import {
+  ListTree,
   ChevronLeft,
   ChevronRight,
   Plus,
@@ -44,6 +45,8 @@ import {
 import { useCanvasExtensionsRuntime } from "#/components/features/canvas-extensions/canvas-extensions-runtime";
 import { CanvasExtensionIcon } from "#/components/features/canvas-extensions/canvas-extension-icon";
 import type { Backend } from "#/api/backend-registry/types";
+
+import { CLISCADE_PATH } from "#/api/cliscade-service";
 
 const ICON_SIZE = 18;
 const SIDEBAR_LOGO_WIDTH = 34;
@@ -203,6 +206,13 @@ export function SidebarRailBody({
 
       <nav className={sidebarNavListClassName(collapsed)}>
         <CommandMenuTrigger collapsed={collapsed} />
+        <SidebarNavLink
+          to={CLISCADE_PATH}
+          label={t(I18nKey.CLISCADE$TITLE)}
+          testId="sidebar-tasks-link"
+          collapsed={collapsed}
+          icon={<ListTree width={ICON_SIZE} height={ICON_SIZE} />}
+        />
         <SidebarNavLink
           to="/conversations"
           end

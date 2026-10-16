@@ -5,6 +5,15 @@
 
 import { SettingsScope } from "#/types/settings";
 
+export const CLISCADE_QUERY_KEYS = {
+  all: ["cliscade"] as const,
+  projects: ["cliscade", "projects"] as const,
+  agents: ["cliscade", "agents"] as const,
+  tasks: (project: string) => ["cliscade", "tasks", project] as const,
+  attempts: (project: string, task: string) =>
+    ["cliscade", "attempts", project, task] as const,
+};
+
 export const QUERY_KEYS = {
   /** Web client configuration from the server */
   WEB_CLIENT_CONFIG: ["web-client-config"] as const,
