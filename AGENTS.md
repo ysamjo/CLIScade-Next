@@ -96,3 +96,8 @@ CLIScade-Deployment: `deploy/README.md` beschreibt den privaten Compose-Stack.
 Eigene Images auf ZimaOS bauen; das produktive Compose enthält ausschließlich
 Images, keine Variablensubstitution und keinen Docker-Socket. Bestehende
 Tailscale-Routen erhalten, ausschließlich eine private Serve-Route ergänzen.
+
+CLIScade-Kontoanmeldung: Die lokale Route `/tasks` öffnet die eigene CLI-
+Kontoanmeldung ohne LLM-Profil-Onboarding. Backend-Zugriffskontrollen und Cloud-
+Onboarding bleiben erhalten. Auth-UX liegt in `agent-login.tsx`, Auth-Befehle
+und Lebenszyklus im Integrationsdienst, Agentenausführung ausschließlich im SDK.

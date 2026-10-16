@@ -104,3 +104,12 @@ Auch 0.5.1 wurde auf ZimaOS gebaut und erneut durch den vollständigen Container
 Neustart/Handoff-Test geprüft. Die neue Attempt-Ausgangsrevision blieb erhalten;
 die native Automation war nach dem Neustart `COMPLETED` und anschließend
 `INACTIVE`. TLS blieb mit überprüftem Zertifikat HTTP 200.
+
+### CLI-Kontoanmeldung 0.6.0
+
+- 32 Python-Tests bestanden, 6 explizite Anbieter-/Server-E2Es ohne Zugangsdaten übersprungen.
+- 46 fokussierte Frontend-Tests bestanden: native Login-Challenges, Claude-Code-Weitergabe, Abbruch, frischer `/tasks`-Einstieg, Aufgaben/Handoff und ausgeblendete API-Key-Checkliste.
+- Typecheck, Produktionsbuild und Lint bestanden; Lint meldet weiterhin 692 geerbte Warnungen.
+- Auf ZimaOS wurden die drei eigenen Images gebaut. `deploy/verify-login.py` prüfte mit echten nativen CLIs für Codex, Claude Code, OpenCode und Kiro Anbieterlink/Gerätecode und Prozessabbruch. Keine persönlichen Konten autorisiert und keine Modell-Inferenz als bestanden ausgegeben.
+- Native Konto-Persistenz und der Codex-Transfer in die offizielle OpenHands-Secrets-API sind mit kontrollierten Tests geprüft. Die persönliche Konto-Freigabe und authentifizierte NAS-Datei-E2Es bleiben Benutzer-/Anbieterschritte.
+- OpenCodes `auth list` vor dem ersten Login blockierte im getesteten Image den Login-Start. Die Statusprüfung liest deshalb ausschließlich den dokumentierten OAuth-Store, ohne einen zweiten OpenCode-Prozess zu starten.

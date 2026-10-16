@@ -1,3 +1,7 @@
+> **CLIScade Next:** Projekte und ACP-Aufgaben unter `/tasks` öffnen. Die
+> Kontoanmeldung nutzt die nativen CLIs ohne verpflichtende Anbieter-API-Keys.
+> [Installation auf ZimaOS](deploy/README.md) · [CLIScade-Dokumentation](cliscade/README.md)
+
 > **CLIScade Next:** Eigenständiges privates Projekt. [Architektur und Entwicklungsstand](CLISCADE_NEXT.md). Die folgende Dokumentation beschreibt die übernommene OpenHands-Basis.
 
 <a name="readme-top"></a>

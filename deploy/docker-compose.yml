@@ -1,7 +1,7 @@
 name: cliscade-next
 services:
   canvas:
-    image: cliscade-next-canvas:0.5.0
+    image: cliscade-next-canvas:0.6.0
     restart: unless-stopped
     env_file: runtime.env
     ports:
@@ -18,10 +18,11 @@ services:
           description:
             de_de: Privater Zugang über Tailscale Serve
   cliscade:
-    image: cliscade-next-service:0.5.1
+    image: cliscade-next-service:0.6.0
     restart: unless-stopped
     env_file: runtime.env
     environment:
+      CLISCADE_LOGIN_HOME: /workspace/home
       CLISCADE_PROJECTS: /projects
       CLISCADE_STATE: /data/cliscade
       CLISCADE_AGENT_SERVER: http://agent-server:8000
@@ -30,10 +31,11 @@ services:
     volumes:
       - /DATA/AppData/cliscade-next/projects:/projects
       - /DATA/AppData/cliscade-next/state:/data
+      - /DATA/AppData/cliscade-next/sessions/home:/workspace/home
     security_opt:
       - no-new-privileges:true
   agent-server:
-    image: ghcr.io/openhands/agent-server:1.55.1-python
+    image: cliscade-next-agent-server:0.6.0
     restart: unless-stopped
     user: "1000:1000"
     env_file: runtime.env

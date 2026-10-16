@@ -1,3 +1,4 @@
+import { CLISCADE_PATH } from "#/api/cliscade-service";
 import {
   Links,
   LinksFunction,
@@ -232,6 +233,7 @@ export const meta: MetaFunction = () => [
 ];
 
 export default function App() {
+  const location = useLocation();
   // Flag-based gate: in public mode (VITE_AUTH_REQUIRED=true) with no
   // session key yet, show the auth screen immediately — no network
   // round-trip needed.
@@ -296,7 +298,8 @@ export default function App() {
     ? !shouldCheckMainAppAuth &&
       (!isActiveLockedCloudBackend ||
         (lockedCloudAuthMode !== "cookie" && !onboardingCompleted))
-    : !onboardingCompleted;
+    : !onboardingCompleted &&
+      (isActiveCloudBackend || location.pathname !== CLISCADE_PATH);
   const mainAppAuth = useQuery({
     queryKey: QUERY_KEYS.MAIN_APP_COOKIE_AUTH,
     queryFn: authenticateWithMainAppCookie,

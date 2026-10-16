@@ -1,3 +1,4 @@
+FROM cliscade-next-agent-server:0.6.0 AS login-cli
 FROM node:24.19.0-bookworm-slim AS node
 FROM python:3.13.12-slim-bookworm
 COPY --from=node /usr/local/bin/node /usr/local/bin/node
@@ -8,6 +9,11 @@ RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
  && rm -rf /var/lib/apt/lists/* \
  && npm install -g @beads/bd@1.3.1 \
  && pip install --no-cache-dir uv==0.12.23
+COPY --from=login-cli /usr/local/lib/node_modules /usr/local/lib/node_modules
+COPY --from=login-cli /usr/local/bin/kiro-cli* /usr/local/bin/
+RUN ln -s /usr/local/lib/node_modules/@openai/codex/bin/codex.js /usr/local/bin/codex \
+ && ln -s /usr/local/lib/node_modules/@anthropic-ai/claude-code/bin/claude.exe /usr/local/bin/claude \
+ && ln -s /usr/local/lib/node_modules/opencode-ai/bin/opencode.exe /usr/local/bin/opencode
 WORKDIR /app
 COPY cliscade/pyproject.toml cliscade/uv.lock ./
 COPY cliscade/src ./src

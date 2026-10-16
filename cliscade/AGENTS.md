@@ -34,3 +34,13 @@ Der Git-Vergleich muss sich auf die persistierte Ausgangsrevision beziehen,
 nicht nur auf das aktuelle HEAD des Agenten. Selbst erstellte Commits dürfen
 Änderungen weder im Handoff noch im Konsens verbergen. Binärpatches sowie Typ
 und Ausführbarkeit unversionierter Dateien gehören zum Vergleich.
+
+CLI-Kontoanmeldung: `login.py` darf ausschließlich die fest hinterlegten nativen
+Auth-Befehle starten, ohne Shell, PTY oder Agentenprompts. Keine Roh-Ausgaben,
+Tokens oder eingegebenen Anmeldecodes ausliefern oder loggen. Nur erlaubte
+Anbieter-URLs und Gerätecodes verlassen den Dienst. Login-Home und ACP-Home
+müssen dasselbe persistente Verzeichnis verwenden. Codex-Kontoanmeldung wird
+über die vorhandene OpenHands-Secrets-API gespeichert; deren versionierte
+Credential-Bindung muss beim ACP-Start erhalten bleiben. Login-Abbruch darf
+keine Agenten-Ausführungen unterbrechen. Alle Kindprozesse beim Dienstende
+beenden; offene Login-Vorgänge dürfen nach Neustart neu begonnen werden.

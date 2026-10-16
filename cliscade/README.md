@@ -108,3 +108,11 @@ PRs im privaten CLIScade-Next verwenden begründete Änderungen und konkrete Tes
 Jeder Attempt speichert seine Git-Ausgangsrevision. Checkpoints und Konsens
 enthalten auch Änderungen, die ein Agent inzwischen selbst committet hat;
 Binärpatches und Dateityp-Unterschiede werden ebenfalls berücksichtigt.
+
+## CLI-Kontoanmeldung (0.6.0)
+
+Die Task-Seite `/tasks` bietet Kontoanmeldungen für Codex, Claude Code,
+OpenCode/OpenAI und Kiro. Es werden keine Anbieter-API-Keys vorausgesetzt.
+Native Login-Programme laufen ausschließlich für die Anmeldung; alle
+Agentenaufträge verwenden weiterhin OpenHands ACP. Installation, persistente
+Credentials, Einschränkungen und Prüfanleitung: [Deployment](../deploy/README.md).

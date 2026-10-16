@@ -75,3 +75,13 @@ Handoff und native Automation sind geprüft. Dies ist keine pauschale Freigabe
 aller Anbieter oder Sandbox-Betriebsarten. Aktuelle Grenzen stehen in
 [offene Punkte](cliscade/OPEN_POINTS.md), Belege in
 [Validierung](cliscade/VALIDATION.md) und Betrieb in [Deployment](deploy/README.md).
+
+## Kontoanmeldung 0.6.0
+
+Die lokale Task-Seite bietet native Kontoanmeldung für Codex/ChatGPT,
+Claude Code, OpenCode/OpenAI und Kiro. Es werden keine Anbieter-API-Keys
+vorausgesetzt. LLM-Profil-Onboarding und API-Key-Checkliste entfallen auf
+`/tasks`; Backend-Authentifizierung bleibt erhalten. Native CLIs starten
+nur für ihre Auth-Befehle. Alle Coding-Aufträge laufen weiterhin über das
+OpenHands SDK und ACP. Siehe [Installation](deploy/README.md) und
+[Testnachweise](cliscade/VALIDATION.md).

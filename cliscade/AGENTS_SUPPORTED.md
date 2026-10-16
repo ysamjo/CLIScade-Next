@@ -45,3 +45,12 @@ Optional `model` auf eine tatsächlich nutzbare, gemeldete Modell-ID setzen. Ein
 Automatik fragt `/api/acp/models` des OpenHands Agent Servers ab. Fehler oder unpassende Modelle überspringen den Kandidaten vor dem Prompt. Nach einer Start-/Versandunsicherheit endet die Kaskade sichtbar. Die übersprungenen Kandidaten stehen dauerhaft im Attempt-Ledger.
 
 Aktuelle Upstream-Grenze: `/api/acp/models` liefert bei `conversation_runtime=docker` HTTP 501. Automatische Vorabprüfung ist daher nur für den getesteten In-Process-Agent-Server verfügbar (auch wenn dieser selbst in einem abgeschotteten Docker-Container läuft). Per-Conversation-Docker-Sandboxes und deren Discovery müssen separat geprüft/erweitert werden; diese Lücke wird nicht als implementiert ausgegeben.
+
+## Kontoanmeldung in 0.6.0
+
+Die Task-Oberfläche bietet native Kontoanmeldung ohne verpflichtenden
+Anbieter-API-Key: Codex/ChatGPT, Claude/claude.ai, OpenCode/OpenAI-ChatGPT und
+Kiro/Device Flow. Login-Programme sind im eigenen Image enthalten. Native
+Login-Starttests bestätigen Anbieterlinks/Gerätecodes und gezielten Abbruch;
+sie bestätigen weder die persönliche Kontofreigabe noch erfolgreiche Inferenz.
+Weitere OpenCode-Provider und Kiro Identity Center bleiben offen.

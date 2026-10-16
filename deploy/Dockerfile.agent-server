@@ -1,0 +1,23 @@
+FROM node:24.19.0-bookworm-slim AS login-cli
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl \
+ && rm -rf /var/lib/apt/lists/* \
+ && npm install -g @openai/codex@0.163.0 @anthropic-ai/claude-code@2.1.301 opencode-ai@1.18.23
+RUN case "$(dpkg --print-architecture)" in \
+ amd64) arch=x86_64; checksum=486067b0eee176bab0309d64ec40f5113ab65d687f0f2d581d8f820c8cd57a4b ;; \
+ arm64) arch=aarch64; checksum=7e1b74ee1750784f910c23ed3a732efc2cafdc0a7787d49ecd1ad6f1d38fac5f ;; \
+ *) exit 1 ;; esac \
+ && curl -fsSL "https://prod.download.cli.kiro.dev/stable/2.31.1/kirocli-${arch}-linux-musl.tar.gz" -o /tmp/kiro.tar.gz \
+ && echo "$checksum  /tmp/kiro.tar.gz" | sha256sum -c - \
+ && mkdir /tmp/kiro && tar -xzf /tmp/kiro.tar.gz -C /tmp/kiro \
+ && find /tmp/kiro -type f -name 'kiro-cli*' -exec cp '{}' /usr/local/bin/kiro-cli \; \
+ && test -x /usr/local/bin/kiro-cli \
+ && rm -rf /tmp/kiro /tmp/kiro.tar.gz
+
+FROM ghcr.io/openhands/agent-server:1.55.1-python
+USER root
+COPY --from=login-cli /usr/local/lib/node_modules /usr/local/lib/node_modules
+COPY --from=login-cli /usr/local/bin/kiro-cli* /usr/local/bin/
+RUN ln -sf /usr/local/lib/node_modules/@openai/codex/bin/codex.js /usr/local/bin/codex \
+ && ln -sf /usr/local/lib/node_modules/@anthropic-ai/claude-code/bin/claude.exe /usr/local/bin/claude \
+ && ln -sf /usr/local/lib/node_modules/opencode-ai/bin/opencode.exe /usr/local/bin/opencode
+USER 1000:1000

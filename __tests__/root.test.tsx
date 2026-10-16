@@ -81,6 +81,10 @@ const RouterStub = createRoutesStub([
     path: "/",
     children: [
       {
+        Component: () => <div data-testid="app-outlet">tasks outlet</div>,
+        path: "/tasks",
+      },
+      {
         Component: () => <div data-testid="app-outlet">app outlet</div>,
         path: "/",
       },
@@ -640,6 +644,19 @@ describe("App root agent-server availability guard", () => {
       screen.getByTestId("manage-backends-reconnect-cloud-login-button"),
     ).toHaveTextContent("Reconnect to Cloud");
     expect(screen.queryByTestId("app-outlet")).not.toBeInTheDocument();
+  });
+
+  it("opens local CLIScade tasks without requiring an LLM API profile on first visit", async () => {
+    renderApp(["/tasks"]);
+    await waitFor(() =>
+      expect(screen.getByTestId("app-outlet")).toBeInTheDocument(),
+    );
+    expect(
+      screen.queryByTestId("first-run-onboarding-screen"),
+    ).not.toBeInTheDocument();
+    expect(
+      window.localStorage.getItem(ONBOARDING_COMPLETED_STORAGE_KEY),
+    ).toBeNull();
   });
 
   it("renders the routed page when the agent server is reachable", async () => {

@@ -20,6 +20,8 @@ Source: `src/routes/cliscade-tasks.tsx`, `src/api/cliscade-service.ts`,
 - `F29.schedule`: Native OpenHands-Automation anlegen und verwalten.
 - `F29.backup`: Native Beads-Sicherung samt Wiederherstellungsprüfung auslösen.
 
+- `F29.login`: Native CLI-Konten per Anbieterlink/Gerätecode anmelden, Status prüfen und eigenen Login abbrechen.
+
 ## How to get to it (user POV)
 
 Seitenleiste → Projekte & Aufgaben oder direkte Route `/tasks`.
@@ -42,3 +44,5 @@ Desktop- und Smartphone-Screenshots sowie sichtbare Fehler dokumentieren.
 ## Gotchas
 
 Unitäre Regression: `npx vitest run __tests__/routes/cliscade-tasks.test.tsx`.
+
+Login-Regression: `npx vitest run __tests__/routes/cliscade-login.test.tsx __tests__/root.test.tsx`.

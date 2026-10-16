@@ -15,6 +15,7 @@ import {
   type TaskAgent,
 } from "#/api/cliscade-service";
 
+import { AgentLogin } from "#/components/features/cliscade/agent-login";
 import { TaskOrchestration } from "#/components/features/cliscade/task-orchestration";
 import { beadsTaskTree } from "#/utils/beads-task-tree";
 
@@ -176,6 +177,7 @@ export default function CliscadeTasks() {
           </select>
         </label>
       </header>
+      <AgentLogin />
       {error && (
         <p
           role="alert"

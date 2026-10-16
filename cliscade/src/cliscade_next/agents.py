@@ -69,7 +69,35 @@ class OpenHands:
     def __init__(self, settings):
         self.settings = settings
 
+    def save_account(self, provider, home):
+        if provider != "codex":
+            return
+        # The server's versioned credential store owns Codex token refresh.
+        workspace = RemoteWorkspace(
+            host=self.settings.agent_server,
+            working_dir=str(self.settings.projects),
+            api_key=self.settings.api_key,
+        )
+        try:
+            response = workspace.client.put(
+                "/api/settings/secrets",
+                json={
+                    "name": "CODEX_AUTH_JSON",
+                    "value": (home / ".codex/auth.json").read_text(),
+                },
+            )
+            response.raise_for_status()
+        except Exception as error:
+            raise RuntimeError(
+                "Kontoanmeldung konnte nicht im Agent Server gespeichert werden"
+            ) from error
+        finally:
+            workspace.client.close()
+
     def secrets(self, workspace, agent):
+        home = os.environ.get("CLISCADE_LOGIN_HOME")
+        if home and (Path(home) / ".cliscade-accounts" / agent.id).is_file():
+            return {}
         provider = ACP_PROVIDERS.get(agent.id)
         if provider is None:
             return {}

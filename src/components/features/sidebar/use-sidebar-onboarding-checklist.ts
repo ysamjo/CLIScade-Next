@@ -1,3 +1,4 @@
+import { CLISCADE_PATH } from "#/api/cliscade-service";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { useOnboardingCompletion } from "#/components/features/onboarding/use-onboarding-completion";
 import { useSuperAdminSetupGuide } from "#/components/features/setup-guide/use-super-admin-setup-guide";
@@ -137,6 +138,7 @@ export function useSidebarOnboardingChecklist() {
 
   // The Super Admin setup guide replaces this checklist while it is shown.
   const isVisible =
+    currentPath !== CLISCADE_PATH &&
     onboardingCompleted &&
     !isDismissed &&
     !isAllComplete &&

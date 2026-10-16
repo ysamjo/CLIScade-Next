@@ -71,13 +71,16 @@ vi.mock("#/hooks/query/use-llm-profiles", () => ({
   useLlmProfiles: () => mockUseLlmProfiles(),
 }));
 
-function renderChecklist({ withSettingsSwitch = false } = {}) {
+function renderChecklist({
+  withSettingsSwitch = false,
+  currentPath = "/",
+} = {}) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   const navigate = vi.fn();
   const navigation: NavigationContextValue = {
-    currentPath: "/",
+    currentPath,
     conversationId: null,
     isNavigating: false,
     navigate,
@@ -134,6 +137,16 @@ describe("SidebarOnboardingChecklist", () => {
       data: { active_profile: null, profiles: [] },
       isLoading: false,
     });
+  });
+
+  it("keeps the LLM API-key checklist out of the CLIScade task workflow", () => {
+    renderChecklist({ currentPath: "/tasks" });
+    expect(
+      screen.queryByTestId("sidebar-onboarding-checklist"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "Add LLM API key" }),
+    ).not.toBeInTheDocument();
   });
 
   it("renders setup items including LLM keys, agent profiles, schedule a task, and Slack", () => {

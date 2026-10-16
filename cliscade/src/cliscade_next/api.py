@@ -3,7 +3,10 @@
 import hashlib
 import hmac
 import json
+import os
 import sqlite3
+from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Annotated
 
 import httpx
@@ -11,11 +14,13 @@ from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 
+from cliscade_next.agents import OpenHands
 from cliscade_next.automation import Automation
 from cliscade_next.backup import backup
 from cliscade_next.beads import Beads
 from cliscade_next.config import Settings
 from cliscade_next.consensus import Consensus
+from cliscade_next.login import LoginService
 from cliscade_next.orchestrator import Orchestrator
 from cliscade_next.routing import Routing
 
@@ -67,9 +72,28 @@ class ScheduleInput(BaseModel):
     agent_id: str = Field(default="auto", min_length=1, max_length=100)
 
 
+class LoginInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class LoginCode(LoginInput):
+    id: str = Field(min_length=1, max_length=100)
+    code: str = Field(min_length=1, max_length=4096)
+
+
 def create_app(settings=None, orchestrator=None):
     settings = settings or Settings.from_env()
     service = orchestrator or Orchestrator(settings)
+
+    login = LoginService(
+        Path(os.environ.get("CLISCADE_LOGIN_HOME", str(settings.state / "login-home"))),
+        on_complete=OpenHands(settings).save_account,
+    )
+
+    @asynccontextmanager
+    async def lifespan(app):
+        yield
+        login.close()
 
     def authenticate(x_session_api_key: Annotated[str, Header()] = ""):
         if not settings.api_key or not hmac.compare_digest(
@@ -77,7 +101,9 @@ def create_app(settings=None, orchestrator=None):
         ):
             raise HTTPException(401, "Anmeldung erforderlich")
 
-    app = FastAPI(title="CLIScade Next", dependencies=[Depends(authenticate)])
+    app = FastAPI(
+        title="CLIScade Next", dependencies=[Depends(authenticate)], lifespan=lifespan
+    )
     prefix = "/cliscade/v1"
 
     @app.exception_handler(ValueError)
@@ -105,6 +131,22 @@ def create_app(settings=None, orchestrator=None):
         return JSONResponse(
             status_code=409, content={"detail": "Arbeitsverzeichnis belegt"}
         )
+
+    @app.get(prefix + "/agents/{agent_id}/login")
+    def login_state(agent_id: str):
+        return {**login.current(agent_id), **login.status(agent_id)}
+
+    @app.post(prefix + "/agents/{agent_id}/login")
+    def login_start(agent_id: str, body: LoginInput):
+        return login.start(agent_id)
+
+    @app.post(prefix + "/agents/{agent_id}/login/code")
+    def login_code(agent_id: str, body: LoginCode):
+        return login.submit(agent_id, body.id, body.code)
+
+    @app.delete(prefix + "/agents/{agent_id}/login/{job_id}")
+    def login_cancel(agent_id: str, job_id: str):
+        return login.cancel(agent_id, job_id)
 
     @app.get(prefix + "/projects")
     def projects():

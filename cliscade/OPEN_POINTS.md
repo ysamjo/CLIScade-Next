@@ -6,8 +6,9 @@ Anbieterfreigabe und sämtliche Betriebsarten werden damit nicht behauptet.
 
 1. **Anbieter und Anmeldung auf dem NAS:** Claude Code und Kiro bestanden lokale
    authentifizierte Datei-E2Es. Für NAS-Container fehlen eingerichtete Logins.
-   Das offizielle Agent-Server-Image benötigt für Kiro zusätzlich ein Image mit
-   offizieller Linux-CLI. Keine lokalen Logins still übertragen.
+   Version 0.6.0 ergänzt eine native Kontoanmeldung für vier CLIs und enthält
+   Kiros offizielle Linux-CLI. Kontofreigabe und authentifizierte NAS-Datei-E2Es
+   stehen noch aus. Keine lokalen Logins still übertragen.
 2. **Codex und OpenCode:** Codex lehnt das vorhandene Konto-/Modellpaar ab;
    OpenCode erzeugte im Datei-E2E keine angeforderte Datei. Modell/Provider-
    Konfiguration prüfen und beide Datei-E2Es erneut bestehen lassen. Claude-

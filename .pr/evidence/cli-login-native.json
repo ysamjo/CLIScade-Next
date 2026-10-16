@@ -1,0 +1,38 @@
+[
+  {
+    "provider": "codex",
+    "native_cli_available": true,
+    "challenge_received": true,
+    "provider_host": "auth.openai.com",
+    "inference_verified": false,
+    "account_authorized": false,
+    "cancelled": true
+  },
+  {
+    "provider": "claude-code",
+    "native_cli_available": true,
+    "challenge_received": true,
+    "provider_host": "claude.com",
+    "inference_verified": false,
+    "account_authorized": false,
+    "cancelled": true
+  },
+  {
+    "provider": "opencode",
+    "native_cli_available": true,
+    "challenge_received": true,
+    "provider_host": "auth.openai.com",
+    "inference_verified": false,
+    "account_authorized": false,
+    "cancelled": true
+  },
+  {
+    "provider": "kiro",
+    "native_cli_available": true,
+    "challenge_received": true,
+    "provider_host": "view.awsapps.com",
+    "inference_verified": false,
+    "account_authorized": false,
+    "cancelled": true
+  }
+]

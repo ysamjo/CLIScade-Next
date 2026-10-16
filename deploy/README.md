@@ -1,7 +1,7 @@
 # CLIScade Next auf ZimaOS
 
-Stand 0.5.1. Vier Dienste verwenden den vorhandenen Canvas-Proxy, den offiziellen
-OpenHands Agent Server 1.55.1 und die offizielle Automation 1.20.0. Beads 1.3.1
+Stand 0.6.0. Vier Dienste verwenden den vorhandenen Canvas-Proxy, den offiziellen
+OpenHands Agent Server 1.55.1 mit nativen Login-CLIs und die offizielle Automation 1.20.0. Beads 1.3.1
 läuft ausschließlich im Integrationsdienst. Kein Docker-Socket wird eingebunden.
 
 ## Installation
@@ -15,8 +15,9 @@ mkdir -p /DATA/AppData/cliscade-next/projects \
   /DATA/AppData/cliscade-next/automation
 chmod -R g+rwX /DATA/AppData/cliscade-next
 # Die Container verwenden UID/GID 1000:1000. Die Verzeichnisse müssen für GID 1000 schreibbar sein.
-docker build -f deploy/Dockerfile.cliscade -t cliscade-next-service:0.5.1 .
-docker build -f deploy/Dockerfile.canvas -t cliscade-next-canvas:0.5.0 .
+docker build -f deploy/Dockerfile.agent-server -t cliscade-next-agent-server:0.6.0 .
+docker build -f deploy/Dockerfile.cliscade -t cliscade-next-service:0.6.0 .
+docker build -f deploy/Dockerfile.canvas -t cliscade-next-canvas:0.6.0 .
 python3 deploy/init-secrets.py
 cd deploy
 docker compose config -q
@@ -55,16 +56,46 @@ Browser erhält den lokalen Session-Key über den vorhandenen Canvas-Mechanismus
 
 ## Anbieter einrichten
 
-Die Anmeldung des Macs wird nicht auf den NAS kopiert. Über die vorhandenen
-OpenHands-Secrets Anbieter-API-Key/Base-URL bzw. die unterstützte CLI-Authdatei
-hinterlegen. Danach in der Task-UI **Anbieter prüfen** und einen Datei-E2E im
-Wegwerfprojekt ausführen. Modell-Discovery allein ist kein Arbeitsnachweis.
+Canvas direkt unter `/tasks` öffnen → **Agenten-Konto anmelden** → CLI wählen →
+**Konto anmelden**. Kein Anbieter-API-Key ist erforderlich. Die OpenHands-
+LLM-Profileinrichtung wird für diese lokale Aufgabenroute übersprungen; die
+Backend-Authentifizierung und Cloud-Anmeldung bleiben erhalten.
 
-Claude Code, Codex und OpenCode verwenden die offiziellen SDK-Startbefehle über
-`npx`. Kiro benötigt zusätzlich die offizielle Linux-CLI im Agent-Server-Image;
-das unveränderte OpenHands-Image enthält sie nicht. Deshalb ist Kiro auf diesem
-NAS ohne ergänztes Image derzeit nicht verfügbar. Kein Terminal-Ersatzadapter.
-Details und lokale Prüfergebnisse: [Agentenmatrix](../cliscade/AGENTS_SUPPORTED.md).
+| Agent | Anmeldung in CLIScade |
+|---|---|
+| Codex | ChatGPT-Gerätecode; Anbieterlink öffnen und angezeigten Code bestätigen |
+| Claude Code | Claude-Konto im Anbieterlink anmelden; den dort angezeigten einmaligen Anmeldecode in CLIScade einfügen |
+| OpenCode | ChatGPT Pro/Plus-Gerätelogin für den OpenAI-Provider; weitere OpenCode-Provider sind hier noch nicht angebunden |
+| Kiro | Nativer Device Flow mit `--license free`; Unternehmens-Identity-Center ist hier noch nicht angebunden |
+
+Der Login verwendet ausschließlich feste native Authentifizierungsbefehle,
+keine frei wählbaren Befehle, Agentenprompts oder PTYs. Agentenausführung,
+ACP-Protokoll und Sessions bleiben vollständig im OpenHands SDK/Agent Server.
+Der SDK-ChatGPT-Login für LLM-Profile wird nicht zweckentfremdet: dessen
+Credential Store ist vom nativen Codex-ACP-Login getrennt.
+
+Das gemeinsame Verzeichnis `sessions/home` wird im Integrationsdienst und im
+Agent Server als `/workspace/home` eingebunden. Die CLIs speichern dort ihre
+eigenen Kontoanmeldungen. Codex-`auth.json` wird nach erfolgreicher Anmeldung
+zusätzlich über die bestehende OpenHands-Secrets-API als `CODEX_AUTH_JSON`
+verschlüsselt gespeichert; deren versionierte Bindung übernimmt Token-Refresh
+für ACP. Die erfolgreiche Kontowahl hat Vorrang vor älteren Anbieter-API-Keys.
+Eine Anmeldung auf dem Mac wird nicht kopiert. Server-Backups enthalten sensible
+Konto-Zugangsdaten und müssen privat bleiben.
+
+Browser schließen beendet den Login nicht. **Abbrechen** stoppt nur den eigenen
+Anmeldeprozess; nach spätestens 15 Minuten läuft er ab. Ein Serverneustart
+verwirft offene Login-Vorgänge, abgeschlossene Kontoanmeldungen bleiben erhalten.
+Ein bestätigter Login-Status beweist noch keine erfolgreiche Modell-Inferenz.
+Nach Anmeldung **Anbieter prüfen** und eine Datei-Aufgabe im Wegwerfprojekt testen.
+
+Native Login-Programme: Codex 0.163.0, Claude Code 2.1.301, OpenCode 1.18.23,
+Kiro 2.31.1. Der Kiro-Download wird für amd64 und arm64 gegen feste offizielle
+SHA-256-Prüfsummen geprüft. Linux/amd64 wird auf ZimaOS gebaut und geprüft;
+arm64 ist vorbereitet, aber nicht live gebaut. Die CLI-Pakete behalten ihre
+jeweiligen Lizenzen/Nutzungsbedingungen, insbesondere Claude Code und Kiro;
+dieses Repository enthält ihre Installationsanweisungen, keine um-lizenzierten
+Kopien. Details zur Ausführung: [Agentenmatrix](../cliscade/AGENTS_SUPPORTED.md).
 
 ## Persistenz und Wiederanlauf
 
