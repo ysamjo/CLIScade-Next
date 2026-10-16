@@ -1,0 +1,23 @@
+name: CLIScade Next
+on:
+  pull_request:
+    paths: ['cliscade/**', '.github/workflows/cliscade.yml']
+  push:
+    branches: ['feat/cliscade-next-*']
+permissions:
+  contents: read
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cliscade
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.9.5'
+          python-version: '3.13'
+      - run: uv sync --frozen
+      - run: uv run ruff check .
+      - run: uv run pytest

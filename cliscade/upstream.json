@@ -1,0 +1,22 @@
+{
+  "canvas": {
+    "revision": "aa593c72103862d4f1851988ecacd30f514368dc",
+    "url": "https://github.com/OpenHands/OpenHands.git"
+  },
+  "sdk": {
+    "revision": "5fa4dea24c52fe3ac53fa4e3e67a1376b72189e2",
+    "url": "https://github.com/OpenHands/software-agent-sdk.git"
+  },
+  "automation": {
+    "revision": "2540169151e05798d319d6c3e66741dc91e9da37",
+    "url": "https://github.com/OpenHands/automation.git"
+  },
+  "beads": {
+    "revision": "773b537c75c3fdf7c38371d5da5cd3d98b615e71",
+    "url": "https://github.com/gastownhall/beads.git"
+  },
+  "cliscade": {
+    "revision": "ce01efd98e51c669f4f65feef453d414b5a4e9ee",
+    "url": "https://github.com/ysamjo/CLIScade.git"
+  }
+}

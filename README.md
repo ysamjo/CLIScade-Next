@@ -1,3 +1,5 @@
+> **CLIScade Next:** Eigenständiges privates Projekt. [Architektur und Entwicklungsstand](CLISCADE_NEXT.md). Die folgende Dokumentation beschreibt die übernommene OpenHands-Basis.
+
 <a name="readme-top"></a>
 
 <div align="center">
