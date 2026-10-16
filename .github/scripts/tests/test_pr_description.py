@@ -371,3 +371,11 @@ x
     errors = validate_pr_body(body)
     assert "Keep the `AGENT:` marker from the PR template." not in errors
     assert "Add a short human-written note between `HUMAN:` and `AGENT:`." not in errors
+
+
+def test_cliscade_requires_evidence_without_claiming_human_review():
+    body = "## Why\nBeads anbinden.\n## Summary\nAPI hinzugefügt.\n## How to Test\n17 Tests bestanden.\n"
+    assert validate_pr_body(body, cliscade=True) == []
+    assert validate_pr_body(body.replace("17 Tests bestanden.", ""), cliscade=True)
+    assert validate_pr_body(body, ["src/routes/tasks.tsx"], cliscade=True)
+    assert validate_pr_body(body)  # Upstream behält die menschliche Bestätigung.
