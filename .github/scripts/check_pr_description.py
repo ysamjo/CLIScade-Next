@@ -368,18 +368,21 @@ def validate_linked_issue_ready(
     return errors
 
 
-def validate_pr_body(body: str, files: list[str] | None = None) -> list[str]:
+def validate_pr_body(
+    body: str, files: list[str] | None = None, *, cliscade: bool = False
+) -> list[str]:
     errors: list[str] = []
 
-    if first_visible_line(body) != "HUMAN:":
-        errors.append("The first visible line of the PR description must be `HUMAN:`.")
+    if not cliscade:
+        if first_visible_line(body) != "HUMAN:":
+            errors.append("The first visible line of the PR description must be `HUMAN:`.")
 
-    human_note = extract_human_note(body)
-    if len(human_note) < MIN_HUMAN_NOTE_CHARS:
-        errors.append("Add a short human-written note between `HUMAN:` and `AGENT:`.")
+        human_note = extract_human_note(body)
+        if len(human_note) < MIN_HUMAN_NOTE_CHARS:
+            errors.append("Add a short human-written note between `HUMAN:` and `AGENT:`.")
 
-    if AGENT_HEADING_RE.search(without_fenced_code_blocks(body)) is None:
-        errors.append("Keep the `AGENT:` marker from the PR template.")
+        if AGENT_HEADING_RE.search(without_fenced_code_blocks(body)) is None:
+            errors.append("Keep the `AGENT:` marker from the PR template.")
 
     sections = extract_sections(body)
     for section in REQUIRED_TEMPLATE_FIELDS:
@@ -388,7 +391,8 @@ def validate_pr_body(body: str, files: list[str] | None = None) -> list[str]:
         elif not visible_text(sections[section]):
             errors.append(f"Fill in the `## {section}` section of the PR template.")
 
-    errors.extend(validate_human_tested_checkbox(body))
+    if not cliscade:
+        errors.extend(validate_human_tested_checkbox(body))
     errors.extend(validate_frontend_screenshot(body, files or []))
 
     return errors
@@ -496,15 +500,16 @@ def main() -> int:
     else:
         files = []
 
-    errors = validate_pr_body(body, files)
-
     repo = None
     token = os.environ.get("GITHUB_TOKEN")
     if args.event_path is not None and args.body_file is None:
         payload = json.loads(args.event_path.read_text())
         repo = payload.get("repository", {}).get("full_name")
 
-    errors.extend(validate_linked_issue_ready(body, repo, token))
+    cliscade = repo == "ysamjo/CLIScade-Next"
+    errors = validate_pr_body(body, files, cliscade=cliscade)
+    if not cliscade:
+        errors.extend(validate_linked_issue_ready(body, repo, token))
 
     for error in errors:
         print(f"::error::{error}")

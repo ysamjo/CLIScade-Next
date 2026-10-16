@@ -65,3 +65,6 @@ Nicht nachgewiesen durch diese Tests: Authentifizierung und Inferenz bei
 Claude Code, Codex, OpenCode oder Kiro; Docker-Sandbox-Laufzeit und Tailscale.
 Die vier ACP-Kommandos sind integriert, Anbieter bleiben bis zum Live-Test
 unverifiziert. OpenHands führt die Capability-Aushandlung beim Start durch.
+
+
+PRs im privaten CLIScade-Next verwenden begründete Änderungen und konkrete Testnachweise. Eine menschliche Prüfung wird nicht durch einen KI-verfassten HUMAN-Text vorgetäuscht. Die ursprüngliche OpenHands-Regel bleibt für Upstream-Beiträge erhalten. Der `pull_request_target`-Check verwendet aus Sicherheitsgründen den Zielbranch: Die neue Regel greift dort erst nach Übernahme dieses Foundation-PRs. Upstream-GHCR-Veröffentlichungen laufen ausschließlich im OpenHands-Repository.
