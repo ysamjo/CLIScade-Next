@@ -49,3 +49,6 @@ build-fresh/
 
 # CLIScade-Deployment-Schlüssel
 /deploy/runtime.env
+
+# Lokale Versionsarchive
+Archiv/
