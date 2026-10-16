@@ -89,3 +89,15 @@ def test_request_id_survives_restart_without_duplicate_session(system):
     assert len(runner.sessions) == 1
     with pytest.raises(ValueError, match="andere Parameter"):
         restarted.start("project", "cn-2", "one", request_key="automation-run-1")
+
+
+def test_existing_ledger_adds_baseline_column_without_losing_attempts(system):
+    from cliscade_next.ledger import Ledger
+
+    service, _, settings = system
+    attempt = service.start("project", "cn-1", "one")
+    with service.ledger.connect() as db:
+        db.execute("ALTER TABLE attempts DROP COLUMN base_revision")
+    saved = Ledger(settings.state).get(attempt["id"])
+    assert saved["session_id"] == attempt["session_id"]
+    assert saved["base_revision"] is None

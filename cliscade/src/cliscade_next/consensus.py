@@ -136,6 +136,8 @@ class Consensus:
                     "agent": attempt["agent"],
                     "status": attempt["status"],
                     "patch_hash": fingerprint,
+                    "base_revision": state.get("base_revision"),
+                    "revision": state.get("revision"),
                     "agent_claims": checkpoint.get("agent_claims", []),
                     "checks": checkpoint.get("verified_checks", []),
                     "diff": state.get("diff", ""),
@@ -143,7 +145,9 @@ class Consensus:
                 }
             )
         complete = len(attempts) >= 2 and all(
-            (item.get("checkpoint") or {})
+            (item.get("checkpoint") or {}).get("git", {}).get("base_revision")
+            == group["revision"]
+            and (item.get("checkpoint") or {})
             .get("git", {})
             .get("untracked_complete", False)
             and not (item.get("checkpoint") or {})

@@ -88,7 +88,7 @@ Agenten können Entscheidungen und offene Schritte mit dem schema-validierten
 Prüfbelege als verifiziert deklarieren. Anbieterfehler werden getrennt als
 OpenHands-Laufzeitfehler im Checkpoint geführt.
 
-## Konsens, Automationen und Sicherung (0.5.0)
+## Konsens, Automationen und Sicherung (0.5.1)
 
 Die Task-UI startet unabhängige Konsensversuche mit getrennten Worktrees und
 zeigt Patch-Unterschiede sowie getrennte Aussagen und Werkzeugbelege. Ein
@@ -104,3 +104,7 @@ Wiederholung nach möglichem Promptversand, kein automatischer Konsens-Merge.
 
 
 PRs im privaten CLIScade-Next verwenden begründete Änderungen und konkrete Testnachweise. Eine menschliche Prüfung wird nicht durch einen KI-verfassten HUMAN-Text vorgetäuscht. Die ursprüngliche OpenHands-Regel bleibt für Upstream-Beiträge erhalten. Der `pull_request_target`-Check verwendet aus Sicherheitsgründen den Zielbranch: Die neue Regel greift dort erst nach Übernahme dieses Foundation-PRs. Upstream-GHCR-Veröffentlichungen laufen ausschließlich im OpenHands-Repository.
+
+Jeder Attempt speichert seine Git-Ausgangsrevision. Checkpoints und Konsens
+enthalten auch Änderungen, die ein Agent inzwischen selbst committet hat;
+Binärpatches und Dateityp-Unterschiede werden ebenfalls berücksichtigt.

@@ -26,3 +26,8 @@ Beads-Backups werden erst nach nativer Wiederherstellung und vollständigem
 Vergleich von Aufgaben und Memories als verifiziert bezeichnet. Das ist keine
 vollständige Sicherung der OpenHands-Sessions. Deployment-Tests stehen in
 `tests/test_deployment.py`; Docker-Builds laufen ausschließlich auf ZimaOS.
+
+Der Git-Vergleich muss sich auf die persistierte Ausgangsrevision beziehen,
+nicht nur auf das aktuelle HEAD des Agenten. Selbst erstellte Commits dürfen
+Änderungen weder im Handoff noch im Konsens verbergen. Binärpatches sowie Typ
+und Ausführbarkeit unversionierter Dateien gehören zum Vergleich.

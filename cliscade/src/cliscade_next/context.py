@@ -90,8 +90,19 @@ def git(project: Path, *args):
     ).stdout
 
 
-def snapshot(project: Path):
-    diff = git(project, "diff", "HEAD", "--", ".", ":(exclude).beads")
+def snapshot(project: Path, base_revision=None):
+    base_revision = base_revision or git(project, "rev-parse", "HEAD").strip()
+    diff = git(
+        project,
+        "diff",
+        "--no-ext-diff",
+        "--no-textconv",
+        "--binary",
+        base_revision,
+        "--",
+        ".",
+        ":(exclude).beads",
+    )
     untracked = []
     complete = True
     names = list(
@@ -119,9 +130,17 @@ def snapshot(project: Path):
             complete = False
             untracked.append({"path": name, "omitted": True})
             continue
-        untracked.append({"path": name, "sha256": hashlib.sha256(value).hexdigest()})
+        untracked.append(
+            {
+                "path": name,
+                "kind": "symlink" if file.is_symlink() else "file",
+                "executable": bool(file.lstat().st_mode & 0o100),
+                "sha256": hashlib.sha256(value).hexdigest(),
+            }
+        )
     return {
         "revision": git(project, "rev-parse", "HEAD").strip(),
+        "base_revision": base_revision,
         "status": git(project, "status", "--porcelain"),
         "diff": diff[:32000],
         "diff_truncated": len(diff) > 32000,
@@ -131,11 +150,13 @@ def snapshot(project: Path):
     }
 
 
-def load_rules(project: Path, workspace: Path):
+def load_rules(project: Path, workspace: Path, base_revision=None):
     files = [project.parent / "AGENTS.md", project / "AGENTS.md"]
     if workspace != project:
         files.append(workspace / "AGENTS.md")
-    changed = git(workspace, "diff", "--name-only", "HEAD", "-z").split("\0")
+    changed = git(
+        workspace, "diff", "--name-only", base_revision or "HEAD", "-z"
+    ).split("\0")
     changed += git(workspace, "ls-files", "--others", "--exclude-standard", "-z").split(
         "\0"
     )

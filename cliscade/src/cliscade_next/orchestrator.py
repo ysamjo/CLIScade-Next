@@ -78,13 +78,18 @@ class Orchestrator:
         checks, claims = evidence(events)
         old = attempt.get("checkpoint") or {}
         report = report_from_claims(claims)
-        current_git = snapshot(workspace)
+        base_revision = (
+            attempt.get("base_revision")
+            or old.get("git", {}).get("base_revision")
+            or old.get("git", {}).get("revision")
+        )
+        current_git = snapshot(workspace, base_revision)
         for check in checks:
             check["checkpoint_revision"] = current_git["revision"]
             check["execution_revision_known"] = False
         return Handoff(
             task=beads.show(attempt["task_id"]),
-            rules=load_rules(project, workspace),
+            rules=load_rules(project, workspace, current_git["base_revision"]),
             project_knowledge=beads.context(),
             git=current_git,
             verified_checks=checks or old.get("verified_checks", []),
@@ -191,6 +196,12 @@ class Orchestrator:
                 source_id,
                 request_key,
                 fingerprint,
+                base_revision=(
+                    source["checkpoint"]["git"].get("base_revision")
+                    or source["checkpoint"]["git"]["revision"]
+                    if source
+                    else git(workspace, "rev-parse", "HEAD").strip()
+                ),
             )
             session = None
             try:
@@ -328,6 +339,11 @@ class Orchestrator:
                 source["agent"],
                 source["workspace"],
                 source["id"],
+                base_revision=(
+                    source.get("base_revision")
+                    or source["checkpoint"]["git"].get("base_revision")
+                    or source["checkpoint"]["git"]["revision"]
+                ),
             )
             checkpoint = self.checkpoint(source)
             checkpoint["source_attempt"] = source["id"]

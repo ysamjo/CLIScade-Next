@@ -20,7 +20,7 @@ class Ledger:
                     workspace TEXT NOT NULL, status TEXT NOT NULL,
                     session_id TEXT, prompt_sent INTEGER NOT NULL DEFAULT 0,
                     source_id TEXT, checkpoint TEXT, error TEXT, terminal_seen REAL,
-                    route_trace TEXT,
+                    route_trace TEXT, base_revision TEXT,
                     created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ'))
                 );
                 CREATE UNIQUE INDEX IF NOT EXISTS active_workspace
@@ -40,6 +40,8 @@ class Ledger:
             columns = {row[1] for row in db.execute("PRAGMA table_info(attempts)")}
             if "route_trace" not in columns:
                 db.execute("ALTER TABLE attempts ADD COLUMN route_trace TEXT")
+            if "base_revision" not in columns:
+                db.execute("ALTER TABLE attempts ADD COLUMN base_revision TEXT")
 
     @contextmanager
     def connect(self):
@@ -60,13 +62,22 @@ class Ledger:
         source_id=None,
         request_key=None,
         request_fingerprint=None,
+        base_revision=None,
     ):
         attempt_id = str(uuid4())
         with self.connect() as db:
             db.execute(
                 "INSERT INTO attempts (id,project,task_id,agent,workspace,status,"
-                "source_id) VALUES (?,?,?,?,?,'preparing',?)",
-                (attempt_id, project, task_id, agent, str(workspace), source_id),
+                "source_id,base_revision) VALUES (?,?,?,?,?,'preparing',?,?)",
+                (
+                    attempt_id,
+                    project,
+                    task_id,
+                    agent,
+                    str(workspace),
+                    source_id,
+                    base_revision,
+                ),
             )
             if request_key:
                 db.execute(

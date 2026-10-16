@@ -50,7 +50,7 @@ müssen die betroffenen Upstream-Pakete und erreichbaren Codepfade geprüft werd
 
 ## Meilenstein 5 – Konsens, Automationen und Deployment
 
-- `uv run pytest`: 20 bestanden, 6 opt-in Prüfungen übersprungen. Darunter ein
+- `uv run pytest`: 25 bestanden, 6 opt-in Prüfungen übersprungen. Darunter ein
   echtes natives Beads-Backup mit vollständigem Aufgaben-/Memory-Vergleich nach
   Wiederherstellung, Idempotenz, unabhängige Worktrees und sichere Compose-Grenzen.
 - `ruff check` für Integration und Deployment, Canvas-Typecheck, Produktionsbuild,
@@ -87,3 +87,15 @@ Lokale Rohbelege: isolierter Agent-Server-Lauf `20261016-032345-bef1-cliscade-ne
 Automation-Historie und `restart.log`. Schlüssel und vollständige private
 Sessions werden nicht in GitHub hochgeladen. Screenshots liegen als private
 PR-Artefakte unter `.pr/screenshots/`.
+
+### Korrektur 0.5.1: committed Lösungen vergleichen
+
+Drei neue Regressionen zeigten den Fehler vor der Korrektur: unterschiedliche
+committete Text-/Binärdateien sowie Symlink gegenüber normaler Datei wurden
+fälschlich als gleicher Patch behandelt. Nach der Korrektur bestehen alle drei.
+Das Ledger speichert die Ausgangsrevision je Attempt; Git-Diffs einschließlich
+Binärpatches und Regeln für geänderte Unterverzeichnisse beziehen sich darauf.
+Handoff und Resume erhalten die Ausgangsrevision. Eine zusätzliche Regression
+prüft committete Änderungen im Handoff; eine weitere die verlustfreie Erweiterung
+eines vorhandenen Ledgers. Alte Konsens-Checkpoints ohne passende Ausgangsrevision
+werden nicht nachträglich als Patch-Übereinstimmung ausgegeben.

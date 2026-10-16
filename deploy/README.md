@@ -1,6 +1,6 @@
 # CLIScade Next auf ZimaOS
 
-Stand 0.5.0. Vier Dienste verwenden den vorhandenen Canvas-Proxy, den offiziellen
+Stand 0.5.1. Vier Dienste verwenden den vorhandenen Canvas-Proxy, den offiziellen
 OpenHands Agent Server 1.55.1 und die offizielle Automation 1.20.0. Beads 1.3.1
 läuft ausschließlich im Integrationsdienst. Kein Docker-Socket wird eingebunden.
 
@@ -15,7 +15,7 @@ mkdir -p /DATA/AppData/cliscade-next/projects \
   /DATA/AppData/cliscade-next/automation
 chmod -R g+rwX /DATA/AppData/cliscade-next
 # Die Container verwenden UID/GID 1000:1000. Die Verzeichnisse müssen für GID 1000 schreibbar sein.
-docker build -f deploy/Dockerfile.cliscade -t cliscade-next-service:0.5.0 .
+docker build -f deploy/Dockerfile.cliscade -t cliscade-next-service:0.5.1 .
 docker build -f deploy/Dockerfile.canvas -t cliscade-next-canvas:0.5.0 .
 python3 deploy/init-secrets.py
 cd deploy
