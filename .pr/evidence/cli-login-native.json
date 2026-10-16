@@ -21,7 +21,7 @@
     "provider": "opencode",
     "native_cli_available": true,
     "challenge_received": true,
-    "provider_host": "auth.openai.com",
+    "provider_host": "opencode.ai",
     "inference_verified": false,
     "account_authorized": false,
     "cancelled": true
@@ -30,7 +30,7 @@
     "provider": "kiro",
     "native_cli_available": true,
     "challenge_received": true,
-    "provider_host": "view.awsapps.com",
+    "provider_host": "app.kiro.dev",
     "inference_verified": false,
     "account_authorized": false,
     "cancelled": true

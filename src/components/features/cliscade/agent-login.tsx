@@ -13,7 +13,7 @@ const CONTROL =
 interface LoginState {
   id?: string;
   state: "idle" | "pending" | "completed" | "failed" | "cancelled" | "expired";
-  mode: "code" | "device";
+  mode: "code" | "device" | "callback";
   connected?: boolean;
   available?: boolean;
   url?: string | null;
@@ -82,6 +82,8 @@ export function AgentLogin() {
           ))}
         </select>
       </label>
+      {agent === "opencode" && <p>{t(I18nKey.CLISCADE$LOGIN_OPENCODE)}</p>}
+      {agent === "kiro" && <p>{t(I18nKey.CLISCADE$LOGIN_KIRO)}</p>}
       <p role="status" aria-live="polite">
         {state?.connected
           ? t(I18nKey.CLISCADE$LOGIN_CONNECTED)
@@ -115,9 +117,10 @@ export function AgentLogin() {
           >
             {t(I18nKey.CLISCADE$LOGIN_OPEN)}
           </a>
-          {state.mode === "code" && (
+          {(state.mode === "code" || state.mode === "callback") && (
             <form
               className="max-w-xl space-y-2"
+              method="post"
               onSubmit={(event) => {
                 event.preventDefault();
                 action.mutate({
@@ -126,12 +129,30 @@ export function AgentLogin() {
                 });
               }}
             >
+              {state.mode === "callback" && (
+                <p id="kiro-callback-help">
+                  {t(I18nKey.CLISCADE$LOGIN_CALLBACK_HELP)}
+                </p>
+              )}
               <label className="block">
-                {t(I18nKey.CLISCADE$LOGIN_CODE)}
+                {t(
+                  state.mode === "callback"
+                    ? I18nKey.CLISCADE$LOGIN_CALLBACK
+                    : I18nKey.CLISCADE$LOGIN_CODE,
+                )}
                 <input
                   className={CONTROL}
                   type="password"
-                  autoComplete="one-time-code"
+                  name="login-code"
+                  autoComplete={
+                    state.mode === "callback" ? "off" : "one-time-code"
+                  }
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  aria-describedby={
+                    state.mode === "callback" ? "kiro-callback-help" : undefined
+                  }
                   required
                   value={code}
                   onChange={(event) => setCode(event.target.value)}

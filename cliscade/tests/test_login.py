@@ -1,4 +1,5 @@
 import json
+import sqlite3
 import sys
 import time
 
@@ -172,8 +173,123 @@ def test_opencode_status_reads_oauth_store_without_starting_a_second_cli(
     store.parent.mkdir(parents=True)
     store.write_text(json.dumps({"openai": {"type": "api", "key": "not-an-account"}}))
     assert service.status("opencode")["connected"] is False
-    store.write_text(
-        json.dumps({"openai": {"type": "oauth", "refresh": "fixture-refresh"}})
-    )
+    store.write_text(json.dumps({"openai": {"type": "oauth", "refresh": "old-openai"}}))
+    assert service.status("opencode")["connected"] is False
+    with sqlite3.connect(store.with_name("opencode.db")) as db:
+        db.executescript("""
+            CREATE TABLE account (id TEXT, url TEXT, refresh_token TEXT);
+            CREATE TABLE account_state (id INTEGER, active_account_id TEXT);
+            INSERT INTO account VALUES
+                ('own', 'https://opencode.ai/console', 'fixture-refresh');
+            INSERT INTO account_state VALUES (1, 'missing');
+        """)
+        assert service.status("opencode")["connected"] is False
+        db.execute("UPDATE account_state SET active_account_id = 'own'")
     assert service.status("opencode")["connected"] is True
     assert "fixture-refresh" not in json.dumps(service.status("opencode"))
+
+
+def test_kiro_callback_only_reaches_native_listener_with_matching_state(
+    tmp_path, monkeypatch
+):
+    from unittest.mock import Mock
+
+    service = LoginService(tmp_path)
+    job = {
+        "challenge": {
+            "url": (
+                "https://app.kiro.dev/signin?redirect_uri=http%3A%2F%2Flocalhost%3A3128"
+                "&state=native-state"
+            )
+        }
+    }
+    connection = Mock()
+    connection.getresponse.return_value.status = 200
+    factory = Mock(return_value=connection)
+    monkeypatch.setattr("cliscade_next.login.http.client.HTTPConnection", factory)
+    for value in (
+        "http://evil.test:3128/?code=secret&state=native-state",
+        "http://localhost:8000/?code=secret&state=native-state",
+        "http://localhost:3128/?code=secret&state=another-login",
+        "http://localhost:3128/?state=native-state",
+    ):
+        with pytest.raises(ValueError):
+            service.callback(job, value)
+    factory.assert_not_called()
+    service.callback(job, "http://localhost:3128/?code=secret&state=native-state")
+    factory.assert_called_once_with("127.0.0.1", 3128, timeout=15)
+    connection.request.assert_called_once_with(
+        "GET", "/?code=secret&state=native-state"
+    )
+    connection.close.assert_called_once()
+
+
+def test_native_browser_capture_is_private_and_rejects_other_hosts(
+    tmp_path, monkeypatch
+):
+    from cliscade_next.login import capture_browser
+
+    target = tmp_path / "url"
+    monkeypatch.setenv("CLISCADE_LOGIN_URL_FILE", str(target))
+    monkeypatch.setattr(sys, "argv", ["browser", "https://evil.test/?secret=code"])
+    with pytest.raises(SystemExit):
+        capture_browser()
+    assert not target.exists()
+    monkeypatch.setattr(
+        sys, "argv", ["browser", "https://app.kiro.dev/signin?state=test"]
+    )
+    capture_browser()
+    assert target.stat().st_mode & 0o777 == 0o600
+    assert target.read_text() == "https://app.kiro.dev/signin?state=test"
+
+
+def test_kiro_native_portal_callback_completes_and_persists(tmp_path, monkeypatch):
+    script = tmp_path / "kiro.py"
+    script.write_text("""import os,pathlib,subprocess,sys,json
+from http.server import BaseHTTPRequestHandler,HTTPServer
+p=pathlib.Path.home()/"signed-in"
+if sys.argv[1]=="status":
+ print(json.dumps({"accountType":"social"}) if p.exists() else "");sys.exit(0)
+class Handler(BaseHTTPRequestHandler):
+ def do_GET(self):
+  p.write_text("connected")
+  self.send_response(200);self.end_headers();self.wfile.write(b"ok")
+ def log_message(self,*args): pass
+server=HTTPServer(("127.0.0.1",0),Handler)
+url="https://app.kiro.dev/signin?state=native-state&redirect_uri=http%3A%2F%2Flocalhost%3A"+str(server.server_port)
+subprocess.run([os.environ["BROWSER"],url],check=True)
+print("Opening browser",flush=True)
+server.handle_request();server.server_close()
+""")
+    monkeypatch.setitem(
+        PROVIDERS,
+        "kiro",
+        {
+            "login": (sys.executable, str(script), "login"),
+            "status": (sys.executable, str(script), "status"),
+            "mode": "callback",
+        },
+    )
+    service = LoginService(tmp_path)
+    try:
+        first = service.start("kiro")
+        for _ in range(100):
+            state = service.current("kiro")
+            if state.get("url"):
+                break
+            time.sleep(0.02)
+        from urllib.parse import parse_qs, urlsplit
+
+        target = parse_qs(urlsplit(state["url"]).query)["redirect_uri"][0]
+        service.submit(
+            "kiro", first["id"], target + "/?code=one-time&state=native-state"
+        )
+        for _ in range(100):
+            if service.current("kiro")["state"] == "completed":
+                break
+            time.sleep(0.02)
+        assert service.current("kiro")["state"] == "completed"
+        assert LoginService(tmp_path).status("kiro")["connected"]
+        assert "one-time" not in json.dumps(service.current("kiro"))
+    finally:
+        service.close()

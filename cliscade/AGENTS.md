@@ -44,3 +44,9 @@ müssen dasselbe persistente Verzeichnis verwenden. Codex-Kontoanmeldung wird
 Credential-Bindung muss beim ACP-Start erhalten bleiben. Login-Abbruch darf
 keine Agenten-Ausführungen unterbrechen. Alle Kindprozesse beim Dienstende
 beenden; offene Login-Vorgänge dürfen nach Neustart neu begonnen werden.
+
+Kiro-Kontowahl verwendet das normale native Portal, keinen erzwungenen AWS-
+Gerätefluss. Der Browser-Helfer übergibt nur `app.kiro.dev`-URLs privat an den
+Login-Vorgang. Rückleitungen nur an dessen localhost-Ziel mit passendem State
+weitergeben; keine Redirects oder Proxy-Umgebungsvariablen verwenden. OpenCode
+meldet sein eigenes Console-Konto an; OpenAI-Credentials sind kein Nachweis dafür.

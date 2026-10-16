@@ -1,60 +1,38 @@
 {
-  "backend": "ZimaOS über eigenen SSH-Tunnel",
-  "browser": "Ego Lite",
-  "fresh_onboarding_flag": null,
-  "api_key_checklist_visible": false,
+  "version": "0.6.1",
+  "target": "ZimaOS via owned SSH tunnel",
+  "kiro": {
+    "portal_host": "app.kiro.dev",
+    "visible_methods": [
+      "Google",
+      "GitHub",
+      "Builder ID",
+      "Your organization"
+    ],
+    "callback_input_visible": true,
+    "cancelled": true
+  },
+  "opencode": {
+    "portal_host": "opencode.ai",
+    "portal_path": "/console/device",
+    "visible_methods": [
+      "Google",
+      "GitHub",
+      "email"
+    ],
+    "cancelled": true
+  },
   "viewports": [
     {
       "width": 390,
-      "horizontal_overflow": false
+      "scroll_width": 390
     },
     {
       "width": 768,
-      "horizontal_overflow": false
-    },
-    {
-      "width": 1440,
-      "horizontal_overflow": false
+      "scroll_width": 768
     }
   ],
-  "providers": [
-    {
-      "id": "opencode",
-      "provider_host": "auth.openai.com",
-      "device_code_visible": true,
-      "reload_kept_same_login_id": true,
-      "provider_reselected_after_reload": true,
-      "cancelled": true
-    },
-    {
-      "id": "claude-code",
-      "provider_host": "claude.com",
-      "password_input_for_one_time_code": true,
-      "api_key_input_present": false,
-      "cancelled": true
-    },
-    {
-      "id": "codex",
-      "provider_host": "auth.openai.com",
-      "device_code_visible": true,
-      "cancelled": true
-    },
-    {
-      "id": "kiro",
-      "provider_host": "view.awsapps.com",
-      "device_code_visible": true,
-      "cancelled": true
-    }
-  ],
-  "personal_accounts_authorized": false,
-  "provider_inference_verified": false,
-  "private_https_status_on_nas": 200,
-  "images": {
-    "canvas": "cliscade-next-canvas:0.6.0",
-    "cliscade": "cliscade-next-service:0.6.0",
-    "agent_server": "cliscade-next-agent-server:0.6.0",
-    "automation": "ghcr.io/openhands/automation:1.20.0"
-  },
-  "containers_running": true,
-  "oom_killed": false
+  "account_authorized": false,
+  "inference_verified": false,
+  "all_owned_browser_pages_closed": true
 }

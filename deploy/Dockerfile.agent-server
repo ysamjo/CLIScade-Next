@@ -9,7 +9,7 @@ RUN case "$(dpkg --print-architecture)" in \
  && curl -fsSL "https://prod.download.cli.kiro.dev/stable/2.31.1/kirocli-${arch}-linux-musl.tar.gz" -o /tmp/kiro.tar.gz \
  && echo "$checksum  /tmp/kiro.tar.gz" | sha256sum -c - \
  && mkdir /tmp/kiro && tar -xzf /tmp/kiro.tar.gz -C /tmp/kiro \
- && find /tmp/kiro -type f -name 'kiro-cli*' -exec cp '{}' /usr/local/bin/kiro-cli \; \
+ && find /tmp/kiro -type f -name 'kiro-cli*' -exec cp '{}' /usr/local/bin/ \; \
  && test -x /usr/local/bin/kiro-cli \
  && rm -rf /tmp/kiro /tmp/kiro.tar.gz
 

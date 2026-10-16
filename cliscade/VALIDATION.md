@@ -123,3 +123,32 @@ Integrationsdienst-Neustart erhält Beads-Projekte und den vorhandenen
 Agent-Server-Kontext (HTTP 200). Alle Testanmeldungen wurden abgebrochen;
 es sind keine persönlichen Konten verbunden. Private HTTPS-Route: HTTP 200
 vom NAS; die bestehende ZimaOS-Link-Kachel bleibt unverändert.
+
+### Korrekte Kontenportale 0.6.1
+
+Die Startbelege aus 0.6.0 prüften nur, ob irgendein Anbieterlink erschien. Sie
+bestätigten deshalb fälschlich die gewünschte Kontowahl: OpenCode war auf OpenAI
+festgelegt, Kiro auf AWS Builder ID. Diese Einschränkung ist korrigiert.
+
+- 35 Python-Tests bestanden, 6 opt-in E2Es übersprungen; darunter Kiro-Portal-Übergabe, kontrollierter Callback-Abschluss und persistenter Status sowie Ablehnung fremder Hosts, Ports und OAuth-States.
+- 47 fokussierte Canvas-Tests bestanden, Typecheck, Lint und Übersetzungsvollständigkeit bestanden (692 geerbte Warnungen).
+- Alle drei eigenen Images 0.6.1 auf ZimaOS gebaut; der Canvas-Produktionsbuild bestand. Die Kiro-Binärdateien werden unter ihren ursprünglichen Namen kopiert; `xdg-utils` ermöglicht den nativen Portalstart im Integrationscontainer.
+- `deploy/verify-login.py` verifiziert nun ausdrücklich die erwarteten Hosts: Codex `auth.openai.com`, Claude `claude.com`, OpenCode `opencode.ai`, Kiro `app.kiro.dev`. Alle vier nativen Starts und gezielten Prozessabbrüche bestanden.
+- Der OpenCode-Status verwendet das aktive eigene Console-Konto in der nativen Datenbank; alte OpenAI-OAuth-Dateien gelten nicht als OpenCode-Konto.
+
+Keine persönlichen Konten autorisiert. Ein vollständiger echter Kiro-OAuth-Abschluss
+mit manuell übernommener localhost-Rückleitung und authentifizierte NAS-Inferenz
+bleiben vom Benutzerlogin abhängig; der Callback ist mit einem nativen
+Listener-Test geprüft. Ego Lite bestätigte im echten Kiro-Portal Google, GitHub, Builder ID und
+Your organization. Das echte OpenCode-Console-Portal zeigte Google, GitHub
+und E-Mail. Oberfläche bei 390 und 768 Pixel ohne horizontalen Überlauf
+geprüft; eigene Login-Vorgänge abgebrochen und alle eigenen Browserseiten
+geschlossen. Private HTTPS-Route, Beads und gespeicherte Session lieferten
+nach dem Compose-Update HTTP 200.
+
+Quellvertrag OpenCode 1.18.23:
+[Console-Anmeldung](https://github.com/anomalyco/opencode/blob/ef2880f379129aa048be9e9353e30aa168d42c17/packages/opencode/src/cli/cmd/account.ts),
+[nativer Kontenspeicher](https://github.com/anomalyco/opencode/blob/ef2880f379129aa048be9e9353e30aa168d42c17/packages/core/src/account/sql.ts).
+Kiro: [offizielle CLI-Anmeldung](https://kiro.dev/docs/cli/authentication/); der
+Gerätefluss der tatsächlich gepinnten Linux-CLI 2.31.1 wählte beim Test AWS und
+wird deshalb für die allgemeine Kontowahl nicht verwendet.

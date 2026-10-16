@@ -26,13 +26,22 @@ def main():
                     state = service.current(provider)
                     if state["state"] != "pending" or (
                         state.get("url")
-                        and (spec["mode"] == "code" or state.get("user_code"))
+                        and (spec["mode"] != "device" or state.get("user_code"))
                     ):
                         break
                     time.sleep(0.25)
                 ready = state["state"] == "pending" and bool(state.get("url"))
                 ready = ready and (
-                    spec["mode"] == "code" or bool(state.get("user_code"))
+                    spec["mode"] != "device" or bool(state.get("user_code"))
+                )
+                expected_host = {
+                    "codex": "auth.openai.com",
+                    "claude-code": "claude.com",
+                    "opencode": "opencode.ai",
+                    "kiro": "app.kiro.dev",
+                }[provider]
+                ready = (
+                    ready and urlsplit(state.get("url") or "").hostname == expected_host
                 )
                 report.append(
                     {

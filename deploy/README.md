@@ -1,6 +1,6 @@
 # CLIScade Next auf ZimaOS
 
-Stand 0.6.0. Vier Dienste verwenden den vorhandenen Canvas-Proxy, den offiziellen
+Stand 0.6.1. Vier Dienste verwenden den vorhandenen Canvas-Proxy, den offiziellen
 OpenHands Agent Server 1.55.1 mit nativen Login-CLIs und die offizielle Automation 1.20.0. Beads 1.3.1
 läuft ausschließlich im Integrationsdienst. Kein Docker-Socket wird eingebunden.
 
@@ -15,9 +15,9 @@ mkdir -p /DATA/AppData/cliscade-next/projects \
   /DATA/AppData/cliscade-next/automation
 chmod -R g+rwX /DATA/AppData/cliscade-next
 # Die Container verwenden UID/GID 1000:1000. Die Verzeichnisse müssen für GID 1000 schreibbar sein.
-docker build -f deploy/Dockerfile.agent-server -t cliscade-next-agent-server:0.6.0 .
-docker build -f deploy/Dockerfile.cliscade -t cliscade-next-service:0.6.0 .
-docker build -f deploy/Dockerfile.canvas -t cliscade-next-canvas:0.6.0 .
+docker build -f deploy/Dockerfile.agent-server -t cliscade-next-agent-server:0.6.1 .
+docker build -f deploy/Dockerfile.cliscade -t cliscade-next-service:0.6.1 .
+docker build -f deploy/Dockerfile.canvas -t cliscade-next-canvas:0.6.1 .
 python3 deploy/init-secrets.py
 cd deploy
 docker compose config -q
@@ -65,8 +65,21 @@ Backend-Authentifizierung und Cloud-Anmeldung bleiben erhalten.
 |---|---|
 | Codex | ChatGPT-Gerätecode; Anbieterlink öffnen und angezeigten Code bestätigen |
 | Claude Code | Claude-Konto im Anbieterlink anmelden; den dort angezeigten einmaligen Anmeldecode in CLIScade einfügen |
-| OpenCode | ChatGPT Pro/Plus-Gerätelogin für den OpenAI-Provider; weitere OpenCode-Provider sind hier noch nicht angebunden |
-| Kiro | Nativer Device Flow mit `--license free`; Unternehmens-Identity-Center ist hier noch nicht angebunden |
+| OpenCode | Eigenes OpenCode-Konto über `opencode console login --pure`; Gerätecode unter `opencode.ai/console/device` |
+| Kiro | Natives Kiro-Portal (`app.kiro.dev`) mit Kontowahl; abschließende localhost-Rückleitungsadresse in CLIScade einfügen |
+
+Bei Kiro nach Abschluss der Anmeldung die vollständige `http://localhost:…`-
+Adresse aus der Browser-Adresszeile kopieren und im Feld **Vollständige Kiro-
+Rückleitungsadresse** einfügen. Auf einem anderen Rechner darf diese Seite
+unerreichbar sein: CLIScade übergibt die Adresse ausschließlich an den passenden
+nativen Kiro-Listener im Server. Ziel, Port und OAuth-State müssen zum eigenen
+Login gehören. Kein Callback-Port wird veröffentlicht. Das ist wegen des
+localhost-Callbacks der CLI erforderlich; ein Gerätefluss würde in der geprüften
+Version erneut AWS Builder ID auswählen.
+
+OpenCode-Console-Konten liegen in der nativen `opencode.db`; ein älterer
+OpenAI-Login in `auth.json` zählt nicht als OpenCode-Konto. Der Dienst liest
+nur den booleschen Verbindungsstatus, niemals Tokens oder Kontodetails aus.
 
 Der Login verwendet ausschließlich feste native Authentifizierungsbefehle,
 keine frei wählbaren Befehle, Agentenprompts oder PTYs. Agentenausführung,

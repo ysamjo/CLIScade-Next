@@ -1,6 +1,6 @@
 [project]
 name = "cliscade-next"
-version = "0.6.0"
+version = "0.6.1"
 description = "Beads- und ACP-Orchestrierung für OpenHands Agent Canvas"
 requires-python = ">=3.13"
 dependencies = [
@@ -10,6 +10,9 @@ dependencies = [
   "openhands-sdk==1.55.1",
   "uvicorn==0.54.0",
 ]
+
+[project.scripts]
+cliscade-login-browser = "cliscade_next.login:capture_browser"
 
 [build-system]
 requires = ["hatchling==1.30.1"]

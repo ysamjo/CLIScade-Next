@@ -1,7 +1,7 @@
 name: cliscade-next
 services:
   canvas:
-    image: cliscade-next-canvas:0.6.0
+    image: cliscade-next-canvas:0.6.1
     restart: unless-stopped
     env_file: runtime.env
     ports:
@@ -18,7 +18,7 @@ services:
           description:
             de_de: Privater Zugang über Tailscale Serve
   cliscade:
-    image: cliscade-next-service:0.6.0
+    image: cliscade-next-service:0.6.1
     restart: unless-stopped
     env_file: runtime.env
     environment:
@@ -35,7 +35,7 @@ services:
     security_opt:
       - no-new-privileges:true
   agent-server:
-    image: cliscade-next-agent-server:0.6.0
+    image: cliscade-next-agent-server:0.6.1
     restart: unless-stopped
     user: "1000:1000"
     env_file: runtime.env

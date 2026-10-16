@@ -1,32 +1,10 @@
 {
-  "version": "0.6.0",
-  "projects_after_restart": [
-    {
-      "id": "cliscade-smoke",
-      "beads": true
-    }
-  ],
-  "stored_session_status": 200,
-  "login_states": {
-    "codex": {
-      "state": "idle",
-      "available": true,
-      "connected": false
-    },
-    "claude-code": {
-      "state": "idle",
-      "available": true,
-      "connected": false
-    },
-    "opencode": {
-      "state": "idle",
-      "available": true,
-      "connected": false
-    },
-    "kiro": {
-      "state": "idle",
-      "available": true,
-      "connected": false
-    }
-  }
+  "version": "0.6.1",
+  "responses": {
+    "/ready": 200,
+    "/api/automation/health": 200,
+    "/cliscade/v1/projects": 200,
+    "/api/conversations/073a503e-2e99-477b-86f9-62e8edc93195": 200
+  },
+  "beads_present": true
 }
