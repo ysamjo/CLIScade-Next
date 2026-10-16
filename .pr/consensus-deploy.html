@@ -13,18 +13,18 @@ index e719ce46d..f373dfebf 100644
 +++ b/cliscade/src/cliscade_next/api.py
 @@ -1,15 +1,21 @@
  &quot;&quot;&quot;Authentifizierte Aufgaben-API; Ausführung bleibt im OpenHands Agent Server.&quot;&quot;&quot;
- 
+
 +import hashlib
  import hmac
 +import json
  import sqlite3
  from typing import Annotated
- 
+
 +import httpx
  from fastapi import Depends, FastAPI, Header, HTTPException
  from fastapi.responses import JSONResponse
  from pydantic import BaseModel, ConfigDict, Field
- 
+
 +from cliscade_next.automation import Automation
 +from cliscade_next.backup import backup
  from cliscade_next.beads import Beads
@@ -32,18 +32,18 @@ index e719ce46d..f373dfebf 100644
 +from cliscade_next.consensus import Consensus
  from cliscade_next.orchestrator import Orchestrator
  from cliscade_next.routing import Routing
- 
+
 @@ -41,12 +47,26 @@ class StartInput(BaseModel):
      agent_id: str = Field(default=&quot;auto&quot;, min_length=1, max_length=100)
      source_id: str | None = None
      capability: str = Field(default=&quot;coding&quot;, pattern=&quot;^(coding|review|analysis)$&quot;)
 +    request_key: str | None = Field(default=None, min_length=1, max_length=200)
- 
- 
+
+
  class DependencyInput(BaseModel):
      depends_on: str = Field(pattern=r&quot;^[a-zA-Z][a-zA-Z0-9_.-]{1,150}$&quot;)
- 
- 
+
+
 +class ConsensusInput(BaseModel):
 +    model_config = ConfigDict(extra=&quot;forbid&quot;)
 +    task_id: str = Field(pattern=r&quot;^[a-zA-Z][a-zA-Z0-9_.-]{1,150}$&quot;)
@@ -63,7 +63,7 @@ index e719ce46d..f373dfebf 100644
 @@ -68,6 +88,18 @@ def create_app(settings=None, orchestrator=None):
      def unavailable(request, error):
          return JSONResponse(status_code=503, content={&quot;detail&quot;: str(error)})
- 
+
 +    @app.exception_handler(httpx.HTTPError)
 +    def automation_unavailable(request, error):
 +        return JSONResponse(
@@ -82,7 +82,7 @@ index e719ce46d..f373dfebf 100644
 @@ -106,6 +138,10 @@ def create_app(settings=None, orchestrator=None):
      def tasks(project: str):
          return Beads(settings.project(project)).tasks()
- 
+
 +    @app.get(prefix + &quot;/projects/{project}/tasks/{task_id}&quot;)
 +    def task(project: str, task_id: str):
 +        return Beads(settings.project(project)).show(task_id)
@@ -91,7 +91,7 @@ index e719ce46d..f373dfebf 100644
      def initialize(project: str):
          return Beads.initialize(settings.project(project))
 @@ -131,16 +167,38 @@ def create_app(settings=None, orchestrator=None):
- 
+
      @app.post(prefix + &quot;/projects/{project}/attempts&quot;, status_code=201)
      def start(project: str, body: StartInput):
 +        fingerprint = hashlib.sha256(
@@ -128,13 +128,13 @@ index e719ce46d..f373dfebf 100644
 +            request_key=body.request_key,
 +            request_fingerprint=fingerprint,
 +        )
- 
+
      @app.get(prefix + &quot;/attempts/{attempt_id}&quot;)
      def refresh(attempt_id: str):
 @@ -154,4 +212,30 @@ def create_app(settings=None, orchestrator=None):
      def resume(attempt_id: str):
          return service.resume(attempt_id)
- 
+
 +    @app.post(prefix + &quot;/projects/{project}/backups&quot;, status_code=201)
 +    def backup_project(project: str):
 +        return backup(settings.project(project), settings.state)
@@ -572,13 +572,13 @@ index 1b696e396..9535c7a4a 100644
 +++ b/cliscade/src/cliscade_next/context.py
 @@ -1,5 +1,6 @@
  &quot;&quot;&quot;Versionierter Anbieterwechsel mit Herkunft und getrennten Vertrauensstufen.&quot;&quot;&quot;
- 
+
 +import hashlib
  import json
  import re
  import subprocess
 @@ -91,12 +92,42 @@ def git(project: Path, *args):
- 
+
  def snapshot(project: Path):
      diff = git(project, &quot;diff&quot;, &quot;HEAD&quot;, &quot;--&quot;, &quot;.&quot;, &quot;:(exclude).beads&quot;)
 +    untracked = []
@@ -618,8 +618,8 @@ index 1b696e396..9535c7a4a 100644
 +        &quot;untracked&quot;: untracked,
 +        &quot;untracked_complete&quot;: complete and len(names) &lt;= 256,
      }
- 
- 
+
+
 diff --git a/cliscade/src/cliscade_next/ledger.py b/cliscade/src/cliscade_next/ledger.py
 index 8c50a9d99..45e940109 100644
 --- a/cliscade/src/cliscade_next/ledger.py
@@ -644,7 +644,7 @@ index 8c50a9d99..45e940109 100644
 @@ -41,7 +51,16 @@ class Ledger:
          finally:
              db.close()
- 
+
 -    def create(self, project, task_id, agent, workspace, source_id=None):
 +    def create(
 +        self,
@@ -669,7 +669,7 @@ index 8c50a9d99..45e940109 100644
 +                    (request_key, request_fingerprint, attempt_id),
 +                )
          return self.get(attempt_id)
- 
+
 +    def request(self, key, fingerprint):
 +        with self.connect() as db:
 +            row = db.execute(&quot;SELECT * FROM requests WHERE key=?&quot;, (key,)).fetchone()
@@ -688,7 +688,7 @@ index 4be08244d..94e166c58 100644
 +++ b/cliscade/src/cliscade_next/orchestrator.py
 @@ -1,5 +1,7 @@
  &quot;&quot;&quot;Beads-Arbeitseinheiten mit unabhängigen OpenHands-Conversations verbinden.&quot;&quot;&quot;
- 
+
 +import hashlib
 +import json
  import time
@@ -770,7 +770,7 @@ index 3109f7216..5e8c303db 100644
 @@ -29,7 +29,15 @@ class Routing:
              temp.replace(self.path)
          return record
- 
+
 -    def start(self, project_name, task_id, capability=&quot;coding&quot;, source_id=None):
 +    def start(
 +        self,
@@ -5021,10 +5021,10 @@ index fb78ffd5e..5518df56a 100644
 @@ -15,6 +15,7 @@ import {
    type TaskAgent,
  } from &quot;#/api/cliscade-service&quot;;
- 
+
 +import { TaskOrchestration } from &quot;#/components/features/cliscade/task-orchestration&quot;;
  import { beadsTaskTree } from &quot;#/utils/beads-task-tree&quot;;
- 
+
  const CONTROL =
 @@ -139,6 +140,7 @@ export default function CliscadeTasks() {
        body: {
