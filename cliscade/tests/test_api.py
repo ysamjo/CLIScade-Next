@@ -2,7 +2,7 @@ from fastapi.testclient import TestClient
 
 from cliscade_next.api import create_app
 from cliscade_next.config import Settings
-from cliscade_next.context import Handoff
+from cliscade_next.context import Handoff, report_from_claims
 from cliscade_next.orchestrator import evidence
 
 
@@ -70,3 +70,28 @@ def test_claimed_checks_are_not_tool_evidence_and_budget_preserves_rules():
     assert len(prompt) <= 64000
     assert "Regeln behalten" in prompt and "project_knowledge" in prompt
     assert '"omitted": ["project_knowledge"]' in prompt
+
+
+def test_structured_agent_report_cannot_claim_verified_checks():
+    report = report_from_claims(
+        [
+            {
+                "message": '<cliscade-report>{"schema_version":1,'
+                '"decisions":["API behalten"],"open_steps":["Review"]}'
+                "</cliscade-report>"
+            }
+        ]
+    )
+    assert report.decisions == ["API behalten"]
+    assert report.open_steps == ["Review"]
+    assert (
+        report_from_claims(
+            [
+                {
+                    "message": '<cliscade-report>{"schema_version":1,'
+                    '"verified_checks":["pytest passed"]}</cliscade-report>'
+                }
+            ]
+        )
+        is None
+    )

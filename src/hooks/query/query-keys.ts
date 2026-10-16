@@ -9,6 +9,7 @@ export const CLISCADE_QUERY_KEYS = {
   all: ["cliscade"] as const,
   projects: ["cliscade", "projects"] as const,
   agents: ["cliscade", "agents"] as const,
+  probe: (agent: string) => ["cliscade", "probe", agent] as const,
   tasks: (project: string) => ["cliscade", "tasks", project] as const,
   attempts: (project: string, task: string) =>
     ["cliscade", "attempts", project, task] as const,

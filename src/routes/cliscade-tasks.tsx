@@ -30,7 +30,7 @@ export default function CliscadeTasks() {
   const [params, setParams] = useSearchParams();
   const project = params.get(PROJECT_PARAM) ?? "";
   const selected = params.get(TASK_PARAM) ?? "";
-  const [agent, setAgent] = useState("codex");
+  const [agent, setAgent] = useState("auto");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [acceptance, setAcceptance] = useState("");
@@ -47,10 +47,12 @@ export default function CliscadeTasks() {
     queryKey: CLISCADE_QUERY_KEYS.agents,
     queryFn: () => cliscadeRequest<TaskAgent[]>("/agents"),
   });
+  const projectReady = !!projects.data?.find((item) => item.id === project)
+    ?.beads;
   const tasks = useQuery({
     queryKey: CLISCADE_QUERY_KEYS.tasks(project),
     queryFn: () => cliscadeRequest<BeadsTask[]>(projectTaskPath(project)),
-    enabled: !!project,
+    enabled: !!project && projectReady,
   });
   const attempts = useQuery({
     queryKey: CLISCADE_QUERY_KEYS.attempts(project, selected),
@@ -79,6 +81,18 @@ export default function CliscadeTasks() {
     }) => cliscadeRequest(path, body, method),
     onSuccess: () =>
       cache.invalidateQueries({ queryKey: CLISCADE_QUERY_KEYS.all }),
+  });
+  const probe = useQuery({
+    queryKey: CLISCADE_QUERY_KEYS.probe(agent),
+    enabled: false,
+    retry: false,
+    queryFn: () =>
+      cliscadeRequest<{
+        discovery: {
+          error: { code: string } | null;
+          available_models: { model_id: string }[];
+        };
+      }>(`/agents/${agent}/probe`, {}),
   });
   const task = tasks.data?.find((item) => item.id === selected);
   const error =
@@ -199,7 +213,23 @@ export default function CliscadeTasks() {
               </li>
             ))}
           </ul>
-          {project && (
+          {project && !projectReady && (
+            <BrandButton
+              className="min-h-11 mt-3"
+              type="button"
+              variant="primary"
+              isDisabled={pending}
+              onClick={() =>
+                mutation.mutate({
+                  path: `/projects/${encodeURIComponent(project)}/initialize`,
+                  body: {},
+                })
+              }
+            >
+              {t(I18nKey.CLISCADE$INITIALIZE)}
+            </BrandButton>
+          )}
+          {projectReady && (
             <form
               onSubmit={saveTask}
               className="mt-5 space-y-3 border-t border-border pt-4"
@@ -330,6 +360,7 @@ export default function CliscadeTasks() {
                   value={agent}
                   onChange={(e) => setAgent(e.target.value)}
                 >
+                  <option value="auto">{t(I18nKey.CLISCADE$AUTO)}</option>
                   {agents.data?.map((item) => (
                     <option key={item.id} value={item.id}>
                       {item.id}
@@ -340,6 +371,30 @@ export default function CliscadeTasks() {
               <p className="my-2 text-sm text-muted">
                 {t(I18nKey.CLISCADE$VERIFICATION_NOTE)}
               </p>
+              {agent !== "auto" && (
+                <BrandButton
+                  className="min-h-11"
+                  type="button"
+                  variant="secondary"
+                  isDisabled={probe.isFetching}
+                  onClick={() => {
+                    void probe.refetch();
+                  }}
+                >
+                  {t(I18nKey.CLISCADE$PROBE)}
+                </BrandButton>
+              )}
+              {probe.error && <p role="alert">{probe.error.message}</p>}
+              {probe.data && (
+                <p className="my-2 break-words text-sm">
+                  {t(I18nKey.CLISCADE$MODELS)}:{" "}
+                  {probe.data.discovery.error?.code ??
+                    probe.data.discovery.available_models
+                      .map((model) => model.model_id)
+                      .join(", ")}
+                </p>
+              )}
+
               <BrandButton
                 className="min-h-11"
                 type="button"
@@ -439,6 +494,34 @@ export default function CliscadeTasks() {
                   </BrandButton>
                 )}
               </div>
+              {["cancelled", "failed", "needs_review"].includes(
+                attempt.status,
+              ) && (
+                <BrandButton
+                  className="min-h-11"
+                  type="button"
+                  variant="secondary"
+                  isDisabled={pending}
+                  onClick={() =>
+                    mutation.mutate({
+                      path: `/attempts/${attempt.id}/resume`,
+                      body: {},
+                    })
+                  }
+                >
+                  {t(I18nKey.CLISCADE$RESUME)}
+                </BrandButton>
+              )}
+              {attempt.route_trace && (
+                <details>
+                  <summary className="min-h-11 cursor-pointer py-2">
+                    {t(I18nKey.CLISCADE$ROUTE)}
+                  </summary>
+                  <pre className="overflow-auto whitespace-pre-wrap text-xs">
+                    {JSON.stringify(attempt.route_trace, null, 2)}
+                  </pre>
+                </details>
+              )}
               {attempt.checkpoint && (
                 <>
                   <details>

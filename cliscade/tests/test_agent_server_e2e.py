@@ -71,6 +71,22 @@ def test_real_beads_remote_sdk_handoff_and_persisted_attempt(tmp_path):
         time.sleep(1)
     assert first["status"] == "completed"
     assert first["checkpoint"]["verified_checks"][0]["exit_code"] == 0
+    control = os.environ.get("CLISCADE_SERVER_CONTROL")
+    run = os.environ.get("CLISCADE_RESTART_RUN")
+    if control and run:
+        subprocess.run(
+            [control, "restart", "--run", run],
+            check=True,
+            capture_output=True,
+            timeout=90,
+        )
+        attached = service.runner.attach(
+            agents["fixture-a"], Path(first["workspace"]), first["session_id"]
+        )
+        try:
+            assert attached.state()["status"] == "finished"
+        finally:
+            attached.close()
     service = Orchestrator(settings, agents=agents)
     second = service.start("project", task["id"], "fixture-b", source_id=first["id"])
     assert second["status"] == "running", second

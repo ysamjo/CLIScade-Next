@@ -20,12 +20,16 @@ class Ledger:
                     workspace TEXT NOT NULL, status TEXT NOT NULL,
                     session_id TEXT, prompt_sent INTEGER NOT NULL DEFAULT 0,
                     source_id TEXT, checkpoint TEXT, error TEXT, terminal_seen REAL,
+                    route_trace TEXT,
                     created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ'))
                 );
                 CREATE UNIQUE INDEX IF NOT EXISTS active_workspace
                 ON attempts(workspace)
                 WHERE status IN ('preparing','submitted','running','cancelling');
             """)
+            columns = {row[1] for row in db.execute("PRAGMA table_info(attempts)")}
+            if "route_trace" not in columns:
+                db.execute("ALTER TABLE attempts ADD COLUMN route_trace TEXT")
 
     @contextmanager
     def connect(self):
@@ -57,6 +61,8 @@ class Ledger:
         item = dict(row)
         if item["checkpoint"]:
             item["checkpoint"] = json.loads(item["checkpoint"])
+        if item["route_trace"]:
+            item["route_trace"] = json.loads(item["route_trace"])
         return item
 
     def list(self, project, task_id=None):
@@ -77,11 +83,14 @@ class Ledger:
             "checkpoint",
             "error",
             "terminal_seen",
+            "route_trace",
         }
         if not fields or fields.keys() - allowed:
             raise ValueError("Ungültige Ausführungsänderung")
         if "checkpoint" in fields:
             fields["checkpoint"] = json.dumps(fields["checkpoint"], ensure_ascii=False)
+        if "route_trace" in fields:
+            fields["route_trace"] = json.dumps(fields["route_trace"])
         columns = ",".join(f"{key}=?" for key in fields)
         with self.connect() as db:
             db.execute(

@@ -10,6 +10,33 @@ from filelock import FileLock
 
 
 class Beads:
+    @classmethod
+    def initialize(cls, project):
+        directory = project / ".beads"
+        if directory.exists() or directory.is_symlink():
+            cls(project)
+            return {"ready": True}
+        result = subprocess.run(
+            [
+                "bd",
+                "init",
+                "--non-interactive",
+                "--prefix",
+                "cn",
+                "--skip-agents",
+                "--skip-hooks",
+                "--stealth",
+            ],
+            cwd=project,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=60,
+        )
+        if result.returncode:
+            raise RuntimeError("Beads-Einrichtung fehlgeschlagen; bd doctor prüfen")
+        return {"ready": True}
+
     @staticmethod
     def validate_id(task_id):
         if not isinstance(task_id, str) or not re.fullmatch(
@@ -99,9 +126,7 @@ class Beads:
         self.validate_id(task_id)
         args = ["update", task_id, "--assignee", agent_id, "--status", "in_progress"]
         if previous:
-            args.extend(
-                ["--if-assignee", previous, "--if-status", "in_progress"]
-            )
+            args.extend(["--if-assignee", previous, "--if-status", "in_progress"])
         return self.call(*args)
 
     def context(self):
@@ -111,3 +136,19 @@ class Beads:
             ),
             "memories": self.call("memories", readonly=True),
         }
+
+    def ensure_startable(self, task_id):
+        task = self.show(task_id)
+        if task["status"] == "open":
+            ready = self.call("ready", "--limit", "0", readonly=True)
+            if not any(item["id"] == task_id for item in ready):
+                raise ValueError(
+                    "Beads-Aufgabe ist nicht bereit; Abhängigkeiten prüfen"
+                )
+        elif task["status"] == "in_progress":
+            blocked = self.call("blocked", readonly=True)
+            if any(item["id"] == task_id for item in blocked):
+                raise ValueError("Beads-Aufgabe hat offene Blocker")
+        else:
+            raise ValueError("Beads-Aufgabe ist geschlossen oder blockiert")
+        return task

@@ -1,0 +1,65 @@
+{
+  "codex": {
+    "id": "codex",
+    "command": [
+      "npx",
+      "-y",
+      "--prefer-offline",
+      "@agentclientprotocol/codex-acp@1.10.0"
+    ],
+    "model": null,
+    "priority": 10,
+    "capabilities": [
+      "coding",
+      "review"
+    ],
+    "enabled": true
+  },
+  "claude-code": {
+    "id": "claude-code",
+    "command": [
+      "npx",
+      "-y",
+      "--prefer-offline",
+      "@agentclientprotocol/claude-agent-acp@0.63.0"
+    ],
+    "model": null,
+    "priority": 10,
+    "capabilities": [
+      "coding",
+      "review"
+    ],
+    "enabled": true
+  },
+  "opencode": {
+    "id": "opencode",
+    "command": [
+      "npx",
+      "-y",
+      "--prefer-offline",
+      "opencode-ai@1.18.23",
+      "acp"
+    ],
+    "model": null,
+    "priority": 10,
+    "capabilities": [
+      "coding",
+      "review"
+    ],
+    "enabled": true
+  },
+  "kiro": {
+    "id": "kiro",
+    "command": [
+      "kiro-cli",
+      "acp"
+    ],
+    "model": null,
+    "priority": 10,
+    "capabilities": [
+      "coding",
+      "review"
+    ],
+    "enabled": true
+  }
+}

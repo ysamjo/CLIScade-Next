@@ -1,0 +1,443 @@
+[
+  {
+    "id": "claude-acp",
+    "name": "Claude Agent",
+    "version": "0.91.0",
+    "license": "proprietary",
+    "distribution": {
+      "npx": {
+        "package": "@agentclientprotocol/claude-agent-acp@0.91.0"
+      }
+    },
+    "source": "https://github.com/agentclientprotocol/registry/blob/main/claude-acp/agent.json",
+    "product_status": "not_live_verified"
+  },
+  {
+    "id": "codex-acp",
+    "name": "Codex",
+    "version": "2.2.2",
+    "license": "Apache-2.0",
+    "distribution": {
+      "npx": {
+        "package": "@agentclientprotocol/codex-acp@2.2.2"
+      }
+    },
+    "source": "https://github.com/agentclientprotocol/registry/blob/main/codex-acp/agent.json",
+    "product_status": "not_live_verified"
+  },
+  {
+    "id": "opencode",
+    "name": "OpenCode",
+    "version": "1.19.1",
+    "license": "MIT",
+    "distribution": {
+      "binary": {
+        "darwin-aarch64": {
+          "archive": "https://github.com/anomalyco/opencode/releases/download/v1.19.1/opencode-darwin-arm64.zip",
+          "cmd": "./opencode",
+          "args": [
+            "acp"
+          ],
+          "sha256": "c9c4b7833a2cb0a0b676031d8b688012b5025bc55a890e2acd4412cb04d19b02"
+        },
+        "darwin-x86_64": {
+          "archive": "https://github.com/anomalyco/opencode/releases/download/v1.19.1/opencode-darwin-x64.zip",
+          "cmd": "./opencode",
+          "args": [
+            "acp"
+          ],
+          "sha256": "2c446f5d482cb78f7d8ea3f276b3feda38a64346d574e56a744111dee52813e3"
+        },
+        "linux-aarch64": {
+          "archive": "https://github.com/anomalyco/opencode/releases/download/v1.19.1/opencode-linux-arm64.tar.gz",
+          "cmd": "./opencode",
+          "args": [
+            "acp"
+          ],
+          "sha256": "3840e9afb2462a666d31816b20bc13b91af9845c329cff660a972aa9cfaee3a2"
+        },
+        "linux-x86_64": {
+          "archive": "https://github.com/anomalyco/opencode/releases/download/v1.19.1/opencode-linux-x64.tar.gz",
+          "cmd": "./opencode",
+          "args": [
+            "acp"
+          ],
+          "sha256": "6f1904b860bdbd32e90e679c9e1b0e64e78269a353e1497d5ea792dfa449538c"
+        },
+        "windows-aarch64": {
+          "archive": "https://github.com/anomalyco/opencode/releases/download/v1.19.1/opencode-windows-arm64.zip",
+          "cmd": "./opencode",
+          "args": [
+            "acp"
+          ],
+          "sha256": "66fe17e0affa121f84191565c443cfdee35d1af5399b8470e70b8c4a00f6a291"
+        },
+        "windows-x86_64": {
+          "archive": "https://github.com/anomalyco/opencode/releases/download/v1.19.1/opencode-windows-x64.zip",
+          "cmd": "./opencode.exe",
+          "args": [
+            "acp"
+          ],
+          "sha256": "efcbef1dc5265f468f43e607ea3c5729026e0a0a4e8f1d7552e97ac3acd3c7f4"
+        }
+      }
+    },
+    "source": "https://github.com/agentclientprotocol/registry/blob/main/opencode/agent.json",
+    "product_status": "not_live_verified"
+  },
+  {
+    "id": "cline",
+    "name": "Cline",
+    "version": "3.0.71",
+    "license": "Apache-2.0",
+    "distribution": {
+      "npx": {
+        "package": "cline@3.0.71",
+        "args": [
+          "--acp"
+        ]
+      }
+    },
+    "source": "https://github.com/agentclientprotocol/registry/blob/main/cline/agent.json",
+    "product_status": "not_live_verified"
+  },
+  {
+    "id": "cursor",
+    "name": "Cursor",
+    "version": "2026.10.14",
+    "license": "proprietary",
+    "distribution": {
+      "binary": {
+        "darwin-aarch64": {
+          "archive": "https://downloads.cursor.com/lab/2026.10.14-0f9edde/darwin/arm64/agent-cli-package.tar.gz",
+          "cmd": "./dist-package/cursor-agent",
+          "args": [
+            "acp"
+          ]
+        },
+        "darwin-x86_64": {
+          "archive": "https://downloads.cursor.com/lab/2026.10.14-0f9edde/darwin/x64/agent-cli-package.tar.gz",
+          "cmd": "./dist-package/cursor-agent",
+          "args": [
+            "acp"
+          ]
+        },
+        "linux-aarch64": {
+          "archive": "https://downloads.cursor.com/lab/2026.10.14-0f9edde/linux/arm64/agent-cli-package.tar.gz",
+          "cmd": "./dist-package/cursor-agent",
+          "args": [
+            "acp"
+          ]
+        },
+        "linux-x86_64": {
+          "archive": "https://downloads.cursor.com/lab/2026.10.14-0f9edde/linux/x64/agent-cli-package.tar.gz",
+          "cmd": "./dist-package/cursor-agent",
+          "args": [
+            "acp"
+          ]
+        },
+        "windows-aarch64": {
+          "archive": "https://downloads.cursor.com/lab/2026.10.14-0f9edde/windows/arm64/agent-cli-package.zip",
+          "cmd": "./dist-package\\cursor-agent.cmd",
+          "args": [
+            "acp"
+          ]
+        },
+        "windows-x86_64": {
+          "archive": "https://downloads.cursor.com/lab/2026.10.14-0f9edde/windows/x64/agent-cli-package.zip",
+          "cmd": "./dist-package\\cursor-agent.cmd",
+          "args": [
+            "acp"
+          ]
+        }
+      }
+    },
+    "source": "https://github.com/agentclientprotocol/registry/blob/main/cursor/agent.json",
+    "product_status": "not_live_verified"
+  },
+  {
+    "id": "github-copilot",
+    "name": "Copilot",
+    "version": "1.554.0",
+    "license": "proprietary",
+    "distribution": {
+      "npx": {
+        "package": "@github/copilot-language-server@1.554.0",
+        "args": [
+          "--acp"
+        ]
+      }
+    },
+    "source": "https://github.com/agentclientprotocol/registry/blob/main/github-copilot/agent.json",
+    "product_status": "not_live_verified"
+  },
+  {
+    "id": "junie",
+    "name": "Junie",
+    "version": "3659.4.0",
+    "license": "proprietary",
+    "distribution": {
+      "binary": {
+        "darwin-aarch64": {
+          "archive": "https://github.com/JetBrains/junie-acp-release/releases/download/3659.4/junie-release-3659.4-macos-aarch64.zip",
+          "cmd": "./Applications/junie.app/Contents/MacOS/junie",
+          "args": [
+            "--acp=true"
+          ]
+        },
+        "darwin-x86_64": {
+          "archive": "https://github.com/JetBrains/junie-acp-release/releases/download/3659.4/junie-release-3659.4-macos-amd64.zip",
+          "cmd": "./Applications/junie.app/Contents/MacOS/junie",
+          "args": [
+            "--acp=true"
+          ]
+        },
+        "linux-aarch64": {
+          "archive": "https://github.com/JetBrains/junie-acp-release/releases/download/3659.4/junie-release-3659.4-linux-aarch64.zip",
+          "cmd": "./junie-app/bin/junie",
+          "args": [
+            "--acp=true"
+          ]
+        },
+        "linux-x86_64": {
+          "archive": "https://github.com/JetBrains/junie-acp-release/releases/download/3659.4/junie-release-3659.4-linux-amd64.zip",
+          "cmd": "./junie-app/bin/junie",
+          "args": [
+            "--acp=true"
+          ]
+        },
+        "windows-x86_64": {
+          "archive": "https://github.com/JetBrains/junie-acp-release/releases/download/3659.4/junie-release-3659.4-windows-amd64.zip",
+          "cmd": "./junie/junie.exe",
+          "args": [
+            "--acp=true"
+          ]
+        },
+        "windows-aarch64": {
+          "archive": "https://github.com/JetBrains/junie-acp-release/releases/download/3659.4/junie-release-3659.4-windows-aarch64.zip",
+          "cmd": "./junie/junie.exe",
+          "args": [
+            "--acp=true"
+          ]
+        }
+      }
+    },
+    "source": "https://github.com/agentclientprotocol/registry/blob/main/junie/agent.json",
+    "product_status": "not_live_verified"
+  },
+  {
+    "id": "kilo",
+    "name": "Kilo",
+    "version": "7.8.12",
+    "license": "MIT",
+    "distribution": {
+      "binary": {
+        "darwin-aarch64": {
+          "archive": "https://github.com/Kilo-Org/kilocode/releases/download/v7.8.12/kilo-darwin-arm64.zip",
+          "cmd": "./kilo",
+          "args": [
+            "acp"
+          ],
+          "sha256": "2ad4b16ac1a1d0d9b7122f70defb74b2ce362555427bb2621a7869855511b15e"
+        },
+        "darwin-x86_64": {
+          "archive": "https://github.com/Kilo-Org/kilocode/releases/download/v7.8.12/kilo-darwin-x64.zip",
+          "cmd": "./kilo",
+          "args": [
+            "acp"
+          ],
+          "sha256": "954c46b803ba109118a91205f4415ae5eee185dc3cc48b38cc37b281c0cddb87"
+        },
+        "linux-aarch64": {
+          "archive": "https://github.com/Kilo-Org/kilocode/releases/download/v7.8.12/kilo-linux-arm64.tar.gz",
+          "cmd": "./kilo",
+          "args": [
+            "acp"
+          ],
+          "sha256": "0380f9ac3c24cb95d2c7dad7976a9b0a97f3ce2a418e0b253ed43fd8fb955d35"
+        },
+        "linux-x86_64": {
+          "archive": "https://github.com/Kilo-Org/kilocode/releases/download/v7.8.12/kilo-linux-x64.tar.gz",
+          "cmd": "./kilo",
+          "args": [
+            "acp"
+          ],
+          "sha256": "c6e208c3384df663e8401b6ee8537305a14b32a5fad78579cc1f28f64022e853"
+        },
+        "windows-x86_64": {
+          "archive": "https://github.com/Kilo-Org/kilocode/releases/download/v7.8.12/kilo-windows-x64.zip",
+          "cmd": "./kilo.exe",
+          "args": [
+            "acp"
+          ],
+          "sha256": "49a1a1c339efbe721bbf30fcc5029aeae5c68893157727f696b599580c472b2b"
+        }
+      },
+      "npx": {
+        "package": "@kilocode/cli@7.8.12",
+        "args": [
+          "acp"
+        ]
+      }
+    },
+    "source": "https://github.com/agentclientprotocol/registry/blob/main/kilo/agent.json",
+    "product_status": "not_live_verified"
+  },
+  {
+    "id": "qoder",
+    "name": "Qoder CLI",
+    "version": "0.2.14",
+    "license": "proprietary",
+    "distribution": {
+      "npx": {
+        "package": "@qoder-ai/qodercli@0.2.14",
+        "args": [
+          "--acp"
+        ]
+      }
+    },
+    "source": "https://github.com/agentclientprotocol/registry/blob/main/qoder/agent.json",
+    "product_status": "not_live_verified"
+  },
+  {
+    "id": "mistral-vibe",
+    "name": "Mistral Vibe",
+    "version": "2.26.1",
+    "license": "Apache-2.0",
+    "distribution": {
+      "binary": {
+        "darwin-aarch64": {
+          "archive": "https://github.com/mistralai/mistral-vibe/releases/download/v2.26.1/vibe-acp-darwin-aarch64-2.26.1.tar.gz",
+          "cmd": "./vibe-acp",
+          "sha256": "4035a97f3bf99d91589ae4b5399438fb417f6b72511a995c7c363ec4b468f10a"
+        },
+        "darwin-x86_64": {
+          "archive": "https://github.com/mistralai/mistral-vibe/releases/download/v2.26.1/vibe-acp-darwin-x86_64-2.26.1.tar.gz",
+          "cmd": "./vibe-acp",
+          "sha256": "3acfc454ffc248826a05333e1cb2467c465308639bbba6725b47384dc9e8f757"
+        },
+        "linux-aarch64": {
+          "archive": "https://github.com/mistralai/mistral-vibe/releases/download/v2.26.1/vibe-acp-linux-aarch64-2.26.1.tar.gz",
+          "cmd": "./vibe-acp",
+          "sha256": "147ce53d0d185148ac269e23ff285eb087167077ba00d7c9ff41492c647ad2c6"
+        },
+        "linux-x86_64": {
+          "archive": "https://github.com/mistralai/mistral-vibe/releases/download/v2.26.1/vibe-acp-linux-x86_64-2.26.1.tar.gz",
+          "cmd": "./vibe-acp",
+          "sha256": "c8a018ca7d02eed5cebf291f6bcce1744e44323ff774b1c3fceac13794a95634"
+        },
+        "windows-x86_64": {
+          "archive": "https://github.com/mistralai/mistral-vibe/releases/download/v2.26.1/vibe-acp-windows-x86_64-2.26.1.zip",
+          "cmd": "./vibe-acp.exe",
+          "sha256": "fd192698e396470f478adda5ce57cd8fd58927a2cd5e35ec1055c7c55089d370"
+        }
+      }
+    },
+    "source": "https://github.com/agentclientprotocol/registry/blob/main/mistral-vibe/agent.json",
+    "product_status": "not_live_verified"
+  },
+  {
+    "id": "gemini",
+    "name": "Gemini CLI",
+    "version": "0.64.0",
+    "license": "Apache-2.0",
+    "distribution": {
+      "npx": {
+        "package": "@google/gemini-cli@0.64.0",
+        "args": [
+          "--acp"
+        ]
+      }
+    },
+    "source": "https://github.com/agentclientprotocol/registry/blob/main/gemini/agent.json",
+    "product_status": "not_live_verified"
+  },
+  {
+    "id": "pi-acp",
+    "name": "pi ACP",
+    "version": "0.0.34",
+    "license": "MIT",
+    "distribution": {
+      "npx": {
+        "package": "pi-acp@0.0.34"
+      }
+    },
+    "source": "https://github.com/agentclientprotocol/registry/blob/main/pi-acp/agent.json",
+    "product_status": "not_live_verified"
+  },
+  {
+    "id": "codebuddy-code",
+    "name": "Codebuddy Code",
+    "version": "2.168.0",
+    "license": "Proprietary",
+    "distribution": {
+      "npx": {
+        "package": "@tencent-ai/codebuddy-code@2.168.0",
+        "args": [
+          "--acp"
+        ]
+      }
+    },
+    "source": "https://github.com/agentclientprotocol/registry/blob/main/codebuddy-code/agent.json",
+    "product_status": "not_live_verified"
+  },
+  {
+    "id": "antigravity-acp",
+    "name": "Google Antigravity",
+    "version": "1.4.0",
+    "license": "proprietary",
+    "distribution": {
+      "binary": {
+        "darwin-aarch64": {
+          "archive": "https://dl.google.com/agy-extensions/releases/macos/agy-acp-server-1.4.0-darwin-arm64.zip",
+          "cmd": "./agy_acp_server.par"
+        },
+        "darwin-x86_64": {
+          "archive": "https://dl.google.com/agy-extensions/releases/macos/agy-acp-server-1.4.0-darwin-x86_64.zip",
+          "cmd": "./agy_acp_server.par"
+        },
+        "linux-x86_64": {
+          "archive": "https://dl.google.com/agy-extensions/releases/linux/agy-acp-server-1.4.0-linux-x86_64.zip",
+          "cmd": "./agy_acp_server.par",
+          "args": [
+            "--uid="
+          ]
+        },
+        "linux-aarch64": {
+          "archive": "https://dl.google.com/agy-extensions/releases/linux/agy-acp-server-1.4.0-linux-arm64.zip",
+          "cmd": "./agy_acp_server.par",
+          "args": [
+            "--uid="
+          ]
+        },
+        "windows-x86_64": {
+          "archive": "https://dl.google.com/agy-extensions/releases/windows/agy-acp-server-1.4.0-windows-x86_64.zip",
+          "cmd": "./agy_acp_server.exe"
+        },
+        "windows-aarch64": {
+          "archive": "https://dl.google.com/agy-extensions/releases/windows/agy-acp-server-1.4.0-windows-arm64.zip",
+          "cmd": "./agy_acp_server.exe"
+        }
+      }
+    },
+    "source": "https://github.com/agentclientprotocol/registry/blob/main/antigravity-acp/agent.json",
+    "product_status": "not_live_verified"
+  },
+  {
+    "id": "grok-build",
+    "name": "Grok Build",
+    "version": "1.0.60",
+    "license": "proprietary",
+    "distribution": {
+      "npx": {
+        "package": "@xai-official/grok@1.0.60",
+        "args": [
+          "agent",
+          "stdio"
+        ]
+      }
+    },
+    "source": "https://github.com/agentclientprotocol/registry/blob/main/grok-build/agent.json",
+    "product_status": "not_live_verified"
+  }
+]

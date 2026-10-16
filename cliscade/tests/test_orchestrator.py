@@ -20,6 +20,9 @@ class FakeBeads:
     def context(self):
         return {"memories": {"rule": "Deutsche UI"}, "workflow": "bd ready"}
 
+    def ensure_startable(self, task_id):
+        return self.show(task_id)
+
     def update(self, task_id, **fields):
         return self.show(task_id) | fields
 
@@ -153,3 +156,14 @@ def test_cancellation_and_handoff_scope(system):
     assert service.cancel(attempt["id"])["status"] == "cancelled"
     with pytest.raises(ValueError, match="anderen Aufgabe"):
         service.start("project", "cn-2", "two", source_id=attempt["id"])
+
+
+def test_resume_is_a_new_attempt_in_the_same_session(system):
+    service, runner, _ = system
+    first = service.start("project", "cn-1", "one")
+    service.cancel(first["id"])
+    resumed = service.resume(first["id"])
+    assert resumed["id"] != first["id"]
+    assert resumed["session_id"] == first["session_id"]
+    assert resumed["source_id"] == first["id"]
+    assert runner.sessions[first["session_id"]]["status"] == "running"

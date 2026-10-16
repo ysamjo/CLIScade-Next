@@ -12,6 +12,10 @@ class Settings:
     agent_server: str
     api_key: str = field(repr=False)
 
+    def __post_init__(self):
+        object.__setattr__(self, "projects", self.projects.resolve())
+        object.__setattr__(self, "state", self.state.resolve())
+
     @classmethod
     def from_env(cls):
         return cls(

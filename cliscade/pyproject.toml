@@ -1,6 +1,6 @@
 [project]
 name = "cliscade-next"
-version = "0.2.0"
+version = "0.4.0"
 description = "Beads- und ACP-Orchestrierung für OpenHands Agent Canvas"
 requires-python = ">=3.13"
 dependencies = [

@@ -18,5 +18,9 @@
   "cliscade": {
     "revision": "ce01efd98e51c669f4f65feef453d414b5a4e9ee",
     "url": "https://github.com/ysamjo/CLIScade.git"
+  },
+  "acp_registry": {
+    "url": "https://github.com/agentclientprotocol/registry",
+    "revision": "b97b76201d16d32c376eab693ab46d65bd42faf5"
   }
 }

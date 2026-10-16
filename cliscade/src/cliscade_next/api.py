@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from cliscade_next.beads import Beads
 from cliscade_next.config import Settings
 from cliscade_next.orchestrator import Orchestrator
+from cliscade_next.routing import Routing
 
 
 class TaskInput(BaseModel):
@@ -37,8 +38,9 @@ class TaskUpdate(BaseModel):
 class StartInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     task_id: str = Field(pattern=r"^[a-zA-Z][a-zA-Z0-9_.-]{1,150}$")
-    agent_id: str = Field(min_length=1, max_length=100)
+    agent_id: str = Field(default="auto", min_length=1, max_length=100)
     source_id: str | None = None
+    capability: str = Field(default="coding", pattern="^(coding|review|analysis)$")
 
 
 class DependencyInput(BaseModel):
@@ -89,13 +91,24 @@ def create_app(settings=None, orchestrator=None):
                 "model": agent.model,
                 "live_verified": False,
                 "transport": "acp",
+                "priority": agent.priority,
+                "capabilities": agent.capabilities,
+                "enabled": agent.enabled,
             }
             for agent in service.agents.values()
         ]
 
+    @app.post(prefix + "/agents/{agent_id}/probe")
+    def probe(agent_id: str):
+        return Routing(service).probe(agent_id)
+
     @app.get(prefix + "/projects/{project}/tasks")
     def tasks(project: str):
         return Beads(settings.project(project)).tasks()
+
+    @app.post(prefix + "/projects/{project}/initialize")
+    def initialize(project: str):
+        return Beads.initialize(settings.project(project))
 
     @app.post(prefix + "/projects/{project}/tasks", status_code=201)
     def create_task(project: str, body: TaskInput):
@@ -118,7 +131,16 @@ def create_app(settings=None, orchestrator=None):
 
     @app.post(prefix + "/projects/{project}/attempts", status_code=201)
     def start(project: str, body: StartInput):
-        return service.start(project, **body.model_dump())
+        if body.agent_id == "auto":
+            result = Routing(service).start(
+                project, body.task_id, body.capability, body.source_id
+            )
+            if result["attempt"] is None:
+                raise RuntimeError(
+                    "Keine verfügbare ACP-Route; Agenten und Modelle prüfen"
+                )
+            return result["attempt"]
+        return service.start(project, body.task_id, body.agent_id, body.source_id)
 
     @app.get(prefix + "/attempts/{attempt_id}")
     def refresh(attempt_id: str):
@@ -127,5 +149,9 @@ def create_app(settings=None, orchestrator=None):
     @app.post(prefix + "/attempts/{attempt_id}/cancel")
     def cancel(attempt_id: str):
         return service.cancel(attempt_id)
+
+    @app.post(prefix + "/attempts/{attempt_id}/resume")
+    def resume(attempt_id: str):
+        return service.resume(attempt_id)
 
     return app

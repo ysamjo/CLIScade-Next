@@ -55,7 +55,7 @@ describe("CLIScade tasks", () => {
       </QueryClientProvider>,
     );
     await screen.findByRole("button", { name: "CLISCADE$HANDOFF" });
-    fireEvent.change(screen.getByLabelText("CLISCADE$AGENT"), {
+    fireEvent.change(await screen.findByLabelText("CLISCADE$AGENT"), {
       target: { value: "kiro" },
     });
     fireEvent.click(screen.getByRole("button", { name: "CLISCADE$HANDOFF" }));

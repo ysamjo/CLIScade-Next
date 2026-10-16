@@ -8,7 +8,7 @@ from filelock import FileLock
 
 from cliscade_next.agents import OpenHands, registry
 from cliscade_next.beads import Beads
-from cliscade_next.context import Handoff, git, load_rules, snapshot
+from cliscade_next.context import Handoff, git, load_rules, report_from_claims, snapshot
 from cliscade_next.ledger import Ledger
 
 
@@ -75,25 +75,66 @@ class Orchestrator:
         workspace = Path(attempt["workspace"])
         checks, claims = evidence(events)
         old = attempt.get("checkpoint") or {}
+        report = report_from_claims(claims)
+        current_git = snapshot(workspace)
+        for check in checks:
+            check["checkpoint_revision"] = current_git["revision"]
+            check["execution_revision_known"] = False
         return Handoff(
             task=beads.show(attempt["task_id"]),
             rules=load_rules(project, workspace),
             project_knowledge=beads.context(),
-            git=snapshot(workspace),
+            git=current_git,
             verified_checks=checks or old.get("verified_checks", []),
+            runtime_errors=[
+                {
+                    "code": event.get("code"),
+                    "reported_by": "OpenHands ConversationErrorEvent",
+                    "timestamp": event.get("timestamp"),
+                }
+                for event in events
+                if event.get("kind") == "ConversationErrorEvent"
+            ],
             agent_claims=claims or old.get("agent_claims", []),
-            decisions=old.get("decisions", []),
-            open_steps=old.get("open_steps")
-            or ["Abnahmekriterien am Git-Stand prüfen"],
+            decisions=report.decisions if report else old.get("decisions", []),
+            open_steps=report.open_steps
+            if report
+            else (old.get("open_steps") or ["Abnahmekriterien am Git-Stand prüfen"]),
             source_attempt=attempt.get("source_id"),
         ).model_dump()
 
-    def start(self, project_name, task_id, agent_id, source_id=None):
-        if agent_id not in self.agents:
+    def start(
+        self,
+        project_name,
+        task_id,
+        agent_id,
+        source_id=None,
+        *,
+        allow_parallel=False,
+        assign=True,
+    ):
+        if agent_id not in self.agents or not self.agents[agent_id].enabled:
             raise ValueError("ACP-Agent ist nicht freigegeben")
         project = self.settings.project(project_name)
         self.settings.state.mkdir(parents=True, exist_ok=True)
         with FileLock(str(self.settings.state / "dispatch.lock"), timeout=30):
+            self.beads_factory(project).ensure_startable(task_id)
+            if not allow_parallel and any(
+                item["id"] != source_id
+                and item["status"]
+                in (
+                    "preparing",
+                    "submitted",
+                    "running",
+                    "cancelling",
+                    "uncertain",
+                    "needs_review",
+                )
+                for item in self.ledger.list(project_name, task_id)
+            ):
+                raise ValueError(
+                    "Für diese Aufgabe läuft bereits eine Ausführung oder Prüfung"
+                )
             source = self.refresh(source_id) if source_id else None
             if source:
                 if (source["project"], source["task_id"]) != (project_name, task_id):
@@ -132,9 +173,10 @@ class Orchestrator:
                     checkpoint["source_attempt"] = source_id
                 prompt = Handoff.model_validate(checkpoint).prompt()
                 self.ledger.update(attempt["id"], checkpoint=checkpoint)
-                self.beads_factory(project).assign(
-                    task_id, agent_id, previous=source["agent"] if source else None
-                )
+                if assign:
+                    self.beads_factory(project).assign(
+                        task_id, agent_id, previous=source["agent"] if source else None
+                    )
                 session = self.runner.attach(self.agents[agent_id], workspace)
                 self.ledger.update(
                     attempt["id"],
@@ -229,3 +271,49 @@ class Orchestrator:
         finally:
             session.close()
         return self.refresh(attempt_id)
+
+    def resume(self, attempt_id):
+        source = self.refresh(attempt_id)
+        if (
+            source["status"] not in ("cancelled", "failed", "needs_review")
+            or not source["session_id"]
+        ):
+            raise ValueError("Nur angehaltene oder fehlgeschlagene Sessions fortsetzen")
+        with FileLock(str(self.settings.state / "dispatch.lock"), timeout=30):
+            self.beads_factory(
+                self.settings.project(source["project"])
+            ).ensure_startable(source["task_id"])
+            attempt = self.ledger.create(
+                source["project"],
+                source["task_id"],
+                source["agent"],
+                source["workspace"],
+                source["id"],
+            )
+            checkpoint = self.checkpoint(source)
+            checkpoint["source_attempt"] = source["id"]
+            self.ledger.update(
+                attempt["id"],
+                session_id=source["session_id"],
+                checkpoint=checkpoint,
+                prompt_sent=1,
+                status="submitted",
+            )
+            session = None
+            try:
+                session = self.runner.attach(
+                    self.agents[source["agent"]],
+                    Path(source["workspace"]),
+                    source["session_id"],
+                )
+                session.submit(Handoff.model_validate(checkpoint).prompt())
+                return self.ledger.update(attempt["id"], status="running")
+            except Exception:
+                return self.ledger.update(
+                    attempt["id"],
+                    status="uncertain",
+                    error="Fortsetzung prüfen; kein automatisches Replay",
+                )
+            finally:
+                if session:
+                    session.close()

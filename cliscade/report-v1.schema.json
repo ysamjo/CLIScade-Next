@@ -1,0 +1,31 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "decisions": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 30,
+      "title": "Decisions",
+      "type": "array"
+    },
+    "open_steps": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 30,
+      "title": "Open Steps",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version"
+  ],
+  "title": "AgentReport",
+  "type": "object"
+}

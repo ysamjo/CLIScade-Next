@@ -43,6 +43,7 @@ export interface TaskAttempt {
   status: string;
   created_at: string;
   source_id: string | null;
+  route_trace?: { agent: string; reason: string }[];
   checkpoint: TaskCheckpoint | null;
   error: string | null;
 }

@@ -65,3 +65,25 @@ Nicht nachgewiesen durch diese Tests: Authentifizierung und Inferenz bei
 Claude Code, Codex, OpenCode oder Kiro; Docker-Sandbox-Laufzeit und Tailscale.
 Die vier ACP-Kommandos sind integriert, Anbieter bleiben bis zum Live-Test
 unverifiziert. OpenHands führt die Capability-Aushandlung beim Start durch.
+
+## Automatische Route und Fortsetzung
+
+`agent_id: "auto"` wählt nach Konfiguration und der vorhandenen OpenHands-
+Modellerkennung. `/agents/{id}/probe` zeigt das Discovery-Ergebnis. Startbefehle,
+Modellgrenzen und die getrennten Live-Nachweise stehen in `AGENTS_SUPPORTED.md`.
+Die Registry akzeptiert nur bekannte ACP-Kommandos; API-Aufträge können keine
+Executables einschleusen. Provider-Credentials bleiben im OpenHands-Secretstore:
+CLIScade liest nur Namen und übergibt passende `LookupSecret`-Referenzen, keine
+Secretwerte und keine fremden Projektschlüssel.
+
+`POST /attempts/{id}/resume` setzt eine angehaltene oder fehlgeschlagene
+OpenHands-Session ausdrücklich fort. Der neue Attempt bleibt mit derselben
+Conversation und seinem Vorgänger verbunden. Eine geschlossene oder laut Beads
+blockierte Aufgabe wird nicht gestartet. Neue Aufgaben lassen sich nach
+expliziter Beads-Einrichtung über die Oberfläche anlegen; `bd init` erhält
+`--skip-agents --skip-hooks --stealth` und überschreibt keine bestehende Datenbank.
+
+Agenten können Entscheidungen und offene Schritte mit dem schema-validierten
+`<cliscade-report>`-Block liefern (`report-v1.schema.json`). Der Block kann keine
+Prüfbelege als verifiziert deklarieren. Anbieterfehler werden getrennt als
+OpenHands-Laufzeitfehler im Checkpoint geführt.

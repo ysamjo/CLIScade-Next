@@ -38,6 +38,14 @@
       "title": "Verified Checks",
       "type": "array"
     },
+    "runtime_errors": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Runtime Errors",
+      "type": "array"
+    },
     "agent_claims": {
       "items": {
         "additionalProperties": true,
