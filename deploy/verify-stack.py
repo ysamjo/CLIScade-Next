@@ -13,7 +13,6 @@ from cliscade_next.agents import Agent
 from cliscade_next.config import Settings
 from cliscade_next.orchestrator import Orchestrator
 
-
 key = os.environ["CLISCADE_API_KEY"]
 settings = Settings(
     Path("/projects"), Path("/data/smoke-ledger"), "http://agent-server:8000", key
@@ -63,7 +62,7 @@ while time.monotonic() < deadline:
     try:
         if all(
             client.get(path).status_code == 200
-            for path in ("/ready", "/api/automation/health")
+            for path in ("/ready", "/api/automation/health", "/cliscade/v1/projects")
         ):
             break
     except httpx.HTTPError:
