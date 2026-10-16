@@ -1,0 +1,32 @@
+{
+  "version": "0.6.0",
+  "projects_after_restart": [
+    {
+      "id": "cliscade-smoke",
+      "beads": true
+    }
+  ],
+  "stored_session_status": 200,
+  "login_states": {
+    "codex": {
+      "state": "idle",
+      "available": true,
+      "connected": false
+    },
+    "claude-code": {
+      "state": "idle",
+      "available": true,
+      "connected": false
+    },
+    "opencode": {
+      "state": "idle",
+      "available": true,
+      "connected": false
+    },
+    "kiro": {
+      "state": "idle",
+      "available": true,
+      "connected": false
+    }
+  }
+}

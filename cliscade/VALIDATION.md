@@ -113,3 +113,13 @@ die native Automation war nach dem Neustart `COMPLETED` und anschließend
 - Auf ZimaOS wurden die drei eigenen Images gebaut. `deploy/verify-login.py` prüfte mit echten nativen CLIs für Codex, Claude Code, OpenCode und Kiro Anbieterlink/Gerätecode und Prozessabbruch. Keine persönlichen Konten autorisiert und keine Modell-Inferenz als bestanden ausgegeben.
 - Native Konto-Persistenz und der Codex-Transfer in die offizielle OpenHands-Secrets-API sind mit kontrollierten Tests geprüft. Die persönliche Konto-Freigabe und authentifizierte NAS-Datei-E2Es bleiben Benutzer-/Anbieterschritte.
 - OpenCodes `auth list` vor dem ersten Login blockierte im getesteten Image den Login-Start. Die Statusprüfung liest deshalb ausschließlich den dokumentierten OAuth-Store, ohne einen zweiten OpenCode-Prozess zu starten.
+
+Die produktive Version 0.6.0 wurde auf ZimaOS per Compose gestartet. Ego Lite
+prüfte alle vier Login-Abläufe über einen eigenen SSH-Tunnel, einschließlich
+Claude-Anmeldecode-Feld, Gerätecodes, Abbruch und Wiederaufnahme eines laufenden
+OpenCode-Logins nach Browser-Reload (Anbieter erneut ausgewählt). Die Ansicht
+hat bei 390, 768 und 1440 Pixeln keinen horizontalen Überlauf. Ein erneuter
+Integrationsdienst-Neustart erhält Beads-Projekte und den vorhandenen
+Agent-Server-Kontext (HTTP 200). Alle Testanmeldungen wurden abgebrochen;
+es sind keine persönlichen Konten verbunden. Private HTTPS-Route: HTTP 200
+vom NAS; die bestehende ZimaOS-Link-Kachel bleibt unverändert.
