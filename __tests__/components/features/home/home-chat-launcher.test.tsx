@@ -856,7 +856,11 @@ describe("HomeChatLauncher", () => {
         }),
       );
       if (marksAutomationSetup) {
-        expect(mockMarkAutomationSetupHandoff).toHaveBeenCalledWith("conv-abc");
+        await waitFor(() =>
+          expect(mockMarkAutomationSetupHandoff).toHaveBeenCalledWith(
+            "conv-abc",
+          ),
+        );
       } else {
         expect(mockMarkAutomationSetupHandoff).not.toHaveBeenCalled();
       }

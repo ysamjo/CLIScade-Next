@@ -40,7 +40,9 @@ jobs:
     needs: prepare-test-matrix
     name: test-and-build (${{ matrix.name }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 25
+    # Die vollständige Canvas-Suite umfasst über 800 Dateien; 25 Minuten
+    # brechen auf dem privaten Ubuntu-Runner noch laufende Tests ab.
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.prepare-test-matrix.outputs.matrix) }}

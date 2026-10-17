@@ -197,3 +197,14 @@ Login-Polling prüft während laufender Anmeldung ausschließlich den vorhandene
 Prozess und dessen erfassten Anbieterlink. Es startet keinen konkurrierenden
 nativen Statusprozess. Neuer API-Regressionstest zunächst rot, danach grün;
 41 Backend-Tests bestanden, 8 opt-in Prüfungen übersprungen.
+
+## CI-Nachprüfung am 17. Oktober 2026
+
+Integrations-CI und Windows-Build sind bestanden. Ubuntu wurde nach dem
+25-Minuten-Joblimit abgebrochen, während Tests weiter Fortschritt meldeten
+(463 abgeschlossene Dateien von über 800 Testdateien). Das Limit beträgt
+jetzt 60 Minuten; keine Tests wurden entfernt oder übersprungen.
+Der Home-Chat-Test zur Automationsübergabe wartet jetzt auf den asynchronen
+Abschlusscallback statt nur auf den vorherigen Create-Aufruf. Die unveränderte
+Datei bestand lokal mit Node 24 (18 Tests); die korrigierte Abfrage verhindert
+die im CI-Log beobachtete Race-Condition. Neuer vollständiger CI-Lauf folgt.
