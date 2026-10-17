@@ -65,6 +65,13 @@ Automations on home:
 - `F03.automations-backend-down`: with the automation service down, the installed list and pinned grid are hidden and the composer still works. The recommendation rail returns after loading from its static catalog; opening a setup card reaches its route and pre-setup dialog. The rail asks for the installed automations only once `/api/automation/health` answers ok (#17838), so home raises no error toast for the stopped service.
 - `F03.phone`: at 390 px the banner, launcher, rail, pinned grid, list and the workspace dialogs fit without horizontal overflow, and folder names stay readable.
 
+- `F03.github_workspace`: Mit hinterlegtem PAT im lokalen CLIScade-Code-Modus die
+  zuletzt verwendeten GitHub-Repositories wählen; letzte Auswahl nach Reload erhalten.
+- `F03.github_launch`: Absenden bereitet einen isolierten SDK-Checkout vor und
+  startet einen nativen persistenten OpenHands-Worktree statt eines Scratch-Chats.
+- `F03.github_error`: Bei fehlendem Zugang/Klonfehler keinen Ersatz-Chat erzeugen
+  und den Prompt erhalten. „Open Workspace“ bleibt ein expliziter lokaler Override.
+
 ## How to get to it (user POV)
 
 - Sidebar **New Chat** (`sidebar-conversations-link`), which opens `/conversations`; the logo does the same (see F02).
@@ -157,3 +164,6 @@ Phone and cleanup:
 - The Code / Automate choice is component state, not stored: every page load and every return to home starts in Code. A toggle check after a navigation must click Automate again.
 - When the Agent Server is stopped, background refetches can add a generic `An error occurred` toast (#18051). For `F03.create-error-toast`, retain the complete video and toast history and report any extra toast with its timing; do not waive it from the count.
 - The workspace combobox uses one message for an empty list and for a search with no match: both read `No workspaces yet` (`workspace-dropdown-empty`), with **+ Add Workspace** still below it (#18037).
+
+CLIScade 0.9.0: Source `home-chat-launcher.tsx`, `cliscade_next/repositories.py`.
+Tests: Home-Launcher-Suite und `cliscade/tests/test_repositories.py`.

@@ -6,6 +6,8 @@
 import { SettingsScope } from "#/types/settings";
 
 export const CLISCADE_QUERY_KEYS = {
+  repositories: (backendId: string) =>
+    ["cliscade-repository-workspaces", backendId] as const,
   login: (agent: string) => ["cliscade", "login", agent] as const,
   all: ["cliscade"] as const,
   projects: ["cliscade", "projects"] as const,

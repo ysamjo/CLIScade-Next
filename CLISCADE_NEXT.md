@@ -68,7 +68,9 @@ Beads ist inzwischen von `steveyegge/beads` nach `gastownhall/beads` umgezogen.
 
 ## Gelieferter Stand 0.5.1
 
-Die fünf Feature-Meilensteine sind implementiert. Der erste Vertical Slice und
+Die technischen Teilfunktionen der fünf Feature-Meilensteine sind implementiert;
+der gemeinsame GitHub-Projekt-/Task-Ablauf ist noch unvollständig (siehe aktuelle
+Statusmatrix und Umsetzungsreihenfolge in der [README](README.md)). Der erste Vertical Slice und
 Konsens wurden gegen einen echten Agent Server mit kontrollierten ACP-Prozessen
 geprüft. ZimaOS führt den Compose-Stack aus; echter Container-Neustart,
 Handoff und native Automation sind geprüft. Dies ist keine pauschale Freigabe

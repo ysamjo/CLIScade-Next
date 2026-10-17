@@ -1,3 +1,4 @@
+import { cliscadeRequest } from "#/api/cliscade-service";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -12,6 +13,8 @@ import {
   LAST_LOCAL_WORKSPACE_MODE_STORAGE_KEY,
   writeStoredLocalWorkspaceMode,
 } from "#/utils/workspace-mode";
+
+vi.mock("#/api/cliscade-service", () => ({ cliscadeRequest: vi.fn() }));
 
 const mockNavigate = vi.fn();
 const mockUseActiveBackend = vi.fn();
@@ -306,7 +309,7 @@ const localBackend = {
   backend: {
     id: "local-id",
     name: "Local",
-    host: "http://localhost",
+    host: window.location.origin,
     apiKey: "test",
     kind: "local" as const,
   },
@@ -369,8 +372,112 @@ describe("HomeChatLauncher", () => {
   });
 
   afterEach(() => {
+    vi.unstubAllEnvs();
     toast.remove();
     window.localStorage.removeItem(LAST_LOCAL_WORKSPACE_MODE_STORAGE_KEY);
+  });
+
+  it("does not prepare NAS paths when a different local backend is selected", () => {
+    vi.stubEnv("VITE_CLISCADE_REPOSITORIES", "true");
+    mockUseActiveBackend.mockReturnValue({
+      ...localBackend,
+      backend: {
+        ...localBackend.backend,
+        host: "https://another-server.example",
+      },
+    });
+    renderLauncher();
+    expect(
+      screen.queryByRole("combobox", { name: "CLISCADE$REPOSITORY_WORKSPACE" }),
+    ).not.toBeInTheDocument();
+    expect(cliscadeRequest).not.toHaveBeenCalled();
+  });
+
+  it("restores the last GitHub repository and prepares it before launching", async () => {
+    vi.stubEnv("VITE_CLISCADE_REPOSITORIES", "true");
+    const repo = {
+      id: "1",
+      full_name: "owner/recent",
+      main_branch: "main",
+      git_provider: "github",
+      is_public: false,
+    };
+    vi.mocked(cliscadeRequest).mockImplementation(async (_path, body) =>
+      body
+        ? { path: "/projects/isolated-checkout" }
+        : {
+            repositories: [repo],
+            selected: repo.full_name,
+            recent: [repo.full_name],
+          },
+    );
+    const createSpy = vi
+      .spyOn(AgentServerConversationService, "createConversation")
+      .mockResolvedValue(makeConversationResponse());
+    renderLauncher();
+    await waitFor(() =>
+      expect(
+        screen.getByRole("combobox", { name: "CLISCADE$REPOSITORY_WORKSPACE" }),
+      ).toHaveValue("owner/recent"),
+    );
+    await userEvent.click(screen.getByTestId("stub-chat-submit"));
+    await waitFor(() =>
+      expect(createSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workingDirOverride: "/projects/isolated-checkout",
+          workspaceMode: "new_worktree",
+          metadata: {
+            selected_repository: "owner/recent",
+            selected_branch: "main",
+            git_provider: "github",
+          },
+        }),
+      ),
+    );
+    expect(cliscadeRequest).toHaveBeenCalledWith("/repository-workspaces", {
+      name: "owner/recent",
+    });
+    await waitFor(() =>
+      expect(mockNavigate).toHaveBeenCalledWith("/conversations/conv-abc"),
+    );
+  });
+
+  it("does not start an unrelated scratch conversation when repository preparation fails", async () => {
+    vi.stubEnv("VITE_CLISCADE_REPOSITORIES", "true");
+    vi.mocked(cliscadeRequest).mockImplementation(async (_path, body) => {
+      if (body) throw new Error("GitHub access denied");
+      return {
+        repositories: [
+          {
+            id: "1",
+            full_name: "owner/recent",
+            main_branch: "main",
+            git_provider: "github",
+            is_public: false,
+          },
+        ],
+        selected: "owner/recent",
+        recent: [],
+      };
+    });
+    const createSpy = vi.spyOn(
+      AgentServerConversationService,
+      "createConversation",
+    );
+    renderLauncher();
+    await waitFor(() =>
+      expect(
+        screen.getByRole("combobox", { name: "CLISCADE$REPOSITORY_WORKSPACE" }),
+      ).toHaveValue("owner/recent"),
+    );
+    await userEvent.click(screen.getByTestId("stub-chat-submit"));
+    await waitFor(() =>
+      expect(mockRestoreMessageToInputIfEmpty).toHaveBeenCalledWith(
+        "hello world",
+      ),
+    );
+    expect(createSpy).not.toHaveBeenCalled();
+    expect(screen.getByTestId("stub-chat-submit")).not.toBeDisabled();
   });
 
   it("defaults to Code mode and switches to Automate mode", async () => {

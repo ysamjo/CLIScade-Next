@@ -3,6 +3,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --ignore-scripts
 COPY . .
+ENV VITE_CLISCADE_REPOSITORIES=true
 RUN NODE_OPTIONS=--max-old-space-size=1536 npm run build
 FROM node:24.19.0-bookworm-slim
 WORKDIR /app

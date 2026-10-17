@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-18",
+  "conversation_id": "95f37090-8fa6-49a5-84b1-b45c0082ab51",
+  "backend": "ZimaOS OpenHands Agent Server, SDK fork 099e727",
+  "profile": "OmniRoute",
+  "model": "openai/c1 (gateway combo)",
+  "persistent_workspace": true,
+  "feature_branch": true,
+  "clean_remote": true,
+  "authenticated_git_read_exit": 0,
+  "file_exists": true,
+  "content_matches": false,
+  "content_mismatch": "missing final newline",
+  "published_test_changes": false,
+  "mobile": {
+    "width": 390,
+    "scroll_width": 390
+  },
+  "repository_catalog_options": 30,
+  "last_selection_after_reload": "ysamjo/CLIScade-Next",
+  "canvas_image": "sha256:2d9995f666f25709d262f34d947aa9eff17d846fa88b1ca65df11fcacdbfa959",
+  "backend_tests": {
+    "passed": 58,
+    "skipped": 8
+  },
+  "launcher_tests_passed": 21,
+  "task_route_tests_passed_on_retry": 2,
+  "typecheck": "passed",
+  "source_lint": {
+    "errors": 0,
+    "existing_warnings": 2
+  }
+}

@@ -1,7 +1,7 @@
 name: cliscade-next
 services:
   canvas:
-    image: cliscade-next-canvas:0.7.2
+    image: cliscade-next-canvas:0.9.0
     restart: unless-stopped
     env_file: runtime.env
     ports:
@@ -18,7 +18,7 @@ services:
           description:
             de_de: Privater Zugang über Tailscale Serve
   cliscade:
-    image: cliscade-next-service:0.7.1
+    image: cliscade-next-service:0.9.0
     restart: unless-stopped
     env_file: runtime.env
     environment:
@@ -42,6 +42,7 @@ services:
     environment:
       OH_CONVERSATIONS_PATH: /workspace/conversations
       OH_WORKSPACE_PATH: /workspace/project
+      OH_CONVERSATION_WORKTREE_ROOT: /workspace/worktrees
       OH_BASH_EVENTS_DIR: /workspace/bash_events
       HOME: /workspace/home
       OH_ENABLE_BROWSER: "false"

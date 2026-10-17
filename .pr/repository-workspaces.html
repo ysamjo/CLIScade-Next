@@ -1,0 +1,374 @@
+<!doctype html><html lang="de"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>GitHub-Workspaces · CLIScade Next</title><style>body{margin:0;background:#fdfdfb;color:#202020;font:16px/1.6 system-ui}main{max-width:1050px;margin:auto;padding:30px}nav{border-bottom:1px solid #ddd;padding-bottom:20px}a{color:#294a91}h1{font-size:32px}h2{font-size:23px}section{padding:20px 0;border-bottom:1px solid #ddd}.warn{background:#fff3df;padding:16px;border-left:4px solid #b25b0e}svg{width:100%;height:auto}pre{overflow:auto;background:#f3f1ec;padding:12px;font-size:12px}table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid #ddd;text-align:left;padding:8px}</style><main><nav><a href="#s78">Canvas geändert</a> · <a href="#s34">Integration hinzugefügt</a> · <a href="#s116">API erweitert</a> · <a href="#proof">Nachweise</a></nav><h1>GitHub als Einstieg für native Canvas-Chats</h1><p>Ein hinterlegtes PAT wird serverseitig für die Repository-Auswahl verwendet. Zuletzt gewählte Repositories werden persistent bevorzugt; jeder Start erhält einen eigenen Klon und einen persistenten OpenHands-Worktree.</p><p class="warn">★ Übergangsschritt: Ein Klon pro Chat ist noch keine stabile Projektidentität. Beads-Tasks und native OpenHands-Chats bleiben getrennt. Der exakte Datei-Inhaltstest ist fehlgeschlagen; GitHub-Zugriff und Workspace-Vorbereitung bestanden.</p><svg viewBox="0 0 1000 260" role="img" aria-label="Vorher optionaler Ordner, nachher Repository-Katalog und Vorbereitung"><defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8" fill="#555"/></marker></defs><text x="20" y="25">VORHER — handleSubmit (Basis: Zeile 119)</text><rect x="20" y="45" width="280" height="65" fill="#f3f1ec" stroke="#bbb"/><text x="35" y="73">pendingWorkspace optional</text><text x="35" y="96">kein GitHub-Katalog für lokal</text><path d="M300 78H650" stroke="#555" marker-end="url(#arrow)"/><text x="660" y="83">createConversation</text><text x="20" y="145">NACHHER — repositoryMode + RepositoryWorkspaces</text><rect x="20" y="165" width="250" height="70" fill="#fff3df" stroke="#b25b0e"/><text x="35" y="195">catalog → letzte Auswahl</text><text x="35" y="218">nur gleicher Backend-Host</text><path d="M270 200H335" stroke="#b25b0e" marker-end="url(#arrow)"/><rect x="340" y="165" width="275" height="70" fill="#fff3df" stroke="#b25b0e"/><text x="355" y="195">prepare(name) → SDK-Klon</text><text x="355" y="218">origin bereinigen + MRU</text><path d="M615 200H680" stroke="#b25b0e" marker-end="url(#arrow)"/><rect x="685" y="165" width="295" height="70" fill="#f3f1ec" stroke="#bbb"/><text x="700" y="195">createConversation</text><text x="700" y="218">persistenter neuer Worktree</text></svg><p>Vorher: <a href="https://github.com/ysamjo/CLIScade-Next/blob/9d391003f401ac4ad1205e0d627b58ff0ecc18c4/src/components/features/home/home-chat-launcher.tsx#L119">src/components/features/home/home-chat-launcher.tsx:119</a> · Nachher: <a href="https://github.com/ysamjo/CLIScade-Next/blob/feat/cliscade-next-repository-workspaces/src/components/features/home/home-chat-launcher.tsx#L222">src/components/features/home/home-chat-launcher.tsx:222</a></p><section id="s78"><h2>Canvas: Repository vor Conversation vorbereiten</h2><p>Bisher optionaler lokaler Ordner; jetzt GitHub-Katalog, letzte Auswahl und explizite Vorbereitung. Nur beim gleichen Backend-Host; kein NAS-Pfad an fremde Backends. Fehler stellt den Prompt wieder her.</p><p><a href="https://github.com/ysamjo/CLIScade-Next/blob/feat/cliscade-next-repository-workspaces/src/components/features/home/home-chat-launcher.tsx#L78">src/components/features/home/home-chat-launcher.tsx:78</a></p><details><summary>Code / Änderung</summary><pre>diff --git a/src/components/features/home/home-chat-launcher.tsx b/src/components/features/home/home-chat-launcher.tsx
+index a3efc68c3..a3f5b2fe2 100644
+--- a/src/components/features/home/home-chat-launcher.tsx
++++ b/src/components/features/home/home-chat-launcher.tsx
+@@ -48,6 +48,9 @@ import { OpenLauncherButton } from &quot;./open-launcher-button&quot;;
+ import { OpenWorkspaceDialog } from &quot;./open-workspace-dialog&quot;;
+ import { OpenRepositoryDialog } from &quot;./open-repository-dialog&quot;;
+ import { HomeGitControlBarPreview } from &quot;./home-git-control-bar-preview&quot;;
++import { useQuery } from &quot;@tanstack/react-query&quot;;
++import { CLISCADE_QUERY_KEYS } from &quot;#/hooks/query/query-keys&quot;;
++import { cliscadeRequest } from &quot;#/api/cliscade-service&quot;;
+ 
+ export function HomeChatLauncher() {
+   const { t } = useTranslation(&quot;openhands&quot;);
+@@ -68,6 +71,33 @@ export function HomeChatLauncher() {
+   const [selectedPlugins, setSelectedPlugins] = useState&lt;PluginSpec[]&gt;([]);
+   const [isPluginPickerOpen, setIsPluginPickerOpen] = useState(false);
+   const [launcherMode, setLauncherMode] = useState&lt;HomeLauncherMode&gt;(&quot;code&quot;);
++  const { isolated, unsupportedMessage: runtimeWorkspaceMessage } =
++    useConversationWorkspace();
++  const [repositoryChoice, setRepositoryChoice] = useState&lt;string | null&gt;(null);
++  const [isPreparingRepository, setIsPreparingRepository] = useState(false);
++  const repositoryMode =
++    import.meta.env.VITE_CLISCADE_REPOSITORIES === &quot;true&quot; &amp;&amp;
++    isLocal &amp;&amp;
++    backend.host.replace(/\/$/, &quot;&quot;) === window.location.origin &amp;&amp;
++    !isolated &amp;&amp;
++    launcherMode === &quot;code&quot;;
++  const repositoryWorkspaces = useQuery({
++    queryKey: CLISCADE_QUERY_KEYS.repositories(backend.id),
++    queryFn: () =&gt;
++      cliscadeRequest&lt;{
++        repositories: GitRepository[];
++        selected: string | null;
++        recent: string[];
++      }&gt;(&quot;/repository-workspaces&quot;),
++    enabled: repositoryMode,
++    retry: false,
++    staleTime: 60_000,
++  });
++  const availableRepositories = repositoryWorkspaces.data?.repositories ?? [];
++  const preferredName = repositoryChoice ?? repositoryWorkspaces.data?.selected;
++  const githubRepository =
++    availableRepositories.find((repo) =&gt; repo.full_name === preferredName) ??
++    availableRepositories[0];
+   const displayedLauncherMode = launcherMode;
+   const isAutomateMode = launcherMode === &quot;automate&quot;;
+   const handleLauncherModeChange = setLauncherMode;
+@@ -86,7 +116,7 @@ export function HomeChatLauncher() {
+     disableToast: true,
+   });
+   const isCreatingElsewhere = useIsCreatingConversation();
+-  const isCreating = isPending || isCreatingElsewhere;
++  const isCreating = isPending || isCreatingElsewhere || isPreparingRepository;
+   const { isConfigured: isLlmConfigured, isLoading: isLlmConfigLoading } =
+     useLlmConfigured();
+   // Block sending entirely when there&#x27;s no usable LLM; the banner above the
+@@ -101,8 +131,6 @@ export function HomeChatLauncher() {
+   } = useConversationStore();
+   const { handleUpload } = useChatAttachmentUpload();
+   const { error: workspacesError } = useLocalWorkspaces({ enabled: isLocal });
+-  const { isolated, unsupportedMessage: runtimeWorkspaceMessage } =
+-    useConversationWorkspace();
+   const workspacesUnsupportedMessage =
+     runtimeWorkspaceMessage ??
+     (isLocal ? getWorkspacesUnsupportedMessage(workspacesError, t) : null);
+@@ -125,6 +153,10 @@ export function HomeChatLauncher() {
+     // create a conversation that can&#x27;t run (it would fail with a cryptic
+     // API-key error on the first turn).
+     if (llmBlocked) return;
++    if (repositoryMode &amp;&amp; !pendingWorkspace &amp;&amp; !githubRepository) {
++      displayErrorToast(t(I18nKey.CLISCADE$REPOSITORY_REQUIRED));
++      return;
++    }
+ 
+     const attachmentSnapshot = {
+       images: [...images],
+@@ -183,11 +215,31 @@ export function HomeChatLauncher() {
+       TOAST_OPTIONS,
+     );
+ 
++    if (repositoryMode &amp;&amp; !pendingWorkspace) setIsPreparingRepository(true);
+     void (async () =&gt; {
+       let isCreated = false;
+       try {
++        if (repositoryMode &amp;&amp; !pendingWorkspace &amp;&amp; githubRepository) {
++          const prepared = await cliscadeRequest&lt;{ path: string }&gt;(
++            &quot;/repository-workspaces&quot;,
++            { name: githubRepository.full_name },
++          );
++          variables = {
++            ...variables,
++            workingDir: prepared.path,
++            workspaceMode: &quot;new_worktree&quot;,
++            repository: {
++              name: githubRepository.full_name,
++              gitProvider: &quot;github&quot;,
++              branch: githubRepository.main_branch ?? undefined,
++            },
++            conversationInstructions:
++              &quot;Arbeite im ausgewählten GitHub-Repository auf einem Feature-Branch. Beachte dessen AGENTS.md und prüfe Änderungen mit passenden Tests. Nutze den vorhandenen GitHub-Zugang für Commit, Push und Pull Request, wenn die Aufgabe Codeänderungen verlangt. Veröffentliche niemals Zugangsdaten.&quot;,
++          };
++        }
+         const data = await createConversation(variables);
+         isCreated = true;
++        setIsPreparingRepository(false);
+         toast.dismiss(toastId);
+         try {
+           sessionStorage.removeItem(HOME_PROMPT_DRAFT_KEY);
+@@ -260,6 +312,7 @@ export function HomeChatLauncher() {
+         openAutomationSetupMode(targetConversationId);
+         navigate(`/conversations/${targetConversationId}`);
+       } catch (error) {
++        setIsPreparingRepository(false);
+         toast.dismiss(toastId);
+         // Prefer the server&#x27;s own message; without one, keep the launcher&#x27;s
+         // existing wording (the error&#x27;s message).
+@@ -273,6 +326,8 @@ export function HomeChatLauncher() {
+         if (!isCreated &amp;&amp; isMountedRef.current) {
+           restoreMessageToInputIfEmpty(message);
+         }
++      } finally {
++        if (isMountedRef.current) setIsPreparingRepository(false);
+       }
+     })();
+   };
+@@ -329,6 +384,39 @@ export function HomeChatLauncher() {
+             )}
+           &lt;/p&gt;
+         )}
++        {repositoryMode &amp;&amp; (
++          &lt;div className=&quot;min-w-0 space-y-2&quot;&gt;
++            &lt;label className=&quot;block text-sm&quot;&gt;
++              {t(I18nKey.CLISCADE$REPOSITORY_WORKSPACE)}
++              &lt;select
++                className=&quot;mt-1 min-h-11 w-full min-w-0 rounded-lg border border-border bg-canvas-base p-2 text-contrast&quot;
++                value={
++                  pendingWorkspace ? &quot;&quot; : (githubRepository?.full_name ?? &quot;&quot;)
++                }
++                disabled={isCreating || repositoryWorkspaces.isLoading}
++                onChange={(event) =&gt; {
++                  setRepositoryChoice(event.target.value);
++                  setPendingWorkspace(null);
++                }}
++              &gt;
++                &lt;option value=&quot;&quot;&gt;
++                  {t(I18nKey.CLISCADE$REPOSITORY_REQUIRED)}
++                &lt;/option&gt;
++                {availableRepositories.map((repo) =&gt; (
++                  &lt;option key={repo.id} value={repo.full_name}&gt;
++                    {repo.full_name}
++                  &lt;/option&gt;
++                ))}
++              &lt;/select&gt;
++            &lt;/label&gt;
++            &lt;p className=&quot;text-xs text-text-secondary&quot;&gt;
++              {t(I18nKey.CLISCADE$REPOSITORY_HELP)}
++            &lt;/p&gt;
++            {repositoryWorkspaces.error &amp;&amp; (
++              &lt;p role=&quot;alert&quot;&gt;{repositoryWorkspaces.error.message}&lt;/p&gt;
++            )}
++          &lt;/div&gt;
++        )}
+         &lt;div
+           data-testid=&quot;home-composer-actions&quot;
+           aria-disabled={isAutomateMode}
+</pre></details></section><section id="s34"><h2>Integration: serverseitiger Katalog und eigener Klon</h2><p>Neues RepositoryWorkspaces-Modul. catalog normalisiert PAT-Alias und nutzt SDK-GitHub-Suche. prepare klont über SDK, entfernt Zugangsdaten aus origin, setzt Host-begrenzten Credential-Helper und speichert letzte Auswahl unter Lock.</p><p><a href="https://github.com/ysamjo/CLIScade-Next/blob/feat/cliscade-next-repository-workspaces/cliscade/src/cliscade_next/repositories.py#L34">cliscade/src/cliscade_next/repositories.py:34</a></p><details><summary>Code / Änderung</summary><pre>&quot;&quot;&quot;GitHub-Auswahl und persistente Workspace-Vorgabe für Canvas.&quot;&quot;&quot;
+
+import json
+import re
+import shlex
+import shutil
+import subprocess
+from pathlib import Path
+from uuid import uuid4
+
+import httpx
+from filelock import FileLock
+from openhands.sdk.workspace import RemoteWorkspace
+
+
+class RepositoryWorkspaces:
+    def __init__(self, settings):
+        self.settings = settings
+        settings.state.mkdir(parents=True, exist_ok=True)
+        self.path = settings.state / &quot;repository-workspaces.json&quot;
+        self.lock = FileLock(str(self.path) + &quot;.lock&quot;)
+
+    def workspace(self):
+        return RemoteWorkspace(
+            host=self.settings.agent_server,
+            working_dir=str(self.settings.projects),
+            api_key=self.settings.api_key,
+        )
+
+    def preference(self):
+        with self.lock:
+            return json.loads(self.path.read_text()) if self.path.exists() else {}
+
+    def catalog(self):
+        workspace = self.workspace()
+        try:
+            response = workspace.client.get(&quot;/api/settings/secrets&quot;)
+            response.raise_for_status()
+            names = {item[&quot;name&quot;] for item in response.json()[&quot;secrets&quot;]}
+            if &quot;github_token&quot; not in names:
+                source = next(
+                    (
+                        name
+                        for name in (
+                            &quot;GITHUB_PERSONAL_ACCESS_TOKEN&quot;,
+                            &quot;GITHUB_TOKEN&quot;,
+                            &quot;GH_TOKEN&quot;,
+                            &quot;github&quot;,
+                        )
+                        if name in names
+                    ),
+                    None,
+                )
+                if source is None:
+                    raise ValueError(&quot;GitHub-PAT in den OpenHands-Secrets hinterlegen.&quot;)
+                token = workspace.client.get(f&quot;/api/settings/secrets/{source}&quot;)
+                token.raise_for_status()
+                saved = workspace.client.put(
+                    &quot;/api/settings/secrets&quot;,
+                    json={
+                        &quot;name&quot;: &quot;github_token&quot;,
+                        &quot;value&quot;: token.text,
+                        &quot;description&quot;: &quot;GitHub-Zugang für Repository-Workspaces&quot;,
+                    },
+                )
+                saved.raise_for_status()
+            response = workspace.client.get(
+                &quot;/api/git/repositories/search&quot;,
+                params={&quot;provider&quot;: &quot;github&quot;, &quot;limit&quot;: 30},
+            )
+            response.raise_for_status()
+            page = response.json()
+            if page.get(&quot;missing_token&quot;):
+                raise ValueError(
+                    &quot;GitHub-PAT ist für die Repository-Auswahl nicht verfügbar.&quot;
+                )
+            prefs = self.preference()
+            repos = page[&quot;items&quot;]
+            recent = prefs.get(&quot;recent&quot;, [])
+            by_name = {repo[&quot;full_name&quot;]: repo for repo in repos}
+            ordered = [by_name.pop(name) for name in recent if name in by_name]
+            ordered.extend(by_name.values())
+            return {
+                &quot;repositories&quot;: ordered,
+                &quot;selected&quot;: prefs.get(&quot;selected&quot;),
+                &quot;recent&quot;: recent,
+            }
+        except httpx.HTTPError:
+            raise RuntimeError(
+                &quot;GitHub-Repository-Auswahl nicht verfügbar; PAT-Berechtigung prüfen.&quot;
+            ) from None
+        finally:
+            workspace.client.close()
+
+    def prepare(self, name):
+        if not re.fullmatch(r&quot;[A-Za-z0-9-]+/[A-Za-z0-9_.-]+&quot;, name) or name.split(&quot;/&quot;)[
+            1
+        ] in (&quot;.&quot;, &quot;..&quot;):
+            raise ValueError(&quot;GitHub-Repository im Format owner/repo wählen.&quot;)
+        repo = next(
+            (
+                item
+                for item in self.catalog()[&quot;repositories&quot;]
+                if item[&quot;full_name&quot;] == name
+            ),
+            None,
+        )
+        if repo is None:
+            raise ValueError(
+                &quot;Repository ist in der GitHub-Auswahl nicht mehr verfügbar.&quot;
+            )
+        self.settings.projects.mkdir(parents=True, exist_ok=True)
+        staging = self.settings.projects / &quot;.imports&quot; / uuid4().hex
+        target = self.settings.projects / (
+            name.replace(&quot;/&quot;, &quot;--&quot;) + &quot;--&quot; + uuid4().hex[:8]
+        )
+        staging.mkdir(parents=True, mode=0o700)
+        workspace = self.workspace()
+        try:
+            result = workspace.clone_repos(
+                [{&quot;url&quot;: f&quot;https://github.com/{name}&quot;, &quot;ref&quot;: repo[&quot;main_branch&quot;]}],
+                target_dir=staging,
+            )
+            if result.failed_repos or result.success_count != 1:
+                raise RuntimeError(
+                    &quot;GitHub-Repository konnte nicht geklont werden; &quot;
+                    &quot;PAT-Berechtigung prüfen.&quot;
+                )
+            clone = Path(next(iter(result.repo_mappings.values())).local_path)
+            # Der SDK-Klonpfad speichert die authentifizierte URL als origin.
+            # Nur die credential-freie URL darf den Workspace verlassen.
+            clean_url = f&quot;https://github.com/{name}&quot;
+            subprocess.run(
+                [&quot;git&quot;, &quot;-C&quot;, str(clone), &quot;remote&quot;, &quot;set-url&quot;, &quot;origin&quot;, clean_url],
+                check=True,
+                capture_output=True,
+            )
+            helper_code = (
+                &quot;import os,sys,urllib.request; &quot;
+                &quot;sys.argv[-1]==&#x27;get&#x27; or sys.exit(0); &quot;
+                &quot;fields=dict(line.strip().split(&#x27;=&#x27;,1) &quot;
+                &quot;for line in sys.stdin if &#x27;=&#x27; in line); &quot;
+                &quot;fields.get(&#x27;host&#x27;)==&#x27;github.com&#x27; or sys.exit(0); &quot;
+                &quot;req=urllib.request.Request(&quot;
+                &quot;&#x27;http://127.0.0.1:8000/api/settings/secrets/github_token&#x27;,&quot;
+                &quot;headers={&#x27;X-Session-API-Key&#x27;:os.environ[&#x27;SESSION_API_KEY&#x27;]}); &quot;
+                &quot;token=urllib.request.urlopen(req,timeout=15).read().decode(); &quot;
+                &quot;print(&#x27;username=x-access-token\\npassword=&#x27;+token+&#x27;\\n&#x27;)&quot;
+            )
+            helper = &quot;!python -c &quot; + shlex.quote(helper_code)
+            subprocess.run(
+                [&quot;git&quot;, &quot;-C&quot;, str(clone), &quot;config&quot;, &quot;credential.helper&quot;, helper],
+                check=True,
+                capture_output=True,
+            )
+            clone.rename(target)
+            with self.lock:
+                prefs = json.loads(self.path.read_text()) if self.path.exists() else {}
+                recent = [name] + [
+                    item for item in prefs.get(&quot;recent&quot;, []) if item != name
+                ]
+                temp = self.path.with_suffix(&quot;.tmp&quot;)
+                temp.write_text(json.dumps({&quot;selected&quot;: name, &quot;recent&quot;: recent[:10]}))
+                temp.replace(self.path)
+            return {&quot;path&quot;: str(target), &quot;repository&quot;: repo}
+        finally:
+            workspace.client.close()
+            shutil.rmtree(staging, ignore_errors=True)
+</pre></details></section><section id="s116"><h2>API: zwei additive Endpunkte</h2><p>GET /cliscade/v1/repository-workspaces liefert Metadaten; POST mit name bereitet einen Checkout vor. Bestehende Session-Authentifizierung bleibt erforderlich.</p><p><a href="https://github.com/ysamjo/CLIScade-Next/blob/feat/cliscade-next-repository-workspaces/cliscade/src/cliscade_next/api.py#L116">cliscade/src/cliscade_next/api.py:116</a></p><details><summary>Code / Änderung</summary><pre>diff --git a/cliscade/src/cliscade_next/api.py b/cliscade/src/cliscade_next/api.py
+index 071763ed4..3da71a2d6 100644
+--- a/cliscade/src/cliscade_next/api.py
++++ b/cliscade/src/cliscade_next/api.py
+@@ -22,6 +22,7 @@ from cliscade_next.config import Settings
+ from cliscade_next.consensus import Consensus
+ from cliscade_next.login import LoginService
+ from cliscade_next.orchestrator import Orchestrator
++from cliscade_next.repositories import RepositoryWorkspaces
+ from cliscade_next.routing import Routing
+ 
+ 
+@@ -81,6 +82,10 @@ class LoginCode(LoginInput):
+     code: str = Field(min_length=1, max_length=4096)
+ 
+ 
++class RepositoryInput(LoginInput):
++    name: str = Field(min_length=3, max_length=200)
++
++
+ def create_app(settings=None, orchestrator=None):
+     settings = settings or Settings.from_env()
+     service = orchestrator or Orchestrator(settings)
+@@ -105,6 +110,15 @@ def create_app(settings=None, orchestrator=None):
+         title=&quot;CLIScade Next&quot;, dependencies=[Depends(authenticate)], lifespan=lifespan
+     )
+     prefix = &quot;/cliscade/v1&quot;
++    repositories = RepositoryWorkspaces(settings)
++
++    @app.get(prefix + &quot;/repository-workspaces&quot;)
++    def repository_workspaces():
++        return repositories.catalog()
++
++    @app.post(prefix + &quot;/repository-workspaces&quot;)
++    def prepare_repository(body: RepositoryInput):
++        return repositories.prepare(body.name)
+ 
+     @app.exception_handler(ValueError)
+     def bad_request(request, error):
+</pre></details></section><section><h2>Mechanische Änderungen</h2><table><tr><th>Bereich</th><th>Änderung</th></tr><tr><td>Compose / Dockerfile</td><td>Canvas und Integration 0.9.0, Worktree-Root im Sessions-Volume, Repository-Flag beim Build</td></tr><tr><td>.dockerignore</td><td>OmniRoute-Secrets zusätzlich ausgeschlossen</td></tr><tr><td>i18n / Query Keys / Tests</td><td>Auswahltexte, Cache-Key und fokussierte Verhaltensprüfungen</td></tr><tr><td>README / AGENTS / Deployment</td><td>Verbindliches Projektziel, ehrlicher Teilstand und weitere Umsetzung</td></tr></table></section><section id="proof"><h2>Nachweise und Grenzen</h2><p>NAS mit echtem Agent Server und OmniRoute/openai/c1. Privates GitHub-Repository, credential-freies origin, authentifiziertes git ls-remote, persistenter Feature-Branch bestanden. Datei vorhanden, exakter Inhalt nicht erfüllt. Test änderte keine GitHub-Dateien. Screenshots belegen die statische Auswahl; Desktop und Smartphone 390 Pixel ohne horizontalen Überlauf.</p><p>Backend: 58 bestanden, 8 übersprungen. Automatische Tests ersetzen keine Anbieterfreigabe. Details in github-workspaces-proof.json; Bilder im selben .pr-Verzeichnis. Die zusätzliche Fremdbackend-Sperre wird als lokale Regression geprüft.</p><p>Begrenzung: 30 Katalogeinträge, zehn zuletzt verwendete Namen. Kein vollständiger Repository-Browser. Ein kanonischer Projekt-Root und Task-gebundener nativer OpenHands-Runner folgen separat. Vor Merge temporäre .pr-Artefakte gemäß Cleanup-Regel behandeln.</p></section></main></html>

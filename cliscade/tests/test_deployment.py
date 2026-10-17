@@ -52,3 +52,14 @@ def test_omniroute_is_separate_private_service_with_persistent_state():
     assert gateway["environment"]["REQUIRE_API_KEY"] == "true"
     assert gateway["volumes"] == ["/DATA/AppData/cliscade-next/omniroute:/app/data"]
     assert "$" not in source and "docker.sock" not in source
+
+
+def test_persistent_worktrees_and_private_gateway_build_context():
+    compose = yaml.safe_load((ROOT / "deploy/docker-compose.yml").read_text())
+    server = compose["services"]["agent-server"]
+    assert (
+        server["environment"]["OH_CONVERSATION_WORKTREE_ROOT"] == "/workspace/worktrees"
+    )
+    assert "/DATA/AppData/cliscade-next/sessions:/workspace" in server["volumes"]
+    ignored = (ROOT / ".dockerignore").read_text().splitlines()
+    assert "deploy/omniroute.env" in ignored

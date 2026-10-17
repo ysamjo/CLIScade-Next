@@ -1,19 +1,106 @@
-<!-- CLIScade Next Canvas 0.7.2: Antigravity und CodeBuddy -->
-Antigravity und CodeBuddy sind als native ACP-Agenten integriert und im Routing
-priorisiert. Kontologin bevorzugt Google im jeweiligen Anbieterportal, ohne
-verpflichtenden Anbieter-API-Key. Prüfstand und offene NAS-Anmeldungen:
-[ACP-Agenten](cliscade/AGENTS_SUPPORTED.md); [Installation](deploy/README.md).
+# CLIScade Next
 
-> **OpenHands-Harness über OmniRoute:** Optionaler privater Gateway-Dienst und
-> aktives Modellprofil `OmniRoute` mit `c1`: [Einrichtung und CLI-Auswahl](deploy/OMNIROUTE.md). ACP-Agenten behalten
-> ihre eigene Anmeldung.
+Ein gemeinsamer Entwicklungs-Workspace mit GitHub-Repositories als Projekten,
+Beads als Aufgabenquelle und wechselbaren Coding-Agenten. OpenHands liefert
+Canvas, Agent Server, Sessions und ACP-Transport. Der eigene OpenHands-Agent
+verwendet OmniRoute; externe CLIs behalten ihren eigenen Harness und Kontologin.
 
-> **CLIScade Next:** Projekte und ACP-Aufgaben unter `/tasks` öffnen. Die
-> Kontoanmeldung nutzt die nativen CLIs ohne verpflichtende Anbieter-API-Keys.
-> Den vollständigen Anmeldelink über „Link kopieren“ übernehmen oder im Textfeld markieren.
-> [Installation auf ZimaOS](deploy/README.md) · [CLIScade-Dokumentation](cliscade/README.md)
+**Stand 18. Oktober 2026, Version 0.9.0: Die Bausteine laufen, der gemeinsame
+Projekt-/Task-Ablauf ist noch nicht vollständig verbunden.** Die frühere Aussage
+„fünf Meilensteine implementiert“ bezeichnet die technischen Teilfunktionen,
+nicht die vollständige Erfüllung der V1-Abnahmekriterien.
 
-> **CLIScade Next:** Eigenständiges privates Projekt. [Architektur und Entwicklungsstand](CLISCADE_NEXT.md). Die folgende Dokumentation beschreibt die übernommene OpenHands-Basis.
+[Privates Repository](https://github.com/ysamjo/CLIScade-Next) ·
+[Installation](deploy/README.md) · [Architektur](CLISCADE_NEXT.md) ·
+[Testnachweise](cliscade/VALIDATION.md) · [Agenten-Prüfstand](cliscade/AGENTS_SUPPORTED.md)
+
+## Verbindliches Zielbild
+
+```text
+Gemeinsamer Workspace mit GitHub-Zugang
+└── Projekt = ein GitHub-Repository mit stabiler Identität
+    ├── eine kanonische Beads-Aufgabenliste und Projektwissen
+    └── Task mit Abnahmekriterien und Verlauf
+        ├── Ausführungsweg: autorisierte ACP-CLI oder OpenHands über OmniRoute
+        ├── Modell: passend zum gewählten Agenten und Konto
+        └── Runs → Sessions → Prüfbelege → Checkpoints → Kontextübergabe
+```
+
+Ein Task kann von Codex analysiert, von Claude Code implementiert und von
+OpenCode geprüft werden. Der nächste Agent bekommt Aufgabe, Regeln,
+Projektwissen, Entscheidungen, Git-Stand, Prüfergebnisse und offene Schritte.
+Gemeinsam sind Projekt und Aufgabenwissen; parallele Änderungen laufen in
+getrennten Worktrees. Anbieterinterne Gesprächshistorien werden nicht als
+übertragbar behandelt.
+
+## Was vorhanden ist und was fehlt
+
+| Bereich | Vorhanden / geprüft | Noch offen |
+|---|---|---|
+| GitHub und Workspace | PAT serverseitig; unter „New Chat“ Auswahl aus bis zu 30 Repositories, letzte Auswahl und zehn zuletzt verwendete Namen persistent; privater Git-Zugriff und Feature-Branch live geprüft | Pro Chat entsteht ein neuer Klon. Stabile Projekt-ID und Wiederverwendung eines Projekt-Roots fehlen; die Auswahl erzeugt noch kein gemeinsames Beads-Projekt |
+| Beads und Task-Verlauf | `/tasks`: Projekte, Aufgaben, Status, Prioritäten, Abhängigkeiten, ACP-Runs, Sessions, Checkpoints und Handoff; Backend-/Protokolltests und kontrollierte ACP-E2Es | GitHub-Auswahl und Task-Projekte sind getrennt. Native OpenHands-Chats werden noch nicht als Beads-Runs verbucht |
+| Agenten und Modelle | Sechs ACP-Agenten registriert; native Anmeldung, Capability-/Modellerkennung; Modell über Routing-Konfiguration festlegbar | Task-Auswahl filtert noch nicht zuverlässig auf autorisierte, nutzbare Konten. Erkannte Modelle werden angezeigt; eine Modellwahl pro Task/Run fehlt |
+| OpenHands und OmniRoute | Profil `OmniRoute`, Modell `openai/c1`; echter Datei-/Werkzeuglauf und Gateway-Neustart geprüft | OpenHands ist noch kein auswählbarer Ausführungsweg im Beads-Task-Runner. `c1` ist eine Gateway-Kombination; nicht jeder enthaltene Anbieter ist damit einzeln verifiziert |
+| Orchestrierung und Betrieb | Strukturierter Handoff, Routing, vorsichtiger Fallback, unabhängiger Konsens und native Automation implementiert; NAS-Compose, persistente Volumes und private Tailscale-Serve-Routen vorhanden | Vollständiger gemischter CLI-/OpenHands-Task-E2E, alle NAS-Konten, vollständiger Restore und strengere Sandbox-Betriebsarten müssen nachgewiesen werden |
+
+Die neue Repository-Auswahl ist ein Übergangsschritt, keine fertige gemeinsame
+Projektverwaltung. Siehe [genaues Workspace-Verhalten](deploy/REPOSITORIES.md).
+Der neueste GitHub-Dateitest legte die angeforderte Datei an, erfüllte deren
+exakten Inhalt aber nicht: Der geforderte abschließende Zeilenumbruch fehlt. Git-Zugriff und Workspace-Vorbereitung bestanden;
+der exakte Datei-Abnahmetest bleibt fehlgeschlagen.
+
+## Nächste Umsetzung, in dieser Reihenfolge
+
+1. **Ein Repository = ein Projekt:** GitHub-ID auf einen persistenten Projekt-Root
+   abbilden; eine Beads-Instanz pro Projekt. Worktrees und Runs referenzieren
+   dieselbe Projekt-ID, erzeugen keine konkurrierenden Aufgabenbestände.
+2. **Alle Ausführungen an Tasks binden:** OpenHands/OmniRoute als zweiten
+   Ausführungsweg neben ACP im vorhandenen Attempt-/Checkpoint-Modell ergänzen.
+   Start, Abbruch, Wiederaufnahme und Handoff erscheinen im gleichen Verlauf.
+3. **Agent und Modell auswählen:** Installation, Anmeldung, Discovery und echte
+   Ausführung als getrennte Zustände darstellen. Modelle je Agent/Konto abfragen,
+   vor dem Start validieren und die Auswahl pro Attempt speichern.
+4. **Gemeinsamen Ablauf beweisen:** Ein privates GitHub-Projekt öffnen, Task
+   erstellen, mit angemeldeter CLI bearbeiten, an einen zweiten Agenten und
+   OpenHands übergeben, Prüfbelege vergleichen und Persistenz nach Neustart testen.
+5. **V1 abschließen:** Konto-/Provider-E2Es, Konsens und Scheduler auf diesem
+   gemeinsamen Pfad prüfen; Restore und Installation dokumentiert wiederholen.
+
+## Grenzen des Konzepts
+
+- **ACP stellt nicht die gesamte Konsole dar.** Modellwahl und Funktionen hängen
+  von der tatsächlich angebotenen ACP-Schnittstelle des Agenten ab. Nicht
+  angebotene Konsolenfunktionen werden als nicht verfügbar angezeigt; kein
+  provisorischer Terminal-/Headless-Wrapper.
+- **Anmeldung und Modelle gehören zum Anbieter.** Ein Google-Login ist nur möglich,
+  wenn dessen CLI ihn unterstützt. Vorhandene Konten garantieren weder jedes
+  Modell noch erfolgreiche Inferenz. Antigravity und CodeBuddy bleiben priorisiert;
+  ihr konkreter Nachweis steht in der Agentenliste.
+- **Die Harnesses konkurrieren nicht, wenn die Zuständigkeit eindeutig ist.** Bei
+  ACP steuert die externe CLI ihre Werkzeuge und Modellaufrufe. Bei OpenHands
+  übernimmt das OpenHands; OmniRoute vermittelt dessen Modellzugriff. Sie sind
+  alternative Ausführungswege mit gemeinsamem Task-Kontext.
+- **Handoff überträgt belegbaren Arbeitsstand.** Er überträgt keine verborgenen
+  Gedankengänge oder identische Anbieter-Sessions. Fakten/Prüfbelege und ungeprüfte
+  Agentenaussagen bleiben getrennt; nach möglichen Änderungen kein blindes Replay.
+- **GitHub ist die Remote-Quelle.** Agenten arbeiten in lokalen Checkouts und
+  Worktrees. Erst nach geprüftem Commit/Push/PR sind Änderungen auf GitHub;
+  ein PAT allein veröffentlicht nichts. Worktrees isolieren Git-Änderungen,
+  ersetzen aber keine Sicherheits-Sandbox.
+
+## Lokale Ablage und Dokumentation
+
+- Canvas/Integration: `/Users/family/Developer/CLIScade-Next`.
+- SDK-/Agent-Server-Anpassungen: `/Users/family/Developer/CLIScade-Next-SDK`.
+- Deployment und ZimaOS-Kachel: [deploy/README.md](deploy/README.md).
+- OmniRoute und CLI-Auswahl: [deploy/OMNIROUTE.md](deploy/OMNIROUTE.md).
+- Offene Betriebs-/Anbieterpunkte: [cliscade/OPEN_POINTS.md](cliscade/OPEN_POINTS.md).
+
+Änderungen bleiben auf Feature-Branches mit Pull Requests. Das ursprüngliche
+CLIScade-Repository und dessen ACP-Draft #4 werden nicht automatisch gemergt.
+Die folgende Dokumentation beschreibt die übernommene OpenHands-Basis.
+
+---
 
 <a name="readme-top"></a>
 

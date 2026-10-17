@@ -22,6 +22,7 @@ from cliscade_next.config import Settings
 from cliscade_next.consensus import Consensus
 from cliscade_next.login import LoginService
 from cliscade_next.orchestrator import Orchestrator
+from cliscade_next.repositories import RepositoryWorkspaces
 from cliscade_next.routing import Routing
 
 
@@ -81,6 +82,10 @@ class LoginCode(LoginInput):
     code: str = Field(min_length=1, max_length=4096)
 
 
+class RepositoryInput(LoginInput):
+    name: str = Field(min_length=3, max_length=200)
+
+
 def create_app(settings=None, orchestrator=None):
     settings = settings or Settings.from_env()
     service = orchestrator or Orchestrator(settings)
@@ -105,6 +110,15 @@ def create_app(settings=None, orchestrator=None):
         title="CLIScade Next", dependencies=[Depends(authenticate)], lifespan=lifespan
     )
     prefix = "/cliscade/v1"
+    repositories = RepositoryWorkspaces(settings)
+
+    @app.get(prefix + "/repository-workspaces")
+    def repository_workspaces():
+        return repositories.catalog()
+
+    @app.post(prefix + "/repository-workspaces")
+    def prepare_repository(body: RepositoryInput):
+        return repositories.prepare(body.name)
 
     @app.exception_handler(ValueError)
     def bad_request(request, error):

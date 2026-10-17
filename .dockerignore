@@ -47,3 +47,6 @@ artifacts/
 .cliscade-worktrees/
 deploy/runtime.env
 Archiv/
+
+# Persistente Gateway-Schlüssel nicht in den Build-Kontext übernehmen
+deploy/omniroute.env

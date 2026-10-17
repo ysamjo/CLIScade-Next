@@ -124,3 +124,25 @@ NAS-Konfiguration 0.8.1: OpenHands-Profil `OmniRoute` ist mit `openai/c1` aktivi
 Nutzerfreigabe übernommen; Konten nicht erneut migrieren oder Mac-Client-Keys kopieren.
 Andere CLIs werden pro Beads-Aufgabe über `ACP agent` gewählt; `CLI account`
 ändert nur die Login-Auswahl. Prüfnachweise und Grenzen: `deploy/OMNIROUTE.md`.
+
+CLIScade 0.9.0: `VITE_CLISCADE_REPOSITORIES=true` aktiviert den servergestützten
+GitHub-Workspace-Picker für lokale Code-Chats. `repositories.py` nutzt die native
+SDK-Repository-Suche und den SDK-Klonpfad. PAT-Alias nach `github_token` normalisieren,
+Token niemals in URLs zurückgeben. Git-Remotes nach dem Klonen bereinigen; der
+Credential-Helper löst das Secret nur für github.com zur Laufzeit auf. Fehlgeschlagene
+Vorbereitung darf keinen Scratch-Chat starten. Auswahl und MRU liegen im Serverzustand.
+OpenHands-Worktrees liegen persistent unter `/workspace/worktrees`.
+
+## Verbindliche CLIScade-Projektgrenzen
+
+Ziel: ein gemeinsamer GitHub-Workspace, ein Repository als stabiles Projekt und
+eine kanonische Beads-Aufgabenliste je Projekt. Repository-Auswahl unter New Chat
+ist derzeit ein Übergang mit Klon pro Chat, keine fertige Projektverwaltung.
+OpenHands/OmniRoute-Chats sind noch nicht an Beads-Attempts gebunden.
+Diese Grenzen bei Statusmeldungen und Änderungen ausdrücklich erhalten.
+
+Ausführungsweg (ACP-CLI oder nativer OpenHands-Agent), Modell, Beads-Task,
+Conversation, Attempt und Checkpoint bleiben getrennte Begriffe. Langfristig
+referenzieren alle Runs dieselbe Projekt-ID und denselben Beads-Bestand;
+Worktrees dürfen keine konkurrierenden Task-Datenbanken erzeugen. Installation,
+Anmeldung, Discovery und erfolgreicher Anbieter-E2E sind getrennte Nachweise.

@@ -48,6 +48,9 @@ import { OpenLauncherButton } from "./open-launcher-button";
 import { OpenWorkspaceDialog } from "./open-workspace-dialog";
 import { OpenRepositoryDialog } from "./open-repository-dialog";
 import { HomeGitControlBarPreview } from "./home-git-control-bar-preview";
+import { useQuery } from "@tanstack/react-query";
+import { CLISCADE_QUERY_KEYS } from "#/hooks/query/query-keys";
+import { cliscadeRequest } from "#/api/cliscade-service";
 
 export function HomeChatLauncher() {
   const { t } = useTranslation("openhands");
@@ -68,6 +71,33 @@ export function HomeChatLauncher() {
   const [selectedPlugins, setSelectedPlugins] = useState<PluginSpec[]>([]);
   const [isPluginPickerOpen, setIsPluginPickerOpen] = useState(false);
   const [launcherMode, setLauncherMode] = useState<HomeLauncherMode>("code");
+  const { isolated, unsupportedMessage: runtimeWorkspaceMessage } =
+    useConversationWorkspace();
+  const [repositoryChoice, setRepositoryChoice] = useState<string | null>(null);
+  const [isPreparingRepository, setIsPreparingRepository] = useState(false);
+  const repositoryMode =
+    import.meta.env.VITE_CLISCADE_REPOSITORIES === "true" &&
+    isLocal &&
+    backend.host.replace(/\/$/, "") === window.location.origin &&
+    !isolated &&
+    launcherMode === "code";
+  const repositoryWorkspaces = useQuery({
+    queryKey: CLISCADE_QUERY_KEYS.repositories(backend.id),
+    queryFn: () =>
+      cliscadeRequest<{
+        repositories: GitRepository[];
+        selected: string | null;
+        recent: string[];
+      }>("/repository-workspaces"),
+    enabled: repositoryMode,
+    retry: false,
+    staleTime: 60_000,
+  });
+  const availableRepositories = repositoryWorkspaces.data?.repositories ?? [];
+  const preferredName = repositoryChoice ?? repositoryWorkspaces.data?.selected;
+  const githubRepository =
+    availableRepositories.find((repo) => repo.full_name === preferredName) ??
+    availableRepositories[0];
   const displayedLauncherMode = launcherMode;
   const isAutomateMode = launcherMode === "automate";
   const handleLauncherModeChange = setLauncherMode;
@@ -86,7 +116,7 @@ export function HomeChatLauncher() {
     disableToast: true,
   });
   const isCreatingElsewhere = useIsCreatingConversation();
-  const isCreating = isPending || isCreatingElsewhere;
+  const isCreating = isPending || isCreatingElsewhere || isPreparingRepository;
   const { isConfigured: isLlmConfigured, isLoading: isLlmConfigLoading } =
     useLlmConfigured();
   // Block sending entirely when there's no usable LLM; the banner above the
@@ -101,8 +131,6 @@ export function HomeChatLauncher() {
   } = useConversationStore();
   const { handleUpload } = useChatAttachmentUpload();
   const { error: workspacesError } = useLocalWorkspaces({ enabled: isLocal });
-  const { isolated, unsupportedMessage: runtimeWorkspaceMessage } =
-    useConversationWorkspace();
   const workspacesUnsupportedMessage =
     runtimeWorkspaceMessage ??
     (isLocal ? getWorkspacesUnsupportedMessage(workspacesError, t) : null);
@@ -125,6 +153,10 @@ export function HomeChatLauncher() {
     // create a conversation that can't run (it would fail with a cryptic
     // API-key error on the first turn).
     if (llmBlocked) return;
+    if (repositoryMode && !pendingWorkspace && !githubRepository) {
+      displayErrorToast(t(I18nKey.CLISCADE$REPOSITORY_REQUIRED));
+      return;
+    }
 
     const attachmentSnapshot = {
       images: [...images],
@@ -183,11 +215,31 @@ export function HomeChatLauncher() {
       TOAST_OPTIONS,
     );
 
+    if (repositoryMode && !pendingWorkspace) setIsPreparingRepository(true);
     void (async () => {
       let isCreated = false;
       try {
+        if (repositoryMode && !pendingWorkspace && githubRepository) {
+          const prepared = await cliscadeRequest<{ path: string }>(
+            "/repository-workspaces",
+            { name: githubRepository.full_name },
+          );
+          variables = {
+            ...variables,
+            workingDir: prepared.path,
+            workspaceMode: "new_worktree",
+            repository: {
+              name: githubRepository.full_name,
+              gitProvider: "github",
+              branch: githubRepository.main_branch ?? undefined,
+            },
+            conversationInstructions:
+              "Arbeite im ausgewählten GitHub-Repository auf einem Feature-Branch. Beachte dessen AGENTS.md und prüfe Änderungen mit passenden Tests. Nutze den vorhandenen GitHub-Zugang für Commit, Push und Pull Request, wenn die Aufgabe Codeänderungen verlangt. Veröffentliche niemals Zugangsdaten.",
+          };
+        }
         const data = await createConversation(variables);
         isCreated = true;
+        setIsPreparingRepository(false);
         toast.dismiss(toastId);
         try {
           sessionStorage.removeItem(HOME_PROMPT_DRAFT_KEY);
@@ -260,6 +312,7 @@ export function HomeChatLauncher() {
         openAutomationSetupMode(targetConversationId);
         navigate(`/conversations/${targetConversationId}`);
       } catch (error) {
+        setIsPreparingRepository(false);
         toast.dismiss(toastId);
         // Prefer the server's own message; without one, keep the launcher's
         // existing wording (the error's message).
@@ -273,6 +326,8 @@ export function HomeChatLauncher() {
         if (!isCreated && isMountedRef.current) {
           restoreMessageToInputIfEmpty(message);
         }
+      } finally {
+        if (isMountedRef.current) setIsPreparingRepository(false);
       }
     })();
   };
@@ -328,6 +383,39 @@ export function HomeChatLauncher() {
               </button>
             )}
           </p>
+        )}
+        {repositoryMode && (
+          <div className="min-w-0 space-y-2">
+            <label className="block text-sm">
+              {t(I18nKey.CLISCADE$REPOSITORY_WORKSPACE)}
+              <select
+                className="mt-1 min-h-11 w-full min-w-0 rounded-lg border border-border bg-canvas-base p-2 text-contrast"
+                value={
+                  pendingWorkspace ? "" : (githubRepository?.full_name ?? "")
+                }
+                disabled={isCreating || repositoryWorkspaces.isLoading}
+                onChange={(event) => {
+                  setRepositoryChoice(event.target.value);
+                  setPendingWorkspace(null);
+                }}
+              >
+                <option value="">
+                  {t(I18nKey.CLISCADE$REPOSITORY_REQUIRED)}
+                </option>
+                {availableRepositories.map((repo) => (
+                  <option key={repo.id} value={repo.full_name}>
+                    {repo.full_name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <p className="text-xs text-text-secondary">
+              {t(I18nKey.CLISCADE$REPOSITORY_HELP)}
+            </p>
+            {repositoryWorkspaces.error && (
+              <p role="alert">{repositoryWorkspaces.error.message}</p>
+            )}
+          </div>
         )}
         <div
           data-testid="home-composer-actions"
