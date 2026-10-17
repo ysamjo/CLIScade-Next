@@ -22,6 +22,7 @@ from cliscade_next.config import Settings
 from cliscade_next.consensus import Consensus
 from cliscade_next.login import LoginService
 from cliscade_next.orchestrator import Orchestrator
+from cliscade_next.projects import Projects
 from cliscade_next.repositories import RepositoryWorkspaces
 from cliscade_next.routing import Routing
 
@@ -168,20 +169,19 @@ def create_app(settings=None, orchestrator=None):
 
     @app.get(prefix + "/projects")
     def projects():
-        return [
-            {"id": path.name, "beads": (path / ".beads").is_dir()}
-            for path in sorted(settings.projects.iterdir())
-            if path.is_dir() and not path.name.startswith(".") and not path.is_symlink()
-        ]
+        return Projects(settings).list()
 
     @app.get(prefix + "/agents")
     def agents():
+        verified = service.ledger.verified_agents()
         return [
             {
                 "id": agent.id,
                 "command": agent.command,
                 "model": agent.model,
-                "live_verified": False,
+                "live_verified": agent.id in verified,
+                "verified_runs": verified.get(agent.id, {}).get("runs", 0),
+                "verified_models": sorted(verified.get(agent.id, {}).get("models", [])),
                 "transport": "openhands" if agent.id == "openhands" else "acp",
                 "priority": agent.priority,
                 "capabilities": agent.capabilities,
@@ -192,7 +192,13 @@ def create_app(settings=None, orchestrator=None):
 
     @app.post(prefix + "/agents/{agent_id}/probe")
     def probe(agent_id: str):
-        return Routing(service).probe(agent_id)
+        record = Routing(service).probe(agent_id)
+        verified = service.ledger.verified_agents().get(agent_id, {})
+        return {
+            **record,
+            "live_verified": bool(verified),
+            "verified_models": sorted(verified.get("models", [])),
+        }
 
     @app.get(prefix + "/projects/{project}/tasks")
     def tasks(project: str):
@@ -297,6 +303,12 @@ def create_app(settings=None, orchestrator=None):
 
     @app.post(prefix + "/projects/{project}/tasks/{task_id}/schedule", status_code=201)
     def schedule(project: str, task_id: str, body: ScheduleInput):
+        if not settings.allow_unattended:
+            raise ValueError(
+                "Unbeaufsichtigte Zeitpläne sind nicht freigeschaltet: ein Worktree "
+                "ist keine Dateisystemgrenze, und ein Agent kann außerhalb schreiben. "
+                "Erst Isolation prüfen, dann CLISCADE_ALLOW_UNATTENDED=1 setzen."
+            )
         Beads(settings.project(project)).show(task_id)
         if body.agent_id != "auto" and body.agent_id not in service.agents:
             raise ValueError("ACP-Agent ist nicht freigegeben")

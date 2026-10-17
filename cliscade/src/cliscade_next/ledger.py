@@ -45,6 +45,31 @@ class Ledger:
             if "model" not in columns:
                 db.execute("ALTER TABLE attempts ADD COLUMN model TEXT")
 
+    def verified_agents(self):
+        """Agenten mit mindestens einem abgeschlossenen Lauf mit Werkzeugbelegen.
+
+        `completed` allein genügt nicht: ein Lauf kann fertig sein und trotzdem am
+        falschen Ort gearbeitet haben. Gezählt wird nur, was Belege hinterlassen hat.
+        """
+        with self.connect() as db:
+            rows = db.execute(
+                "SELECT agent, model, checkpoint FROM attempts "
+                "WHERE status='completed' AND error IS NULL AND checkpoint IS NOT NULL"
+            ).fetchall()
+        result = {}
+        for row in rows:
+            try:
+                checks = json.loads(row["checkpoint"]).get("verified_checks") or []
+            except (ValueError, AttributeError):
+                continue
+            if not checks:
+                continue
+            entry = result.setdefault(row["agent"], {"runs": 0, "models": []})
+            entry["runs"] += 1
+            if row["model"] and row["model"] not in entry["models"]:
+                entry["models"].append(row["model"])
+        return result
+
     @contextmanager
     def connect(self):
         db = sqlite3.connect(self.path, timeout=30)

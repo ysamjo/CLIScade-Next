@@ -11,6 +11,7 @@ class Settings:
     state: Path
     agent_server: str
     api_key: str = field(repr=False)
+    allow_unattended: bool = False
 
     def __post_init__(self):
         object.__setattr__(self, "projects", self.projects.resolve())
@@ -23,6 +24,7 @@ class Settings:
             Path(os.environ.get("CLISCADE_STATE", "/data/cliscade")),
             os.environ.get("CLISCADE_AGENT_SERVER", "http://127.0.0.1:8000"),
             os.environ["CLISCADE_API_KEY"],
+            os.environ.get("CLISCADE_ALLOW_UNATTENDED") == "1",
         )
 
     def project(self, name: str) -> Path:
