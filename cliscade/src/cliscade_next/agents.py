@@ -283,9 +283,11 @@ class Session:
 
     def state(self):
         state = self.conversation.state
+        events = [event.model_dump(mode="json") for event in state.events]
+        info = state.refresh_from_server()
         return {
-            "status": str(state.execution_status.value),
-            "events": [event.model_dump(mode="json") for event in state.events],
+            "status": info["execution_status"],
+            "events": events,
         }
 
     def cancel(self):

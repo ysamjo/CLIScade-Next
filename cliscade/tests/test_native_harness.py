@@ -73,3 +73,20 @@ def test_missing_native_profile_is_a_sanitized_failure():
         with pytest.raises(RuntimeError, match="OmniRoute") as error:
             OpenHands(SimpleNamespace()).native_profile(SimpleNamespace(client=client))
         assert "private-detail" not in str(error.value)
+
+
+def test_polling_uses_authoritative_status_after_event_replay():
+    from cliscade_next.agents import Session
+
+    state = SimpleNamespace(
+        execution_status=SimpleNamespace(value="running"),
+        events=[
+            SimpleNamespace(model_dump=lambda **kwargs: {"kind": "ObservationEvent"})
+        ],
+        refresh_from_server=lambda: {"execution_status": "finished"},
+    )
+    session = Session(SimpleNamespace(id="session", state=state), None)
+    assert session.state() == {
+        "status": "finished",
+        "events": [{"kind": "ObservationEvent"}],
+    }
