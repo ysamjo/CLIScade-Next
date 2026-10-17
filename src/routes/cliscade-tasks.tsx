@@ -376,7 +376,9 @@ export default function CliscadeTasks() {
                   <option value="auto">{t(I18nKey.CLISCADE$AUTO)}</option>
                   {agents.data?.map((item) => (
                     <option key={item.id} value={item.id}>
-                      {item.id}
+                      {item.live_verified
+                        ? `${item.id} · ${item.verified_runs ?? 0} ✓`
+                        : item.id}
                     </option>
                   ))}
                 </select>
@@ -399,28 +401,34 @@ export default function CliscadeTasks() {
               )}
               {probe.error && <p role="alert">{probe.error.message}</p>}
               {agent !== "auto" && (
-                <label className="my-3 block">
-                  {t(I18nKey.CLISCADE$MODEL)}
-                  <select
-                    className={CONTROL}
-                    value={model}
-                    disabled={probe.isFetching || !availableModels.length}
-                    onChange={(e) => setModel(e.target.value)}
-                  >
-                    <option value="">
-                      {t(I18nKey.CLISCADE$MODEL_DEFAULT)}
-                      {probe.data?.discovery?.current_model_id
-                        ? ` · ${probe.data.discovery.current_model_id}`
-                        : ""}
-                    </option>
-                    {invalidModel && <option value={model}>{model}</option>}
-                    {availableModels.map((item) => (
-                      <option key={item.model_id} value={item.model_id}>
-                        {item.model_id}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <div className="my-3">
+                  <label className="block">
+                    {t(I18nKey.CLISCADE$MODEL)}
+                    <input
+                      className={CONTROL}
+                      list="cliscade-models"
+                      value={model}
+                      disabled={probe.isFetching || !availableModels.length}
+                      placeholder={
+                        t(I18nKey.CLISCADE$MODEL_DEFAULT) +
+                        (probe.data?.discovery?.current_model_id
+                          ? ` · ${probe.data.discovery.current_model_id}`
+                          : "")
+                      }
+                      onChange={(e) => setModel(e.target.value)}
+                    />
+                    <datalist id="cliscade-models">
+                      {availableModels.map((item) => (
+                        <option key={item.model_id} value={item.model_id} />
+                      ))}
+                    </datalist>
+                  </label>
+                  {!!availableModels.length && (
+                    <span className="text-sm text-muted">
+                      {availableModels.length}
+                    </span>
+                  )}
+                </div>
               )}
               {probe.data?.discovery?.error && (
                 <p role="alert">{probe.data.discovery.error.code}</p>
