@@ -1,0 +1,228 @@
+<!doctype html><html lang="de"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Der Anmeldelink wird vorbereitet</title><style>body{font:17px/1.6 system-ui;max-width:1100px;margin:40px auto;padding:20px;background:#fafaf3;color:#193a2e}h1{font-size:42px;line-height:1.15}section{border-top:1px solid #bbc7bb;padding:20px 0}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;background:#edf1e8;padding:12px}a{color:#17664b}svg{width:100%;height:auto}.note{padding:16px;background:#fff0d8;border-left:5px solid #db741c}</style><h1>Der Anbieterlink erscheint nach dem nativen Start</h1><p class="note">0.7.1: Auth-Helfer ohne Import des Ausführungs-SDKs, sichtbare Vorbereitung und fortgesetztes Polling im Hintergrund. Keine Änderung an OAuth, Kontowahl, API-Keys oder Agenten-Protokollen.</p><svg viewBox="0 0 1000 210" role="img" aria-label="Vorher und nachher beim Login-Start"><rect x="10" y="20" width="450" height="160" fill="#e2e9de" rx="12"/><text x="30" y="55">Vorher: pending, URL noch nicht vorhanden</text><text x="30" y="95">UI fordert bereits zum Öffnen auf</text><text x="30" y="135">Auth importiert vollständiges Ausführungs-SDK</text><rect x="510" y="20" width="480" height="160" fill="#ffd3ac" rx="12"/><text x="530" y="55">Nachher: sichtbare Vorbereitung</text><text x="530" y="95">Anbieterlink erscheint automatisch</text><text x="530" y="135">Auth verwendet nur ACP und feste Kommandos</text><path d="M465 100h40" stroke="#d76b14" stroke-width="4"/></svg><section><h2>Eine Quelle für native Kommandos</h2><p>native_agents.py enthält die bisherigen zwei unveränderten Kommandos. agents.registry verwendet sie für die Ausführung, acp_login.account für Auth. Der Auth-Helfer importiert keine SDK-Ausführungsumgebung mehr. Ein frischer Python-Prozess verweigert im Test jeden OpenHands-Import und prüft den Kontostatus ohne Credentials.</p></section><section><h2>Vorbereitung und Link sind unterschiedliche sichtbare Zustände</h2><p>AgentLogin verwendet weiterhin denselben Query-Cache und dasselbe API-Schema. pending ohne URL zeigt Vorbereitung; mit URL erscheinen Anbieterlink und Rückleitungsfeld. refetchIntervalInBackground hält die Abfrage auch bei inaktiver App aufrecht. Der Test setzt den Query-Fokus auf false und wartet auf den verspäteten Google-Link.</p></section><section><h2>Prüfstand und Betriebsgrenzen</h2><p>42 Backend-Tests bestanden, 8 opt-in Prüfungen übersprungen; 57 UI-Tests bestanden. Typecheck, Ruff, Prettier und Übersetzungsprüfung bestanden. Isolierter nativer NAS-Start: alter Helfer 23,29 Sekunden, neuer 7,02 Sekunden bis accounts.google.com. Je ein Messlauf, keine allgemeine Laufzeitgarantie.</p><p>Der Versuch eines zweiten vollständigen Test-Stacks parallel zum Build überlastete den 8-GB-NAS. Die vier eigenen Testcontainer wurden gestoppt; SSH und HTTPS sind wieder erreichbar. Keine fremden Dienste neu gestartet. Der Canvas-Build begrenzt den JavaScript-Heap auf 1536 MB; keine parallele vollständige Testinstanz mehr.</p><p>Der bisherige persönliche Login meldete anschließend failed/connected=false. Keine bestätigte Google-Anmeldung oder Inferenz behaupten. Vor dem regulären Update den Zustand erneut prüfen.</p></section><section><h2>cliscade/src/cliscade_next/native_agents.py</h2><a href="https://github.com/ysamjo/CLIScade-Next/blob/580256c57f82b6fd65d6e7ed3848e6f1d0bb7224/cliscade/src/cliscade_next/native_agents.py">Vorher</a> · <a href="https://github.com/ysamjo/CLIScade-Next/blob/277c3ad066a4211227bf4c53c53f047cc5cfd085/cliscade/src/cliscade_next/native_agents.py">Nachher</a><details><summary>Diff</summary><pre>diff --git a/cliscade/src/cliscade_next/native_agents.py b/cliscade/src/cliscade_next/native_agents.py
+new file mode 100644
+index 000000000..8177e338a
+--- /dev/null
++++ b/cliscade/src/cliscade_next/native_agents.py
+@@ -0,0 +1,9 @@
++&quot;&quot;&quot;Native ACP-Kommandos ohne Import der OpenHands-Ausführungsumgebung.&quot;&quot;&quot;
++
++import sys
++
++ACP_ACCOUNT_COMMANDS = {
++    &quot;antigravity&quot;: (&quot;agy_acp_server.par&quot;,)
++    + ((&quot;--uid=&quot;,) if sys.platform == &quot;linux&quot; else ()),
++    &quot;codebuddy&quot;: (&quot;codebuddy&quot;, &quot;--acp&quot;),
++}
+</pre></details></section><section><h2>cliscade/src/cliscade_next/acp_login.py</h2><a href="https://github.com/ysamjo/CLIScade-Next/blob/580256c57f82b6fd65d6e7ed3848e6f1d0bb7224/cliscade/src/cliscade_next/acp_login.py">Vorher</a> · <a href="https://github.com/ysamjo/CLIScade-Next/blob/277c3ad066a4211227bf4c53c53f047cc5cfd085/cliscade/src/cliscade_next/acp_login.py">Nachher</a><details><summary>Diff</summary><pre>diff --git a/cliscade/src/cliscade_next/acp_login.py b/cliscade/src/cliscade_next/acp_login.py
+index 0826c10f5..1e4892591 100644
+--- a/cliscade/src/cliscade_next/acp_login.py
++++ b/cliscade/src/cliscade_next/acp_login.py
+@@ -10,7 +10,7 @@ from pathlib import Path
+ from acp import Client, spawn_agent_process
+ from acp.schema import CreateElicitationResponse
+
+-from cliscade_next.agents import registry
++from cliscade_next.native_agents import ACP_ACCOUNT_COMMANDS
+
+ METHODS = {&quot;antigravity&quot;: &quot;oauth-personal&quot;, &quot;codebuddy&quot;: &quot;external&quot;}
+
+@@ -27,7 +27,7 @@ class LoginClient(Client):
+
+
+ async def account(agent_id, action):
+-    command = registry()[agent_id].command
++    command = ACP_ACCOUNT_COMMANDS[agent_id]
+     env = dict(os.environ)
+     if action == &quot;status&quot; and agent_id == &quot;antigravity&quot;:
+         marker = Path.home() / &quot;.cliscade-accounts&quot; / agent_id
+</pre></details></section><section><h2>cliscade/src/cliscade_next/agents.py</h2><a href="https://github.com/ysamjo/CLIScade-Next/blob/580256c57f82b6fd65d6e7ed3848e6f1d0bb7224/cliscade/src/cliscade_next/agents.py">Vorher</a> · <a href="https://github.com/ysamjo/CLIScade-Next/blob/277c3ad066a4211227bf4c53c53f047cc5cfd085/cliscade/src/cliscade_next/agents.py">Nachher</a><details><summary>Diff</summary><pre>diff --git a/cliscade/src/cliscade_next/agents.py b/cliscade/src/cliscade_next/agents.py
+index a7be8dcf8..d00a950ff 100644
+--- a/cliscade/src/cliscade_next/agents.py
++++ b/cliscade/src/cliscade_next/agents.py
+@@ -2,7 +2,6 @@
+
+ import json
+ import os
+-import sys
+ from dataclasses import dataclass
+ from pathlib import Path
+ from urllib.parse import quote
+@@ -16,6 +15,8 @@ from openhands.sdk.settings.acp_providers import ACP_PROVIDERS
+ from openhands.sdk.settings.model import ACPAgentSettings
+ from openhands.sdk.workspace import RemoteWorkspace
+
++from cliscade_next.native_agents import ACP_ACCOUNT_COMMANDS
++
+
+ @dataclass(frozen=True)
+ class Agent:
+@@ -35,10 +36,12 @@ def registry():
+     agents[&quot;kiro&quot;] = Agent(&quot;kiro&quot;, (&quot;kiro-cli&quot;, &quot;acp&quot;))
+     agents[&quot;antigravity&quot;] = Agent(
+         &quot;antigravity&quot;,
+-        (&quot;agy_acp_server.par&quot;,) + ((&quot;--uid=&quot;,) if sys.platform == &quot;linux&quot; else ()),
++        ACP_ACCOUNT_COMMANDS[&quot;antigravity&quot;],
+         priority=1,
+     )
+-    agents[&quot;codebuddy&quot;] = Agent(&quot;codebuddy&quot;, (&quot;codebuddy&quot;, &quot;--acp&quot;), priority=2)
++    agents[&quot;codebuddy&quot;] = Agent(
++        &quot;codebuddy&quot;, ACP_ACCOUNT_COMMANDS[&quot;codebuddy&quot;], priority=2
++    )
+     config = os.environ.get(&quot;CLISCADE_AGENT_CONFIG&quot;)
+     if config:
+         policies = json.loads(Path(config).read_text())
+</pre></details></section><section><h2>src/components/features/cliscade/agent-login.tsx</h2><a href="https://github.com/ysamjo/CLIScade-Next/blob/580256c57f82b6fd65d6e7ed3848e6f1d0bb7224/src/components/features/cliscade/agent-login.tsx">Vorher</a> · <a href="https://github.com/ysamjo/CLIScade-Next/blob/277c3ad066a4211227bf4c53c53f047cc5cfd085/src/components/features/cliscade/agent-login.tsx">Nachher</a><details><summary>Diff</summary><pre>diff --git a/src/components/features/cliscade/agent-login.tsx b/src/components/features/cliscade/agent-login.tsx
+index 84127805f..0ee081ecd 100644
+--- a/src/components/features/cliscade/agent-login.tsx
++++ b/src/components/features/cliscade/agent-login.tsx
+@@ -39,6 +39,7 @@ export function AgentLogin() {
+     queryFn: () =&gt; cliscadeRequest&lt;LoginState&gt;(`/agents/${agent}/login`),
+     refetchInterval: (query) =&gt;
+       query.state.data?.state === &quot;pending&quot; ? POLL_MS : false,
++    refetchIntervalInBackground: true,
+     retry: false,
+   });
+   const action = useMutation({
+@@ -99,7 +100,11 @@ export function AgentLogin() {
+         {state?.connected
+           ? t(I18nKey.CLISCADE$LOGIN_CONNECTED)
+           : pending
+-            ? t(I18nKey.CLISCADE$LOGIN_PENDING)
++            ? t(
++                state?.url
++                  ? I18nKey.CLISCADE$LOGIN_PENDING
++                  : I18nKey.CLISCADE$LOGIN_PREPARING,
++              )
+             : t(I18nKey.CLISCADE$LOGIN_DISCONNECTED)}
+       &lt;/p&gt;
+       {state?.available === false &amp;&amp; (
+</pre></details></section><section><h2>__tests__/routes/cliscade-login.test.tsx</h2><a href="https://github.com/ysamjo/CLIScade-Next/blob/580256c57f82b6fd65d6e7ed3848e6f1d0bb7224/__tests__/routes/cliscade-login.test.tsx">Vorher</a> · <a href="https://github.com/ysamjo/CLIScade-Next/blob/277c3ad066a4211227bf4c53c53f047cc5cfd085/__tests__/routes/cliscade-login.test.tsx">Nachher</a><details><summary>Diff</summary><pre>diff --git a/__tests__/routes/cliscade-login.test.tsx b/__tests__/routes/cliscade-login.test.tsx
+index 07d4f52dc..a914a8bc8 100644
+--- a/__tests__/routes/cliscade-login.test.tsx
++++ b/__tests__/routes/cliscade-login.test.tsx
+@@ -5,7 +5,11 @@ import {
+   waitFor,
+   within,
+ } from &quot;@testing-library/react&quot;;
+-import { QueryClient, QueryClientProvider } from &quot;@tanstack/react-query&quot;;
++import {
++  QueryClient,
++  QueryClientProvider,
++  focusManager,
++} from &quot;@tanstack/react-query&quot;;
+ import { vi, describe, it, expect } from &quot;vitest&quot;;
+ import { AgentLogin } from &quot;#/components/features/cliscade/agent-login&quot;;
+ import { cliscadeRequest } from &quot;#/api/cliscade-service&quot;;
+@@ -28,6 +32,39 @@ function mount() {
+ }
+
+ describe(&quot;CLI account sign-in&quot;, () =&gt; {
++  it(&quot;shows link preparation and polls until the native provider URL is ready&quot;, async () =&gt; {
++    let ready = false;
++    vi.mocked(cliscadeRequest).mockImplementation(async () =&gt; ({
++      state: &quot;pending&quot;,
++      mode: &quot;callback&quot;,
++      available: true,
++      id: &quot;slow-native-start&quot;,
++      url: ready ? &quot;https://accounts.google.com/o/oauth2/v2/auth&quot; : null,
++    }));
++    mount();
++    expect(
++      await screen.findByText(&quot;CLISCADE$LOGIN_PREPARING&quot;),
++    ).toBeInTheDocument();
++    expect(
++      screen.queryByRole(&quot;link&quot;, { name: &quot;CLISCADE$LOGIN_OPEN&quot; }),
++    ).not.toBeInTheDocument();
++    focusManager.setFocused(false);
++    try {
++      ready = true;
++      expect(
++        await screen.findByRole(
++          &quot;link&quot;,
++          { name: &quot;CLISCADE$LOGIN_OPEN&quot; },
++          { timeout: 6000 },
++        ),
++      ).toHaveAttribute(&quot;href&quot;, &quot;https://accounts.google.com/o/oauth2/v2/auth&quot;);
++      expect(
++        screen.queryByText(&quot;CLISCADE$LOGIN_PREPARING&quot;),
++      ).not.toBeInTheDocument();
++    } finally {
++      focusManager.setFocused(undefined);
++    }
++  });
+   it(&quot;prioritizes Antigravity and keeps CodeBuddy on its native browser flow&quot;, async () =&gt; {
+     vi.mocked(cliscadeRequest).mockImplementation(async (path) =&gt; ({
+       state: &quot;pending&quot;,
+</pre></details></section><section><h2>cliscade/tests/test_acp_login.py</h2><a href="https://github.com/ysamjo/CLIScade-Next/blob/580256c57f82b6fd65d6e7ed3848e6f1d0bb7224/cliscade/tests/test_acp_login.py">Vorher</a> · <a href="https://github.com/ysamjo/CLIScade-Next/blob/277c3ad066a4211227bf4c53c53f047cc5cfd085/cliscade/tests/test_acp_login.py">Nachher</a><details><summary>Diff</summary><pre>diff --git a/cliscade/tests/test_acp_login.py b/cliscade/tests/test_acp_login.py
+index 39d7ff0f3..c7ac3fb64 100644
+--- a/cliscade/tests/test_acp_login.py
++++ b/cliscade/tests/test_acp_login.py
+@@ -4,7 +4,7 @@ from types import SimpleNamespace
+ from unittest.mock import AsyncMock
+
+ from cliscade_next import acp_login
+-from cliscade_next.agents import Agent, registry
++from cliscade_next.agents import registry
+
+
+ def transport(monkeypatch, connected=False, method=&quot;external&quot;):
+@@ -34,10 +34,10 @@ def transport(monkeypatch, connected=False, method=&quot;external&quot;):
+     monkeypatch.setattr(acp_login, &quot;spawn_agent_process&quot;, spawn)
+     monkeypatch.setattr(
+         acp_login,
+-        &quot;registry&quot;,
+-        lambda: {
+-            &quot;codebuddy&quot;: Agent(&quot;codebuddy&quot;, (&quot;native-codebuddy&quot;, &quot;--acp&quot;)),
+-            &quot;antigravity&quot;: Agent(&quot;antigravity&quot;, (&quot;native-antigravity&quot;,)),
++        &quot;ACP_ACCOUNT_COMMANDS&quot;,
++        {
++            &quot;codebuddy&quot;: (&quot;native-codebuddy&quot;, &quot;--acp&quot;),
++            &quot;antigravity&quot;: (&quot;native-antigravity&quot;,),
+         },
+     )
+     return connection, launches
+@@ -110,3 +110,30 @@ def test_priority_agents_can_be_configured_without_replacing_commands(
+     assert configured[&quot;codebuddy&quot;].model == &quot;reported-model&quot;
+     assert configured[&quot;codebuddy&quot;].priority == agents[&quot;codebuddy&quot;].priority
+     assert configured[&quot;codebuddy&quot;].command == agents[&quot;codebuddy&quot;].command
++
++
++def test_account_helper_starts_without_loading_the_execution_sdk(tmp_path):
++    import os
++    import subprocess
++    import sys
++
++    script = &quot;&quot;&quot;
++import asyncio
++import importlib.abc
++import sys
++class NoExecutionSDK(importlib.abc.MetaPathFinder):
++    def find_spec(self, fullname, path=None, target=None):
++        if fullname == &quot;openhands&quot; or fullname.startswith(&quot;openhands.&quot;):
++            raise AssertionError(&quot;Auth darf das Ausführungs-SDK nicht laden&quot;)
++sys.meta_path.insert(0, NoExecutionSDK())
++from cliscade_next.acp_login import account
++assert asyncio.run(account(&quot;antigravity&quot;, &quot;status&quot;)) is False
++&quot;&quot;&quot;
++    result = subprocess.run(
++        [sys.executable, &quot;-c&quot;, script],
++        env={**os.environ, &quot;HOME&quot;: str(tmp_path)},
++        capture_output=True,
++        text=True,
++        timeout=15,
++    )
++    assert result.returncode == 0, result.stderr
+</pre></details></section><section><h2>deploy/Dockerfile.canvas</h2><a href="https://github.com/ysamjo/CLIScade-Next/blob/580256c57f82b6fd65d6e7ed3848e6f1d0bb7224/deploy/Dockerfile.canvas">Vorher</a> · <a href="https://github.com/ysamjo/CLIScade-Next/blob/277c3ad066a4211227bf4c53c53f047cc5cfd085/deploy/Dockerfile.canvas">Nachher</a><details><summary>Diff</summary><pre>diff --git a/deploy/Dockerfile.canvas b/deploy/Dockerfile.canvas
+index 18dc67af1..6700ab86d 100644
+--- a/deploy/Dockerfile.canvas
++++ b/deploy/Dockerfile.canvas
+@@ -3,7 +3,7 @@ WORKDIR /app
+ COPY package.json package-lock.json ./
+ RUN npm ci --ignore-scripts
+ COPY . .
+-RUN npm run build
++RUN NODE_OPTIONS=--max-old-space-size=1536 npm run build
+ FROM node:24.19.0-bookworm-slim
+ WORKDIR /app
+ COPY --from=builder /app/build ./build
+</pre></details></section><section><h2>Live-Nachweis nach dem Rollout</h2><p>Canvas und Integrationsdienst laufen produktiv mit 0.7.1. Vor dem Update: kein pending Login und keine aktive Aufgabe. In der tatsächlichen Oberfläche erscheint zuerst Vorbereitung und nach 7,2 Sekunden der Google-Link. Der neue Login bleibt für den Benutzer offen. Persönliche Kontofreigabe und Inferenz sind noch nicht bestätigt.</p></section></html>

@@ -231,3 +231,9 @@ Nach Ende des Test-Stacks lieferte die produktive Anmeldung `failed` und
 `connected=false`; keine aktive Aufgabe vorhanden. Der neue Build läuft allein
 mit 1536-MB-JavaScript-Heap. Vor dem Rollout wird der Login-Zustand erneut
 geprüft. Der vollständige Ubuntu-CI-Lauf von PR #17 ist inzwischen bestanden.
+
+Produktiver Rollout 0.7.1 nach erneutem Guard ohne offene Logins/aktive Aufgaben:
+Vorbereitung sichtbar, anschließend accounts.google.com nach 7,2 Sekunden in
+der tatsächlichen Canvas-Oberfläche. Desktop-Screenshots in `.pr`. Dieser neue
+Login wurde für den Benutzer offen gelassen; keine persönliche Freigabe oder
+Inferenz behauptet. Privates HTTPS und die vier produktiven Container laufen.
