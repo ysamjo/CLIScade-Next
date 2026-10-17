@@ -1,8 +1,8 @@
-<!doctype html><html lang="de"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Task-Harness und Modellwahl</title><style>body{margin:0;color:#222;background:#fdfdfb;font:16px/1.6 system-ui}main{max-width:1100px;margin:auto;padding:28px}h1{font-size:32px}h2{font-size:22px}section{border-top:1px solid #ddd;margin-top:24px;padding-top:16px}nav{display:flex;gap:18px;flex-wrap:wrap}a{color:#294a91}svg{width:100%;height:auto}pre{overflow:auto;background:#f3f1ec;padding:12px;font:12px/1.5 monospace}.callout{background:#fff3df;border-left:4px solid #b25b0e;padding:16px}table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid #ddd;padding:8px;text-align:left}</style><main><nav><a href="#s46">Agenten</a><a href="#s146">Run</a><a href="#s45">Migration</a><a href="#s90">UI</a><a href="#s50">API</a></nav><h1>Ein Beads-Task kann jetzt OpenHands verwenden</h1><p>Der native SDK-Harness und externe ACP-Agenten teilen denselben Attempt-/Checkpoint-Verlauf. Pro Start oder Handoff lässt sich ein angebotener Modellname wählen. Globale Profile und Registry-Einstellungen bleiben unverändert.</p><p class="callout">★ Der native Eintrag startet keinen ACP-Prozess. Er verwendet das bereits gespeicherte OmniRoute-Profil. Modellwahl wird am Attempt persistiert, vor Start geprüft und bei Resume beibehalten.</p><svg viewBox="0 0 1020 285" role="img" aria-label="Vorher ACP-only Taskstart, nachher nativer oder ACP-Harness mit persistenter Modellwahl"><defs><marker id="a" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8" fill="#666"/></marker></defs><text x="20" y="25">VORHER</text><rect x="20" y="42" width="250" height="60" fill="#f3f1ec" stroke="#aaa"/><text x="35" y="78">StartInput → Agent aus Registry</text><path d="M270 73H480" stroke="#666" marker-end="url(#a)"/><rect x="485" y="42" width="500" height="60" fill="#f3f1ec" stroke="#aaa"/><text x="500" y="78">attach → ACPAgent / Modell nur aus Konfiguration</text><text x="20" y="140">NACHHER</text><rect x="20" y="160" width="250" height="90" fill="#fff3df" stroke="#b25b0e"/><text x="35" y="190">StartInput + model</text><text x="35" y="215">Discovery → Validierung</text><text x="35" y="239">Ledger.create(model=...)</text><path d="M270 205H390" stroke="#b25b0e" marker-end="url(#a)"/><rect x="395" y="155" width="590" height="100" fill="#fff3df" stroke="#b25b0e"/><text x="410" y="184">openhands → native_agent → OmniRoute-Profil</text><text x="410" y="212">externe CLI → ACPAgent(acp_model=...)</text><text x="410" y="240">gemeinsam → RemoteConversation → Attempt / Checkpoint</text></svg><p>Basis: <a href="https://github.com/ysamjo/CLIScade-Next/blob/a01c0299f52d76d169c4759e5981e8b26a191089/cliscade/src/cliscade_next/agents.py#L171">agents.py:171</a>; geänderte Symbole unten verlinkt.</p><section id="s46"><h2>Native Ausführung statt leerem ACP-Befehl</h2><p>Registry ergänzt openhands. native_profile liest nur serverseitig das gespeicherte OmniRoute-Profil. native_discovery liest den Gateway-Katalog; native_agent verwendet OpenHandsAgentSettings.create_agent(). ACP bleibt unverändert. RemoteConversation.attach benötigt auch im Integrationsdienst das offizielle openhands-tools derselben gepinnten SDK-Revision.</p><a href="https://github.com/ysamjo/CLIScade-Next/blob/codex/task-harness-model-selection/cliscade/src/cliscade_next/agents.py#L46">cliscade/src/cliscade_next/agents.py:46</a><details><summary>Diff</summary><pre>diff --git a/cliscade/src/cliscade_next/agents.py b/cliscade/src/cliscade_next/agents.py
-index d00a950ff..49dd0c169 100644
+<!doctype html><html lang="de"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Task-Harness und Modellwahl</title><style>body{margin:0;color:#222;background:#fdfdfb;font:16px/1.6 system-ui}main{max-width:1100px;margin:auto;padding:28px}h1{font-size:32px}h2{font-size:22px}section{border-top:1px solid #ddd;margin-top:24px;padding-top:16px}nav{display:flex;gap:18px;flex-wrap:wrap}a{color:#294a91}svg{width:100%;height:auto}pre{overflow:auto;background:#f3f1ec;padding:12px;font:12px/1.5 monospace}.callout{background:#fff3df;border-left:4px solid #b25b0e;padding:16px}table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid #ddd;padding:8px;text-align:left}</style><main><nav><a href="#s46">Agenten</a><a href="#s146">Run</a><a href="#s45">Migration</a><a href="#s90">UI</a><a href="#s50">API</a></nav><h1>Ein Beads-Task kann jetzt OpenHands verwenden</h1><p>Der native SDK-Harness und externe ACP-Agenten teilen denselben Attempt-/Checkpoint-Verlauf. Pro Start oder Handoff lässt sich ein angebotener Modellname wählen. Globale Profile und Registry-Einstellungen bleiben unverändert. Beim Polling bestätigt RemoteState.refresh_from_server den aktuellen Status nach dem Ereignis-Replay.</p><p class="callout">★ Der native Eintrag startet keinen ACP-Prozess. Er verwendet das bereits gespeicherte OmniRoute-Profil. Modellwahl wird am Attempt persistiert, vor Start geprüft und bei Resume beibehalten.</p><svg viewBox="0 0 1020 285" role="img" aria-label="Vorher ACP-only Taskstart, nachher nativer oder ACP-Harness mit persistenter Modellwahl"><defs><marker id="a" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8" fill="#666"/></marker></defs><text x="20" y="25">VORHER</text><rect x="20" y="42" width="250" height="60" fill="#f3f1ec" stroke="#aaa"/><text x="35" y="78">StartInput → Agent aus Registry</text><path d="M270 73H480" stroke="#666" marker-end="url(#a)"/><rect x="485" y="42" width="500" height="60" fill="#f3f1ec" stroke="#aaa"/><text x="500" y="78">attach → ACPAgent / Modell nur aus Konfiguration</text><text x="20" y="140">NACHHER</text><rect x="20" y="160" width="250" height="90" fill="#fff3df" stroke="#b25b0e"/><text x="35" y="190">StartInput + model</text><text x="35" y="215">Discovery → Validierung</text><text x="35" y="239">Ledger.create(model=...)</text><path d="M270 205H390" stroke="#b25b0e" marker-end="url(#a)"/><rect x="395" y="155" width="590" height="100" fill="#fff3df" stroke="#b25b0e"/><text x="410" y="184">openhands → native_agent → OmniRoute-Profil</text><text x="410" y="212">externe CLI → ACPAgent(acp_model=...)</text><text x="410" y="240">gemeinsam → RemoteConversation → Attempt / Checkpoint</text></svg><p>Basis: <a href="https://github.com/ysamjo/CLIScade-Next/blob/a01c0299f52d76d169c4759e5981e8b26a191089/cliscade/src/cliscade_next/agents.py#L171">agents.py:171</a>; geänderte Symbole unten verlinkt.</p><section id="s46"><h2>Native Ausführung statt leerem ACP-Befehl</h2><p>Registry ergänzt openhands. native_profile liest nur serverseitig das gespeicherte OmniRoute-Profil. native_discovery liest den Gateway-Katalog; native_agent verwendet OpenHandsAgentSettings.create_agent(). ACP bleibt unverändert. RemoteConversation.attach benötigt auch im Integrationsdienst das offizielle openhands-tools derselben gepinnten SDK-Revision.</p><a href="https://github.com/ysamjo/CLIScade-Next/blob/codex/task-harness-model-selection/cliscade/src/cliscade_next/agents.py#L46">cliscade/src/cliscade_next/agents.py:46</a><details><summary>Diff</summary><pre>diff --git a/cliscade/src/cliscade_next/agents.py b/cliscade/src/cliscade_next/agents.py
+index d00a950ff..bd798cf99 100644
 --- a/cliscade/src/cliscade_next/agents.py
 +++ b/cliscade/src/cliscade_next/agents.py
-@@ -1,13 +1,14 @@
+@@ -1,15 +1,17 @@
 -&quot;&quot;&quot;ACP-Integration ausschließlich über den offiziellen OpenHands-Client.&quot;&quot;&quot;
 +&quot;&quot;&quot;ACP und nativer OpenHands-Harness über den offiziellen SDK-Client.&quot;&quot;&quot;
  
@@ -19,8 +19,11 @@ index d00a950ff..49dd0c169 100644
 +from openhands.sdk import LLM, OpenHandsAgentSettings, RemoteConversation
  from openhands.sdk.agent import ACPAgent
  from openhands.sdk.agent.acp_models import ACPModelDiscovery
++from openhands.sdk.context import AgentContext
  from openhands.sdk.secret import LookupSecret
-@@ -42,6 +43,7 @@ def registry():
+ from openhands.sdk.settings.acp_providers import ACP_PROVIDERS
+ from openhands.sdk.settings.model import ACPAgentSettings
+@@ -42,6 +44,7 @@ def registry():
      agents[&quot;codebuddy&quot;] = Agent(
          &quot;codebuddy&quot;, ACP_ACCOUNT_COMMANDS[&quot;codebuddy&quot;], priority=2
      )
@@ -28,7 +31,7 @@ index d00a950ff..49dd0c169 100644
      config = os.environ.get(&quot;CLISCADE_AGENT_CONFIG&quot;)
      if config:
          policies = json.loads(Path(config).read_text())
-@@ -53,7 +55,7 @@ def registry():
+@@ -53,7 +56,7 @@ def registry():
                  &quot;enabled&quot;,
              }:
                  raise ValueError(&quot;Unbekannte ACP-Route oder ungültige Registry-Felder&quot;)
@@ -37,7 +40,7 @@ index d00a950ff..49dd0c169 100644
              priority = policy.get(&quot;priority&quot;, agents[key].priority)
              enabled = policy.get(&quot;enabled&quot;, True)
              capabilities = policy.get(&quot;capabilities&quot;, [&quot;coding&quot;, &quot;review&quot;])
-@@ -79,6 +81,63 @@ class OpenHands:
+@@ -79,6 +82,75 @@ class OpenHands:
      def __init__(self, settings):
          self.settings = settings
  
@@ -96,12 +99,24 @@ index d00a950ff..49dd0c169 100644
 +        llm = self.native_profile(workspace)
 +        if agent.model:
 +            llm = llm.model_copy(update={&quot;model&quot;: agent.model})
-+        return OpenHandsAgentSettings(llm=llm).create_agent()
++        return OpenHandsAgentSettings(
++            llm=llm,
++            agent_context=AgentContext(
++                system_message_suffix=(
++                    &quot;Verbindliches Arbeitsverzeichnis für diesen Beads-Run: &quot;
++                    f&quot;{workspace.working_dir}. Bearbeite ausschließlich diesen &quot;
++                    &quot;Ausführungs-Worktree. Andere Projektpfade im Beads-Kontext &quot;
++                    &quot;sind Herkunftsangaben, keine Arbeitsziele. Aufgabe und AGENTS.md &quot;
++                    &quot;bestimmen, ob Commit/Push erlaubt sind. Bei ausdrücklichem &quot;
++                    &quot;Verbot weder committen noch pushen.&quot;
++                )
++            ),
++        ).create_agent()
 +
      def save_account(self, provider, home):
          if provider != &quot;codex&quot;:
              return
-@@ -132,6 +191,8 @@ class OpenHands:
+@@ -132,6 +204,8 @@ class OpenHands:
              api_key=self.settings.api_key,
          )
          try:
@@ -110,7 +125,7 @@ index d00a950ff..49dd0c169 100644
              settings = ACPAgentSettings(
                  acp_server=agent.id if agent.id in ACP_PROVIDERS else &quot;custom&quot;,
                  acp_command=list(agent.command),
-@@ -171,7 +232,9 @@ class OpenHands:
+@@ -171,7 +245,9 @@ class OpenHands:
                  )
                  if session_id
                  else RemoteConversation(
@@ -121,11 +136,25 @@ index d00a950ff..49dd0c169 100644
                          acp_command=list(agent.command),
                          acp_model=agent.model,
                          acp_auth_method=&quot;oauth-personal&quot;
+@@ -207,9 +283,11 @@ class Session:
+ 
+     def state(self):
+         state = self.conversation.state
++        events = [event.model_dump(mode=&quot;json&quot;) for event in state.events]
++        info = state.refresh_from_server()
+         return {
+-            &quot;status&quot;: str(state.execution_status.value),
+-            &quot;events&quot;: [event.model_dump(mode=&quot;json&quot;) for event in state.events],
++            &quot;status&quot;: info[&quot;execution_status&quot;],
++            &quot;events&quot;: events,
+         }
+ 
+     def cancel(self):
 </pre></details></section><section id="s146"><h2>Explizites Modell gehört zum Attempt</h2><p>start validiert explizite Modelle vor dem Worktree und ersetzt die Registry nicht. Ledger speichert die Modellwahl; refresh, cancel und resume verwenden den gespeicherten Agenten. Native Terminalbelege benötigen passende Action-/Observation-IDs. Systemkontext und Handoff-Prolog benennen den Ausführungs-Worktree ausdrücklich, damit Herkunftspfade aus Beads nicht zum Schreibziel werden. Polling prüft dispatch.lock, bevor ein noch vorbereiteter Attempt als unterbrochen gilt.</p><a href="https://github.com/ysamjo/CLIScade-Next/blob/codex/task-harness-model-selection/cliscade/src/cliscade_next/orchestrator.py#L146">cliscade/src/cliscade_next/orchestrator.py:146</a><details><summary>Diff</summary><pre>diff --git a/cliscade/src/cliscade_next/orchestrator.py b/cliscade/src/cliscade_next/orchestrator.py
-index 3172741c3..7fd2958ad 100644
+index 3172741c3..792c19380 100644
 --- a/cliscade/src/cliscade_next/orchestrator.py
 +++ b/cliscade/src/cliscade_next/orchestrator.py
-@@ -3,6 +3,7 @@
+@@ -3,10 +3,11 @@
  import hashlib
  import json
  import time
@@ -133,6 +162,11 @@ index 3172741c3..7fd2958ad 100644
  from pathlib import Path
  from uuid import uuid4
  
+-from filelock import FileLock
++from filelock import FileLock, Timeout
+ 
+ from cliscade_next.agents import OpenHands, registry
+ from cliscade_next.beads import Beads
 @@ -16,8 +17,40 @@ from cliscade_next.ledger import Ledger
  
  def evidence(events):
@@ -174,7 +208,15 @@ index 3172741c3..7fd2958ad 100644
          if event.get(&quot;kind&quot;) == &quot;ActionEvent&quot; and action.get(&quot;kind&quot;) == &quot;FinishAction&quot;:
              claims.append(
                  {
-@@ -123,22 +156,37 @@ class Orchestrator:
+@@ -84,6 +117,7 @@ class Orchestrator:
+             or old.get(&quot;git&quot;, {}).get(&quot;revision&quot;)
+         )
+         current_git = snapshot(workspace, base_revision)
++        current_git[&quot;working_directory&quot;] = str(workspace)
+         for check in checks:
+             check[&quot;checkpoint_revision&quot;] = current_git[&quot;revision&quot;]
+             check[&quot;execution_revision_known&quot;] = False
+@@ -123,22 +157,37 @@ class Orchestrator:
          request_fingerprint=None,
          consensus_id=None,
          initial_context=None,
@@ -214,7 +256,7 @@ index 3172741c3..7fd2958ad 100644
              with self.ledger.connect() as db:
                  group = db.execute(
                      &quot;SELECT id FROM consensus WHERE project=? AND task_id=? &quot;
-@@ -196,6 +244,7 @@ class Orchestrator:
+@@ -196,6 +245,7 @@ class Orchestrator:
                  source_id,
                  request_key,
                  fingerprint,
@@ -222,7 +264,7 @@ index 3172741c3..7fd2958ad 100644
                  base_revision=(
                      source[&quot;checkpoint&quot;][&quot;git&quot;].get(&quot;base_revision&quot;)
                      or source[&quot;checkpoint&quot;][&quot;git&quot;][&quot;revision&quot;]
-@@ -227,7 +276,7 @@ class Orchestrator:
+@@ -227,12 +277,13 @@ class Orchestrator:
                      self.beads_factory(project).assign(
                          task_id, agent_id, previous=source[&quot;agent&quot;] if source else None
                      )
@@ -231,16 +273,41 @@ index 3172741c3..7fd2958ad 100644
                  self.ledger.update(
                      attempt[&quot;id&quot;],
                      session_id=session.id,
-@@ -265,7 +314,7 @@ class Orchestrator:
-                 error=&quot;Vorbereitung unterbrochen; kein automatischer Neustart&quot;,
-             )
+                     prompt_sent=1,
+                     status=&quot;submitted&quot;,
++                    error=None,
+                 )
+                 session.submit(prompt)
+                 return self.ledger.update(attempt[&quot;id&quot;], status=&quot;running&quot;)
+@@ -259,13 +310,21 @@ class Orchestrator:
+         ):
+             return attempt
+         if not attempt[&quot;session_id&quot;]:
+-            return self.ledger.update(
+-                attempt_id,
+-                status=&quot;needs_review&quot;,
+-                error=&quot;Vorbereitung unterbrochen; kein automatischer Neustart&quot;,
+-            )
++            try:
++                with FileLock(str(self.settings.state / &quot;dispatch.lock&quot;), timeout=0):
++                    attempt = self.ledger.get(attempt_id)
++                    if not attempt[&quot;session_id&quot;]:
++                        return self.ledger.update(
++                            attempt_id,
++                            status=&quot;needs_review&quot;,
++                            error=(
++                                &quot;Vorbereitung unterbrochen; kein automatischer Neustart&quot;
++                            ),
++                        )
++            except Timeout:
++                return attempt
          session = self.runner.attach(
 -            self.agents[attempt[&quot;agent&quot;]],
 +            self.attempt_agent(attempt),
              Path(attempt[&quot;workspace&quot;]),
              attempt[&quot;session_id&quot;],
          )
-@@ -312,7 +361,7 @@ class Orchestrator:
+@@ -312,7 +371,7 @@ class Orchestrator:
              raise ValueError(&quot;Keine aktive Session vorhanden&quot;)
          self.ledger.update(attempt_id, status=&quot;cancelling&quot;)
          session = self.runner.attach(
@@ -249,7 +316,7 @@ index 3172741c3..7fd2958ad 100644
              Path(attempt[&quot;workspace&quot;]),
              attempt[&quot;session_id&quot;],
          )
-@@ -339,6 +388,7 @@ class Orchestrator:
+@@ -339,6 +398,7 @@ class Orchestrator:
                  source[&quot;agent&quot;],
                  source[&quot;workspace&quot;],
                  source[&quot;id&quot;],
@@ -257,7 +324,7 @@ index 3172741c3..7fd2958ad 100644
                  base_revision=(
                      source.get(&quot;base_revision&quot;)
                      or source[&quot;checkpoint&quot;][&quot;git&quot;].get(&quot;base_revision&quot;)
-@@ -357,7 +407,7 @@ class Orchestrator:
+@@ -357,7 +417,7 @@ class Orchestrator:
              session = None
              try:
                  session = self.runner.attach(
@@ -266,7 +333,7 @@ index 3172741c3..7fd2958ad 100644
                      Path(source[&quot;workspace&quot;]),
                      source[&quot;session_id&quot;],
                  )
-@@ -372,3 +422,7 @@ class Orchestrator:
+@@ -372,3 +432,7 @@ class Orchestrator:
              finally:
                  if session:
                      session.close()
@@ -482,4 +549,23 @@ index 3da71a2d6..318ac4f20 100644
          )
  
      @app.get(prefix + &quot;/attempts/{attempt_id}&quot;)
+</pre></details></section><section><h2>Arbeitsziel im Handoff</h2><p>git.working_directory und der Handoff-Prolog benennen den tatsächlichen Ausführungs-Worktree. Quellpfade aus Beads sind Herkunftsangaben. Die Vorgabe bildet keine Dateisystem-Sandbox.</p><a href="https://github.com/ysamjo/CLIScade-Next/blob/codex/task-harness-model-selection/cliscade/src/cliscade_next/context.py#L31">context.py:31 · Handoff.prompt</a><details><summary>Diff</summary><pre>diff --git a/cliscade/src/cliscade_next/context.py b/cliscade/src/cliscade_next/context.py
+index 95583ae95..6c9bcf645 100644
+--- a/cliscade/src/cliscade_next/context.py
++++ b/cliscade/src/cliscade_next/context.py
+@@ -35,6 +35,14 @@ class Handoff(BaseModel):
+             &quot;aktuellen Git-Stand und offene Abnahmekriterien. Anbieterinterne &quot;
+             &quot;Conversation-Historie wird nicht übertragen.\n&quot;
+         )
++        if self.git.get(&quot;working_directory&quot;):
++            prefix = prefix.rstrip() + (
++                &quot; Verbindlicher Ausführungs-Worktree: &quot;
++                f&quot;{json.dumps(self.git[&#x27;working_directory&#x27;])}. &quot;
++                &quot;Nur dort Dateien bearbeiten. Andere Projektpfade im Kontext &quot;
++                &quot;bezeichnen die Herkunft, nicht das Arbeitsziel. Explizite &quot;
++                &quot;Commit-/Push-Verbote der Aufgabe und Regeln beachten.\n&quot;
++            )
+         prefix = prefix.rstrip() + (
+             &quot; Ergänze abschließend einen &lt;cliscade-report&gt; mit JSON: &quot;
+             &#x27;{&quot;schema_version&quot;:1,&quot;decisions&quot;:[&quot;...&quot;],&quot;open_steps&quot;:[&quot;...&quot;]}&#x27;
 </pre></details></section><section><h2>Kompatibilität und Grenzen</h2><table><tr><th>Fall</th><th>Verhalten</th></tr><tr><td>Start ohne model</td><td>Bisheriger Agentenstandard; OpenHands standardmäßig openai/c1</td></tr><tr><td>Start / Handoff mit model</td><td>Discovery prüft Verfügbarkeit, Auswahl wird am neuen Attempt gespeichert</td></tr><tr><td>Resume</td><td>Vorhandene Session und gespeichertes Modell; keine globale Profiländerung</td></tr><tr><td>Auto / Konsens / Zeitplan</td><td>Weiterhin konfigurierte Agentenmodelle; eine explizite globale Modell-ID für Auto wird abgewiesen</td></tr></table><p>Modell-Discovery beweist keine Anbieter-Inferenz. Ein Repository als stabile Projektidentität und Filter auf tatsächlich autorisierte Konten bleiben separate offene Aufgaben.</p><p>Tests: 66 Backend-Prüfungen bestanden, acht externe Tests übersprungen; vier fokussierte UI-/API-Guard-Prüfungen, Typecheck und NAS-Build. Der Live-Run b104e110-4948-4cfe-bc5b-cb58fb33c3f2 ist completed: exakte Datei im Worktree, unverändertes Quellprojekt, keine Commits, vier Werkzeugbelege. Details stehen in task-harness-live-proof.json; keine Behauptung, alle Anbieter getestet zu haben.</p></section></main></html>
