@@ -1,0 +1,18 @@
+{
+  "desktop": {
+    "viewportWidth": 640,
+    "documentWidth": 640,
+    "agent": "openhands",
+    "model": "openai/c1",
+    "discoveredModelCount": 4162,
+    "attempts": [
+      "openhands · completed"
+    ],
+    "errors": []
+  },
+  "mobile": {
+    "viewportWidth": 390,
+    "documentWidth": 390
+  },
+  "screenshotFailure": "Page.captureScreenshot timed out; no after screenshot claimed"
+}

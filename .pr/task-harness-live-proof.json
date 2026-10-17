@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-18",
+  "project": "task-harness-proof-v010",
+  "task_id": "cn-b6b",
+  "attempt_id": "b104e110-4948-4cfe-bc5b-cb58fb33c3f2",
+  "session_id": "1298b848-ae70-4094-a172-548339d665fe",
+  "agent": "openhands",
+  "transport": "native OpenHands SDK",
+  "model": "openai/c1",
+  "gateway": "OmniRoute (combo)",
+  "status": "completed",
+  "error": null,
+  "exact_file_verified": true,
+  "source_project_untouched": true,
+  "no_commit": true,
+  "tool_receipts": 4,
+  "backend_tests": {
+    "passed": 66,
+    "skipped": 8
+  },
+  "frontend_and_api_guard_tests_passed": 4,
+  "sdk_revision": "099e727faeb869171564a4d09276f576a07c4400",
+  "service_image": "sha256:7804442148f7d1950b2b1875a74c84eecd90b759dfcf33f7b664117ec6b279c2",
+  "canvas_image": "sha256:552bd7e538756c03b15de61a862a73d24ab6999b676bff34bf4aa851c2979f86",
+  "agent_server_restarted": false,
+  "initial_failed_attempt": {
+    "attempt_id": "1d2b2b87-d61c-46bd-8036-1f962d47e642",
+    "project": "task-harness-proof",
+    "outcome": "Agent used source-project path from Beads context and committed locally; no push. Superseded by isolated new task after explicit execution-worktree context was added."
+  }
+}

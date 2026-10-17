@@ -1,0 +1,485 @@
+<!doctype html><html lang="de"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Task-Harness und Modellwahl</title><style>body{margin:0;color:#222;background:#fdfdfb;font:16px/1.6 system-ui}main{max-width:1100px;margin:auto;padding:28px}h1{font-size:32px}h2{font-size:22px}section{border-top:1px solid #ddd;margin-top:24px;padding-top:16px}nav{display:flex;gap:18px;flex-wrap:wrap}a{color:#294a91}svg{width:100%;height:auto}pre{overflow:auto;background:#f3f1ec;padding:12px;font:12px/1.5 monospace}.callout{background:#fff3df;border-left:4px solid #b25b0e;padding:16px}table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid #ddd;padding:8px;text-align:left}</style><main><nav><a href="#s46">Agenten</a><a href="#s146">Run</a><a href="#s45">Migration</a><a href="#s90">UI</a><a href="#s50">API</a></nav><h1>Ein Beads-Task kann jetzt OpenHands verwenden</h1><p>Der native SDK-Harness und externe ACP-Agenten teilen denselben Attempt-/Checkpoint-Verlauf. Pro Start oder Handoff lässt sich ein angebotener Modellname wählen. Globale Profile und Registry-Einstellungen bleiben unverändert.</p><p class="callout">★ Der native Eintrag startet keinen ACP-Prozess. Er verwendet das bereits gespeicherte OmniRoute-Profil. Modellwahl wird am Attempt persistiert, vor Start geprüft und bei Resume beibehalten.</p><svg viewBox="0 0 1020 285" role="img" aria-label="Vorher ACP-only Taskstart, nachher nativer oder ACP-Harness mit persistenter Modellwahl"><defs><marker id="a" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8" fill="#666"/></marker></defs><text x="20" y="25">VORHER</text><rect x="20" y="42" width="250" height="60" fill="#f3f1ec" stroke="#aaa"/><text x="35" y="78">StartInput → Agent aus Registry</text><path d="M270 73H480" stroke="#666" marker-end="url(#a)"/><rect x="485" y="42" width="500" height="60" fill="#f3f1ec" stroke="#aaa"/><text x="500" y="78">attach → ACPAgent / Modell nur aus Konfiguration</text><text x="20" y="140">NACHHER</text><rect x="20" y="160" width="250" height="90" fill="#fff3df" stroke="#b25b0e"/><text x="35" y="190">StartInput + model</text><text x="35" y="215">Discovery → Validierung</text><text x="35" y="239">Ledger.create(model=...)</text><path d="M270 205H390" stroke="#b25b0e" marker-end="url(#a)"/><rect x="395" y="155" width="590" height="100" fill="#fff3df" stroke="#b25b0e"/><text x="410" y="184">openhands → native_agent → OmniRoute-Profil</text><text x="410" y="212">externe CLI → ACPAgent(acp_model=...)</text><text x="410" y="240">gemeinsam → RemoteConversation → Attempt / Checkpoint</text></svg><p>Basis: <a href="https://github.com/ysamjo/CLIScade-Next/blob/a01c0299f52d76d169c4759e5981e8b26a191089/cliscade/src/cliscade_next/agents.py#L171">agents.py:171</a>; geänderte Symbole unten verlinkt.</p><section id="s46"><h2>Native Ausführung statt leerem ACP-Befehl</h2><p>Registry ergänzt openhands. native_profile liest nur serverseitig das gespeicherte OmniRoute-Profil. native_discovery liest den Gateway-Katalog; native_agent verwendet OpenHandsAgentSettings.create_agent(). ACP bleibt unverändert. RemoteConversation.attach benötigt auch im Integrationsdienst das offizielle openhands-tools derselben gepinnten SDK-Revision.</p><a href="https://github.com/ysamjo/CLIScade-Next/blob/codex/task-harness-model-selection/cliscade/src/cliscade_next/agents.py#L46">cliscade/src/cliscade_next/agents.py:46</a><details><summary>Diff</summary><pre>diff --git a/cliscade/src/cliscade_next/agents.py b/cliscade/src/cliscade_next/agents.py
+index d00a950ff..49dd0c169 100644
+--- a/cliscade/src/cliscade_next/agents.py
++++ b/cliscade/src/cliscade_next/agents.py
+@@ -1,13 +1,14 @@
+-&quot;&quot;&quot;ACP-Integration ausschließlich über den offiziellen OpenHands-Client.&quot;&quot;&quot;
++&quot;&quot;&quot;ACP und nativer OpenHands-Harness über den offiziellen SDK-Client.&quot;&quot;&quot;
+ 
+ import json
+ import os
+ from dataclasses import dataclass
+ from pathlib import Path
+-from urllib.parse import quote
++from urllib.parse import quote, urlsplit
+ from uuid import UUID
+ 
+-from openhands.sdk import RemoteConversation
++import httpx
++from openhands.sdk import LLM, OpenHandsAgentSettings, RemoteConversation
+ from openhands.sdk.agent import ACPAgent
+ from openhands.sdk.agent.acp_models import ACPModelDiscovery
+ from openhands.sdk.secret import LookupSecret
+@@ -42,6 +43,7 @@ def registry():
+     agents[&quot;codebuddy&quot;] = Agent(
+         &quot;codebuddy&quot;, ACP_ACCOUNT_COMMANDS[&quot;codebuddy&quot;], priority=2
+     )
++    agents[&quot;openhands&quot;] = Agent(&quot;openhands&quot;, (), model=&quot;openai/c1&quot;, priority=50)
+     config = os.environ.get(&quot;CLISCADE_AGENT_CONFIG&quot;)
+     if config:
+         policies = json.loads(Path(config).read_text())
+@@ -53,7 +55,7 @@ def registry():
+                 &quot;enabled&quot;,
+             }:
+                 raise ValueError(&quot;Unbekannte ACP-Route oder ungültige Registry-Felder&quot;)
+-            model = policy.get(&quot;model&quot;)
++            model = policy.get(&quot;model&quot;, agents[key].model)
+             priority = policy.get(&quot;priority&quot;, agents[key].priority)
+             enabled = policy.get(&quot;enabled&quot;, True)
+             capabilities = policy.get(&quot;capabilities&quot;, [&quot;coding&quot;, &quot;review&quot;])
+@@ -79,6 +81,63 @@ class OpenHands:
+     def __init__(self, settings):
+         self.settings = settings
+ 
++    def native_profile(self, workspace):
++        try:
++            response = workspace.client.get(
++                &quot;/api/profiles/OmniRoute&quot;, headers={&quot;X-Expose-Secrets&quot;: &quot;plaintext&quot;}
++            )
++            response.raise_for_status()
++            llm = LLM.model_validate(response.json()[&quot;config&quot;])
++            url = urlsplit(llm.base_url or &quot;&quot;)
++            if (
++                url.scheme not in (&quot;http&quot;, &quot;https&quot;)
++                or not url.hostname
++                or url.username
++                or url.password
++                or url.query
++                or url.fragment
++            ):
++                raise ValueError(&quot;Ungültige Gateway-Adresse&quot;)
++            return llm
++        except (httpx.HTTPError, ValueError, KeyError):
++            raise RuntimeError(
++                &quot;OpenHands benötigt das gespeicherte OmniRoute-Modellprofil.&quot;
++            ) from None
++
++    def native_discovery(self, workspace, agent):
++        llm = self.native_profile(workspace)
++        try:
++            with httpx.Client(timeout=30, trust_env=False) as client:
++                response = client.get(
++                    f&quot;{llm.base_url.rstrip(&#x27;/&#x27;)}/models&quot;,
++                    headers={
++                        &quot;Authorization&quot;: f&quot;Bearer {llm.api_key.get_secret_value()}&quot;
++                        if llm.api_key
++                        else &quot;&quot;
++                    },
++                )
++                response.raise_for_status()
++                models = sorted(
++                    {
++                        &quot;openai/&quot; + item[&quot;id&quot;]
++                        for item in response.json()[&quot;data&quot;]
++                        if isinstance(item.get(&quot;id&quot;), str) and item[&quot;id&quot;]
++                    }
++                )
++        except (httpx.HTTPError, ValueError, KeyError, TypeError):
++            raise RuntimeError(&quot;OmniRoute-Modellkatalog nicht verfügbar.&quot;) from None
++        return {
++            &quot;available_models&quot;: [{&quot;model_id&quot;: model} for model in models],
++            &quot;current_model_id&quot;: agent.model or llm.model,
++            &quot;error&quot;: None,
++        }
++
++    def native_agent(self, workspace, agent):
++        llm = self.native_profile(workspace)
++        if agent.model:
++            llm = llm.model_copy(update={&quot;model&quot;: agent.model})
++        return OpenHandsAgentSettings(llm=llm).create_agent()
++
+     def save_account(self, provider, home):
+         if provider != &quot;codex&quot;:
+             return
+@@ -132,6 +191,8 @@ class OpenHands:
+             api_key=self.settings.api_key,
+         )
+         try:
++            if agent.id == &quot;openhands&quot;:
++                return self.native_discovery(workspace, agent)
+             settings = ACPAgentSettings(
+                 acp_server=agent.id if agent.id in ACP_PROVIDERS else &quot;custom&quot;,
+                 acp_command=list(agent.command),
+@@ -171,7 +232,9 @@ class OpenHands:
+                 )
+                 if session_id
+                 else RemoteConversation(
+-                    agent=ACPAgent(
++                    agent=self.native_agent(remote, agent)
++                    if agent.id == &quot;openhands&quot;
++                    else ACPAgent(
+                         acp_command=list(agent.command),
+                         acp_model=agent.model,
+                         acp_auth_method=&quot;oauth-personal&quot;
+</pre></details></section><section id="s146"><h2>Explizites Modell gehört zum Attempt</h2><p>start validiert explizite Modelle vor dem Worktree und ersetzt die Registry nicht. Ledger speichert die Modellwahl; refresh, cancel und resume verwenden den gespeicherten Agenten. Native Terminalbelege benötigen passende Action-/Observation-IDs. Systemkontext und Handoff-Prolog benennen den Ausführungs-Worktree ausdrücklich, damit Herkunftspfade aus Beads nicht zum Schreibziel werden. Polling prüft dispatch.lock, bevor ein noch vorbereiteter Attempt als unterbrochen gilt.</p><a href="https://github.com/ysamjo/CLIScade-Next/blob/codex/task-harness-model-selection/cliscade/src/cliscade_next/orchestrator.py#L146">cliscade/src/cliscade_next/orchestrator.py:146</a><details><summary>Diff</summary><pre>diff --git a/cliscade/src/cliscade_next/orchestrator.py b/cliscade/src/cliscade_next/orchestrator.py
+index 3172741c3..7fd2958ad 100644
+--- a/cliscade/src/cliscade_next/orchestrator.py
++++ b/cliscade/src/cliscade_next/orchestrator.py
+@@ -3,6 +3,7 @@
+ import hashlib
+ import json
+ import time
++from dataclasses import replace
+ from pathlib import Path
+ from uuid import uuid4
+ 
+@@ -16,8 +17,40 @@ from cliscade_next.ledger import Ledger
+ 
+ def evidence(events):
+     starts, checks, claims = {}, [], []
++    native_starts = {}
+     for event in events:
+         action = event.get(&quot;action&quot;) or {}
++        if (
++            event.get(&quot;kind&quot;) == &quot;ActionEvent&quot;
++            and event.get(&quot;tool_name&quot;) == &quot;terminal&quot;
++            and isinstance(action.get(&quot;command&quot;), str)
++        ):
++            native_starts[event.get(&quot;id&quot;)] = event
++        if (
++            event.get(&quot;kind&quot;) == &quot;ObservationEvent&quot;
++            and event.get(&quot;tool_name&quot;) == &quot;terminal&quot;
++        ):
++            start = native_starts.get(event.get(&quot;action_id&quot;))
++            output = event.get(&quot;observation&quot;) or {}
++            code = output.get(&quot;exit_code&quot;)
++            if (
++                start
++                and start.get(&quot;tool_call_id&quot;) == event.get(&quot;tool_call_id&quot;)
++                and type(code) is int
++                and code &gt;= 0
++                and not output.get(&quot;timeout&quot;)
++            ):
++                checks.append(
++                    {
++                        &quot;command&quot;: start[&quot;action&quot;][&quot;command&quot;],
++                        &quot;exit_code&quot;: code,
++                        &quot;event_id&quot;: event.get(&quot;id&quot;),
++                        &quot;verification&quot;: &quot;tool_receipt&quot;,
++                        &quot;independently_reproduced&quot;: False,
++                        &quot;timestamp&quot;: event.get(&quot;timestamp&quot;),
++                    }
++                )
++                native_starts.pop(event[&quot;action_id&quot;])
+         if event.get(&quot;kind&quot;) == &quot;ActionEvent&quot; and action.get(&quot;kind&quot;) == &quot;FinishAction&quot;:
+             claims.append(
+                 {
+@@ -123,22 +156,37 @@ class Orchestrator:
+         request_fingerprint=None,
+         consensus_id=None,
+         initial_context=None,
++        model=None,
+     ):
+         if agent_id not in self.agents or not self.agents[agent_id].enabled:
+-            raise ValueError(&quot;ACP-Agent ist nicht freigegeben&quot;)
++            raise ValueError(&quot;Agent ist nicht freigegeben&quot;)
++        agent = replace(
++            self.agents[agent_id],
++            model=model if model is not None else self.agents[agent_id].model,
++        )
+         project = self.settings.project(project_name)
+         self.settings.state.mkdir(parents=True, exist_ok=True)
+         with FileLock(str(self.settings.state / &quot;dispatch.lock&quot;), timeout=30):
+             fingerprint = (
+                 request_fingerprint
+                 or hashlib.sha256(
+-                    json.dumps([project_name, task_id, agent_id, source_id]).encode()
++                    json.dumps(
++                        [project_name, task_id, agent_id, source_id]
++                        + ([model] if model is not None else [])
++                    ).encode()
+                 ).hexdigest()
+             )
+             if request_key:
+                 existing = self.ledger.request(request_key, fingerprint)
+                 if existing:
+                     return existing
++            if model is not None or agent_id == &quot;openhands&quot;:
++                discovery = self.runner.probe(agent)
++                models = {
++                    item[&quot;model_id&quot;] for item in discovery.get(&quot;available_models&quot;, [])
++                }
++                if discovery.get(&quot;error&quot;) or agent.model not in models:
++                    raise ValueError(&quot;Modell ist für diesen Agenten nicht verfügbar&quot;)
+             with self.ledger.connect() as db:
+                 group = db.execute(
+                     &quot;SELECT id FROM consensus WHERE project=? AND task_id=? &quot;
+@@ -196,6 +244,7 @@ class Orchestrator:
+                 source_id,
+                 request_key,
+                 fingerprint,
++                model=agent.model,
+                 base_revision=(
+                     source[&quot;checkpoint&quot;][&quot;git&quot;].get(&quot;base_revision&quot;)
+                     or source[&quot;checkpoint&quot;][&quot;git&quot;][&quot;revision&quot;]
+@@ -227,7 +276,7 @@ class Orchestrator:
+                     self.beads_factory(project).assign(
+                         task_id, agent_id, previous=source[&quot;agent&quot;] if source else None
+                     )
+-                session = self.runner.attach(self.agents[agent_id], workspace)
++                session = self.runner.attach(agent, workspace)
+                 self.ledger.update(
+                     attempt[&quot;id&quot;],
+                     session_id=session.id,
+@@ -265,7 +314,7 @@ class Orchestrator:
+                 error=&quot;Vorbereitung unterbrochen; kein automatischer Neustart&quot;,
+             )
+         session = self.runner.attach(
+-            self.agents[attempt[&quot;agent&quot;]],
++            self.attempt_agent(attempt),
+             Path(attempt[&quot;workspace&quot;]),
+             attempt[&quot;session_id&quot;],
+         )
+@@ -312,7 +361,7 @@ class Orchestrator:
+             raise ValueError(&quot;Keine aktive Session vorhanden&quot;)
+         self.ledger.update(attempt_id, status=&quot;cancelling&quot;)
+         session = self.runner.attach(
+-            self.agents[attempt[&quot;agent&quot;]],
++            self.attempt_agent(attempt),
+             Path(attempt[&quot;workspace&quot;]),
+             attempt[&quot;session_id&quot;],
+         )
+@@ -339,6 +388,7 @@ class Orchestrator:
+                 source[&quot;agent&quot;],
+                 source[&quot;workspace&quot;],
+                 source[&quot;id&quot;],
++                model=source.get(&quot;model&quot;),
+                 base_revision=(
+                     source.get(&quot;base_revision&quot;)
+                     or source[&quot;checkpoint&quot;][&quot;git&quot;].get(&quot;base_revision&quot;)
+@@ -357,7 +407,7 @@ class Orchestrator:
+             session = None
+             try:
+                 session = self.runner.attach(
+-                    self.agents[source[&quot;agent&quot;]],
++                    self.attempt_agent(source),
+                     Path(source[&quot;workspace&quot;]),
+                     source[&quot;session_id&quot;],
+                 )
+@@ -372,3 +422,7 @@ class Orchestrator:
+             finally:
+                 if session:
+                     session.close()
++
++    def attempt_agent(self, attempt):
++        agent = self.agents[attempt[&quot;agent&quot;]]
++        return replace(agent, model=attempt.get(&quot;model&quot;) or agent.model)
+</pre></details></section><section id="s45"><h2>Additive nullable Migration</h2><p>Bestehende Attempts erhalten model = null und behalten ihre Session. Alte Idempotenz-Fingerprints ohne Modell bleiben erhalten; abweichende Modellwünsche mit derselben Request-ID werden abgewiesen.</p><a href="https://github.com/ysamjo/CLIScade-Next/blob/codex/task-harness-model-selection/cliscade/src/cliscade_next/ledger.py#L45">cliscade/src/cliscade_next/ledger.py:45</a><details><summary>Diff</summary><pre>diff --git a/cliscade/src/cliscade_next/ledger.py b/cliscade/src/cliscade_next/ledger.py
+index a5c1c41af..b3ae0ad7a 100644
+--- a/cliscade/src/cliscade_next/ledger.py
++++ b/cliscade/src/cliscade_next/ledger.py
+@@ -42,6 +42,8 @@ class Ledger:
+                 db.execute(&quot;ALTER TABLE attempts ADD COLUMN route_trace TEXT&quot;)
+             if &quot;base_revision&quot; not in columns:
+                 db.execute(&quot;ALTER TABLE attempts ADD COLUMN base_revision TEXT&quot;)
++            if &quot;model&quot; not in columns:
++                db.execute(&quot;ALTER TABLE attempts ADD COLUMN model TEXT&quot;)
+ 
+     @contextmanager
+     def connect(self):
+@@ -63,12 +65,13 @@ class Ledger:
+         request_key=None,
+         request_fingerprint=None,
+         base_revision=None,
++        model=None,
+     ):
+         attempt_id = str(uuid4())
+         with self.connect() as db:
+             db.execute(
+                 &quot;INSERT INTO attempts (id,project,task_id,agent,workspace,status,&quot;
+-                &quot;source_id,base_revision) VALUES (?,?,?,?,?,&#x27;preparing&#x27;,?,?)&quot;,
++                &quot;source_id,base_revision,model) VALUES (?,?,?,?,?,&#x27;preparing&#x27;,?,?,?)&quot;,
+                 (
+                     attempt_id,
+                     project,
+@@ -77,6 +80,7 @@ class Ledger:
+                     str(workspace),
+                     source_id,
+                     base_revision,
++                    model,
+                 ),
+             )
+             if request_key:
+</pre></details></section><section id="s90"><h2>Dynamische Auswahl statt Textliste</h2><p>Discovery startet beim Agentenwechsel. Dropdown bietet Agentenstandard oder exakte Modell-ID; Agentenwechsel setzt die Auswahl zurück. Entfernte explizite Modelle blockieren den Start. Auswahl und Modell erscheinen im Attempt-Verlauf.</p><a href="https://github.com/ysamjo/CLIScade-Next/blob/codex/task-harness-model-selection/src/routes/cliscade-tasks.tsx#L90">src/routes/cliscade-tasks.tsx:90</a><details><summary>Diff</summary><pre>diff --git a/src/routes/cliscade-tasks.tsx b/src/routes/cliscade-tasks.tsx
+index 37172f89c..5741163d4 100644
+--- a/src/routes/cliscade-tasks.tsx
++++ b/src/routes/cliscade-tasks.tsx
+@@ -33,6 +33,7 @@ export default function CliscadeTasks() {
+   const project = params.get(PROJECT_PARAM) ?? &quot;&quot;;
+   const selected = params.get(TASK_PARAM) ?? &quot;&quot;;
+   const [agent, setAgent] = useState(&quot;auto&quot;);
++  const [model, setModel] = useState(&quot;&quot;);
+   const [title, setTitle] = useState(&quot;&quot;);
+   const [description, setDescription] = useState(&quot;&quot;);
+   const [acceptance, setAcceptance] = useState(&quot;&quot;);
+@@ -86,16 +87,20 @@ export default function CliscadeTasks() {
+   });
+   const probe = useQuery({
+     queryKey: CLISCADE_QUERY_KEYS.probe(agent),
+-    enabled: false,
++    enabled: agent !== &quot;auto&quot;,
+     retry: false,
+     queryFn: () =&gt;
+       cliscadeRequest&lt;{
+         discovery: {
+           error: { code: string } | null;
++          current_model_id?: string | null;
+           available_models: { model_id: string }[];
+         };
+       }&gt;(`/agents/${agent}/probe`, {}),
+   });
++  const availableModels = probe.data?.discovery?.available_models ?? [];
++  const invalidModel =
++    !!model &amp;&amp; !availableModels.some((item) =&gt; item.model_id === model);
+   const task = tasks.data?.find((item) =&gt; item.id === selected);
+   const error =
+     projects.error ??
+@@ -141,6 +146,7 @@ export default function CliscadeTasks() {
+       body: {
+         task_id: selected,
+         agent_id: agent,
++        ...(model ? { model } : {}),
+         request_key: crypto.randomUUID(),
+         ...(source_id ? { source_id } : {}),
+       },
+@@ -362,7 +368,10 @@ export default function CliscadeTasks() {
+                 &lt;select
+                   className={CONTROL}
+                   value={agent}
+-                  onChange={(e) =&gt; setAgent(e.target.value)}
++                  onChange={(e) =&gt; {
++                    setAgent(e.target.value);
++                    setModel(&quot;&quot;);
++                  }}
+                 &gt;
+                   &lt;option value=&quot;auto&quot;&gt;{t(I18nKey.CLISCADE$AUTO)}&lt;/option&gt;
+                   {agents.data?.map((item) =&gt; (
+@@ -389,21 +398,42 @@ export default function CliscadeTasks() {
+                 &lt;/BrandButton&gt;
+               )}
+               {probe.error &amp;&amp; &lt;p role=&quot;alert&quot;&gt;{probe.error.message}&lt;/p&gt;}
+-              {probe.data &amp;&amp; (
+-                &lt;p className=&quot;my-2 break-words text-sm&quot;&gt;
+-                  {t(I18nKey.CLISCADE$MODELS)}:{&quot; &quot;}
+-                  {probe.data.discovery.error?.code ??
+-                    probe.data.discovery.available_models
+-                      .map((model) =&gt; model.model_id)
+-                      .join(&quot;, &quot;)}
+-                &lt;/p&gt;
++              {agent !== &quot;auto&quot; &amp;&amp; (
++                &lt;label className=&quot;my-3 block&quot;&gt;
++                  {t(I18nKey.CLISCADE$MODEL)}
++                  &lt;select
++                    className={CONTROL}
++                    value={model}
++                    disabled={probe.isFetching || !availableModels.length}
++                    onChange={(e) =&gt; setModel(e.target.value)}
++                  &gt;
++                    &lt;option value=&quot;&quot;&gt;
++                      {t(I18nKey.CLISCADE$MODEL_DEFAULT)}
++                      {probe.data?.discovery?.current_model_id
++                        ? ` · ${probe.data.discovery.current_model_id}`
++                        : &quot;&quot;}
++                    &lt;/option&gt;
++                    {invalidModel &amp;&amp; &lt;option value={model}&gt;{model}&lt;/option&gt;}
++                    {availableModels.map((item) =&gt; (
++                      &lt;option key={item.model_id} value={item.model_id}&gt;
++                        {item.model_id}
++                      &lt;/option&gt;
++                    ))}
++                  &lt;/select&gt;
++                &lt;/label&gt;
++              )}
++              {probe.data?.discovery?.error &amp;&amp; (
++                &lt;p role=&quot;alert&quot;&gt;{probe.data.discovery.error.code}&lt;/p&gt;
++              )}
++              {invalidModel &amp;&amp; (
++                &lt;p role=&quot;alert&quot;&gt;{t(I18nKey.CLISCADE$MODEL_UNAVAILABLE)}&lt;/p&gt;
+               )}
+ 
+               &lt;BrandButton
+                 className=&quot;min-h-11&quot;
+                 type=&quot;button&quot;
+                 variant=&quot;primary&quot;
+-                isDisabled={pending || task.status === &quot;closed&quot;}
++                isDisabled={pending || invalidModel || task.status === &quot;closed&quot;}
+                 onClick={() =&gt; start()}
+               &gt;
+                 {t(I18nKey.CLISCADE$START)}
+@@ -462,6 +492,11 @@ export default function CliscadeTasks() {
+               &lt;h3 className=&quot;font-semibold&quot;&gt;
+                 {attempt.agent} · {attempt.status}
+               &lt;/h3&gt;
++              {attempt.model &amp;&amp; (
++                &lt;p className=&quot;break-words text-sm&quot;&gt;
++                  {t(I18nKey.CLISCADE$MODEL)}: {attempt.model}
++                &lt;/p&gt;
++              )}
+               &lt;p className=&quot;break-all text-xs text-muted&quot;&gt;{attempt.id}&lt;/p&gt;
+               &lt;p className=&quot;text-sm text-muted&quot;&gt;
+                 {new Date(attempt.created_at).toLocaleString()}
+@@ -501,7 +536,7 @@ export default function CliscadeTasks() {
+                     className=&quot;min-h-11&quot;
+                     type=&quot;button&quot;
+                     variant=&quot;primary&quot;
+-                    isDisabled={pending}
++                    isDisabled={pending || invalidModel}
+                     onClick={() =&gt; start(attempt.id)}
+                   &gt;
+                     {t(I18nKey.CLISCADE$HANDOFF)}
+</pre></details></section><section id="s50"><h2>StartInput erweitert</h2><p>model ist optional. Auto mit einer expliziten Modell-ID wird sichtbar abgewiesen, statt die Auswahl zu ignorieren. /agents weist den nativen Transport korrekt aus.</p><a href="https://github.com/ysamjo/CLIScade-Next/blob/codex/task-harness-model-selection/cliscade/src/cliscade_next/api.py#L50">cliscade/src/cliscade_next/api.py:50</a><details><summary>Diff</summary><pre>diff --git a/cliscade/src/cliscade_next/api.py b/cliscade/src/cliscade_next/api.py
+index 3da71a2d6..318ac4f20 100644
+--- a/cliscade/src/cliscade_next/api.py
++++ b/cliscade/src/cliscade_next/api.py
+@@ -51,6 +51,7 @@ class StartInput(BaseModel):
+     model_config = ConfigDict(extra=&quot;forbid&quot;)
+     task_id: str = Field(pattern=r&quot;^[a-zA-Z][a-zA-Z0-9_.-]{1,150}$&quot;)
+     agent_id: str = Field(default=&quot;auto&quot;, min_length=1, max_length=100)
++    model: str | None = Field(default=None, min_length=1, max_length=200)
+     source_id: str | None = None
+     capability: str = Field(default=&quot;coding&quot;, pattern=&quot;^(coding|review|analysis)$&quot;)
+     request_key: str | None = Field(default=None, min_length=1, max_length=200)
+@@ -181,7 +182,7 @@ def create_app(settings=None, orchestrator=None):
+                 &quot;command&quot;: agent.command,
+                 &quot;model&quot;: agent.model,
+                 &quot;live_verified&quot;: False,
+-                &quot;transport&quot;: &quot;acp&quot;,
++                &quot;transport&quot;: &quot;openhands&quot; if agent.id == &quot;openhands&quot; else &quot;acp&quot;,
+                 &quot;priority&quot;: agent.priority,
+                 &quot;capabilities&quot;: agent.capabilities,
+                 &quot;enabled&quot;: agent.enabled,
+@@ -226,9 +227,14 @@ def create_app(settings=None, orchestrator=None):
+ 
+     @app.post(prefix + &quot;/projects/{project}/attempts&quot;, status_code=201)
+     def start(project: str, body: StartInput):
++        if body.agent_id == &quot;auto&quot; and body.model is not None:
++            raise ValueError(&quot;Für eine Modellwahl zuerst einen Agenten auswählen&quot;)
++        parameters = body.model_dump(exclude={&quot;request_key&quot;, &quot;model&quot;})
++        if body.model is not None:
++            parameters[&quot;model&quot;] = body.model
+         fingerprint = hashlib.sha256(
+             json.dumps(
+-                [project, body.model_dump(exclude={&quot;request_key&quot;})],
++                [project, parameters],
+                 sort_keys=True,
+             ).encode()
+         ).hexdigest()
+@@ -257,6 +263,7 @@ def create_app(settings=None, orchestrator=None):
+             body.source_id,
+             request_key=body.request_key,
+             request_fingerprint=fingerprint,
++            model=body.model,
+         )
+ 
+     @app.get(prefix + &quot;/attempts/{attempt_id}&quot;)
+</pre></details></section><section><h2>Kompatibilität und Grenzen</h2><table><tr><th>Fall</th><th>Verhalten</th></tr><tr><td>Start ohne model</td><td>Bisheriger Agentenstandard; OpenHands standardmäßig openai/c1</td></tr><tr><td>Start / Handoff mit model</td><td>Discovery prüft Verfügbarkeit, Auswahl wird am neuen Attempt gespeichert</td></tr><tr><td>Resume</td><td>Vorhandene Session und gespeichertes Modell; keine globale Profiländerung</td></tr><tr><td>Auto / Konsens / Zeitplan</td><td>Weiterhin konfigurierte Agentenmodelle; eine explizite globale Modell-ID für Auto wird abgewiesen</td></tr></table><p>Modell-Discovery beweist keine Anbieter-Inferenz. Ein Repository als stabile Projektidentität und Filter auf tatsächlich autorisierte Konten bleiben separate offene Aufgaben.</p><p>Tests: 66 Backend-Prüfungen bestanden, acht externe Tests übersprungen; vier fokussierte UI-/API-Guard-Prüfungen, Typecheck und NAS-Build. Der Live-Run b104e110-4948-4cfe-bc5b-cb58fb33c3f2 ist completed: exakte Datei im Worktree, unverändertes Quellprojekt, keine Commits, vier Werkzeugbelege. Details stehen in task-harness-live-proof.json; keine Behauptung, alle Anbieter getestet zu haben.</p></section></main></html>

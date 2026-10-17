@@ -237,3 +237,41 @@ Vorbereitung sichtbar, anschließend accounts.google.com nach 7,2 Sekunden in
 der tatsächlichen Canvas-Oberfläche. Desktop-Screenshots in `.pr`. Dieser neue
 Login wurde für den Benutzer offen gelassen; keine persönliche Freigabe oder
 Inferenz behauptet. Privates HTTPS und die vier produktiven Container laufen.
+
+## 0.10.0 — Nativer Task-Harness und dynamische Modelle (18.10.2026)
+
+66 Backend-Tests bestanden, acht externe Prüfungen übersprungen. Vier fokussierte
+Task-/API-Guard-Prüfungen bestanden; Typecheck, Übersetzungen, Ruff und NAS-Builds
+bestanden. Source-ESLint: keine Fehler, eine bestehende Inline-Style-Warnung.
+
+Echter UI-Start auf ZimaOS: Projekt `task-harness-proof-v010`, Task `cn-b6b`,
+Attempt `b104e110-4948-4cfe-bc5b-cb58fb33c3f2`, Conversation
+`1298b848-ae70-4094-a172-548339d665fe`. Nativer OpenHands-Agent über OmniRoute
+mit explizitem `openai/c1`: completed, exakte Bytes `TASK_HARNESS_OK`, vier
+Werkzeugbelege, keine Änderung im Quellprojekt und kein Commit. Nach einem
+Neustart nur des Integrationsdienstes konnten Session, Modell und Belege
+wieder gelesen werden; der Agent Server lief durchgehend weiter.
+
+Der erste Test in `task-harness-proof` war fehlgeschlagen: Beads-Herkunftspfade
+führten den Agenten ins Quellprojekt; dort entstand ein lokaler Commit ohne Push.
+Der korrigierte System-/Handoff-Kontext benennt den Ausführungs-Worktree ausdrücklich.
+Der Nachtest war eine neue getrennte Aufgabe, kein Replay des ersten Attempts.
+Die Kontextvorgabe ersetzt weiterhin keine Dateisystem-Sandbox.
+
+Zusätzlich behoben und getestet: Polling während laufender Vorbereitung,
+fehlende offizielle Werkzeugmodule für native Attach-/Ereignis-Deserialisierung
+und veraltete WebSocket-Zustände beim erneuten Anbinden. Modellvalidierung,
+Handoff, Resume nach Änderung des Registry-Defaults und additive Ledger-Migration
+sind automatisiert geprüft. Die Modellwahl anderer ACP-Anbieter wird damit
+nicht pauschal als live verifiziert ausgegeben.
+
+Reproduktion: `deploy/verify-task-harness.py prepare` im Integrationscontainer,
+Task in `/tasks` mit `openhands`/`openai/c1` starten und `verify --attempt <id>`
+ausführen. Der Verifier prüft unabhängig Bytes, Arbeitsziel, Git-Revision,
+Fehlerstatus und Werkzeugbelege.
+
+UI-Lesebeleg über Ego Lite: Agent openhands, Modell openai/c1, Run completed,
+keine sichtbaren Fehler. Bei 390 Pixeln entspricht die Dokumentbreite der
+Viewport-Breite. Ein Nachher-Screenshot blieb durch wiederholte
+Page.captureScreenshot-Timeouts des Browserwerkzeugs blockiert; vorhandene
+Bilder werden deshalb nicht als Bildnachweis der neuen Modellwahl ausgegeben.
