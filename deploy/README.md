@@ -219,3 +219,15 @@ Externe ACP-Agenten verwenden weiterhin ihre eigene CLI-Anmeldung.
 ## GitHub-Repository als Standard-Workspace
 
 [Konfiguration, letzte Repositories und Prüfnachweise](REPOSITORIES.md).
+
+0.10.0: Canvas und Integrationsdienst aktualisieren. `/tasks` bietet den nativen
+OpenHands-/OmniRoute-Harness und dynamische Modellwahl pro Start/Handoff.
+Das Attempt-Ledger erhält eine additive nullable `model`-Spalte; vorhandene
+Ausführungen bleiben erhalten. Vor dem Dienstwechsel Ledger sichern und
+laufende persönliche Anmeldungen abschließen. Agent Server bleibt unverändert.
+Details und Grenzen: [OMNIROUTE.md](OMNIROUTE.md).
+
+Für native Task-Verläufe benötigt der Integrationsdienst jetzt zusätzlich das
+offizielle `openhands-tools` derselben gepinnten SDK-Revision. Nur damit kann
+`RemoteConversation.attach` gespeicherte Terminal-/Datei-Ereignisse einlesen.
+Ein reines UI-Update reicht für 0.10.0 daher nicht.

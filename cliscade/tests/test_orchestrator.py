@@ -41,6 +41,11 @@ def test_task_execution_restart_and_handoff_preserve_uncommitted_files(system):
     )
     assert prompt["task"]["acceptance_criteria"] == "Tests grün"
     assert prompt["source_attempt"] == first["id"]
+    assert prompt["git"]["working_directory"] == first["workspace"]
+    assert (
+        first["workspace"]
+        in runner.sessions[second["session_id"]]["prompt"].split("\n", 1)[0]
+    )
     assert "result.txt" in prompt["git"]["status"]
     assert prompt["agent_claims"]
     assert Path(second["workspace"], "result.txt").read_text() == "Arbeitsstand"

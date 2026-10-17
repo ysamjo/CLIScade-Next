@@ -38,6 +38,7 @@ export interface TaskCheckpoint {
 export interface TaskAttempt {
   id: string;
   agent: string;
+  model?: string | null;
   task_id: string;
   session_id: string | null;
   status: string;
@@ -53,6 +54,7 @@ export interface TaskAgent {
   command: string[];
   model: string | null;
   live_verified: boolean;
+  transport?: "acp" | "openhands";
 }
 
 // CLIScade is a separate same-origin service, not an Agent Server API.

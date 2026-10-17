@@ -56,3 +56,11 @@ sie bestätigen weder die persönliche Kontofreigabe noch erfolgreiche Inferenz.
 Andere OpenCode-Modellanbieter bleiben separat; der Kontologin verwendet die eigene Console. Unternehmens-Identity-Center ist nicht live verifiziert.
 
 In 0.7.0 sind Antigravity und CodeBuddy priorisiert. Antigravity öffnet Google direkt. Im geprüften CodeBuddy-CLI-Portal war Google nicht verfügbar (E-Mail/OneID/SSO); Google-Kontoanmeldung bei CodeBuddy ist daher nicht bestätigt. Keine vollständige NAS-Unterstützung ohne persönlichen Login und erfolgreichen Inferenztest behaupten. Der SDK-Fork und seine Basis sind in `upstream.json` gepinnt.
+
+## Nativer OpenHands-Harness ab 0.10.0
+
+`openhands` ist eine zusätzliche Task-Ausführung, kein externer ACP-Agent.
+Er verwendet das gespeicherte Profil `OmniRoute`, standardmäßig `openai/c1`,
+und den nativen SDK-Agenten mit Standardwerkzeugen. Sein Modellkatalog stammt
+aus dem Gateway. Bei ACP-Agenten stammt die Dropdown-Auswahl weiterhin aus
+der nativen ACP-Discovery. Ein Katalogeintrag ist kein Inferenznachweis.

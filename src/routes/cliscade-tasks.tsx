@@ -33,6 +33,7 @@ export default function CliscadeTasks() {
   const project = params.get(PROJECT_PARAM) ?? "";
   const selected = params.get(TASK_PARAM) ?? "";
   const [agent, setAgent] = useState("auto");
+  const [model, setModel] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [acceptance, setAcceptance] = useState("");
@@ -86,16 +87,20 @@ export default function CliscadeTasks() {
   });
   const probe = useQuery({
     queryKey: CLISCADE_QUERY_KEYS.probe(agent),
-    enabled: false,
+    enabled: agent !== "auto",
     retry: false,
     queryFn: () =>
       cliscadeRequest<{
         discovery: {
           error: { code: string } | null;
+          current_model_id?: string | null;
           available_models: { model_id: string }[];
         };
       }>(`/agents/${agent}/probe`, {}),
   });
+  const availableModels = probe.data?.discovery?.available_models ?? [];
+  const invalidModel =
+    !!model && !availableModels.some((item) => item.model_id === model);
   const task = tasks.data?.find((item) => item.id === selected);
   const error =
     projects.error ??
@@ -141,6 +146,7 @@ export default function CliscadeTasks() {
       body: {
         task_id: selected,
         agent_id: agent,
+        ...(model ? { model } : {}),
         request_key: crypto.randomUUID(),
         ...(source_id ? { source_id } : {}),
       },
@@ -362,7 +368,10 @@ export default function CliscadeTasks() {
                 <select
                   className={CONTROL}
                   value={agent}
-                  onChange={(e) => setAgent(e.target.value)}
+                  onChange={(e) => {
+                    setAgent(e.target.value);
+                    setModel("");
+                  }}
                 >
                   <option value="auto">{t(I18nKey.CLISCADE$AUTO)}</option>
                   {agents.data?.map((item) => (
@@ -389,21 +398,42 @@ export default function CliscadeTasks() {
                 </BrandButton>
               )}
               {probe.error && <p role="alert">{probe.error.message}</p>}
-              {probe.data && (
-                <p className="my-2 break-words text-sm">
-                  {t(I18nKey.CLISCADE$MODELS)}:{" "}
-                  {probe.data.discovery.error?.code ??
-                    probe.data.discovery.available_models
-                      .map((model) => model.model_id)
-                      .join(", ")}
-                </p>
+              {agent !== "auto" && (
+                <label className="my-3 block">
+                  {t(I18nKey.CLISCADE$MODEL)}
+                  <select
+                    className={CONTROL}
+                    value={model}
+                    disabled={probe.isFetching || !availableModels.length}
+                    onChange={(e) => setModel(e.target.value)}
+                  >
+                    <option value="">
+                      {t(I18nKey.CLISCADE$MODEL_DEFAULT)}
+                      {probe.data?.discovery?.current_model_id
+                        ? ` · ${probe.data.discovery.current_model_id}`
+                        : ""}
+                    </option>
+                    {invalidModel && <option value={model}>{model}</option>}
+                    {availableModels.map((item) => (
+                      <option key={item.model_id} value={item.model_id}>
+                        {item.model_id}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+              {probe.data?.discovery?.error && (
+                <p role="alert">{probe.data.discovery.error.code}</p>
+              )}
+              {invalidModel && (
+                <p role="alert">{t(I18nKey.CLISCADE$MODEL_UNAVAILABLE)}</p>
               )}
 
               <BrandButton
                 className="min-h-11"
                 type="button"
                 variant="primary"
-                isDisabled={pending || task.status === "closed"}
+                isDisabled={pending || invalidModel || task.status === "closed"}
                 onClick={() => start()}
               >
                 {t(I18nKey.CLISCADE$START)}
@@ -462,6 +492,11 @@ export default function CliscadeTasks() {
               <h3 className="font-semibold">
                 {attempt.agent} · {attempt.status}
               </h3>
+              {attempt.model && (
+                <p className="break-words text-sm">
+                  {t(I18nKey.CLISCADE$MODEL)}: {attempt.model}
+                </p>
+              )}
               <p className="break-all text-xs text-muted">{attempt.id}</p>
               <p className="text-sm text-muted">
                 {new Date(attempt.created_at).toLocaleString()}
@@ -501,7 +536,7 @@ export default function CliscadeTasks() {
                     className="min-h-11"
                     type="button"
                     variant="primary"
-                    isDisabled={pending}
+                    isDisabled={pending || invalidModel}
                     onClick={() => start(attempt.id)}
                   >
                     {t(I18nKey.CLISCADE$HANDOFF)}

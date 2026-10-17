@@ -42,6 +42,8 @@ class Ledger:
                 db.execute("ALTER TABLE attempts ADD COLUMN route_trace TEXT")
             if "base_revision" not in columns:
                 db.execute("ALTER TABLE attempts ADD COLUMN base_revision TEXT")
+            if "model" not in columns:
+                db.execute("ALTER TABLE attempts ADD COLUMN model TEXT")
 
     @contextmanager
     def connect(self):
@@ -63,12 +65,13 @@ class Ledger:
         request_key=None,
         request_fingerprint=None,
         base_revision=None,
+        model=None,
     ):
         attempt_id = str(uuid4())
         with self.connect() as db:
             db.execute(
                 "INSERT INTO attempts (id,project,task_id,agent,workspace,status,"
-                "source_id,base_revision) VALUES (?,?,?,?,?,'preparing',?,?)",
+                "source_id,base_revision,model) VALUES (?,?,?,?,?,'preparing',?,?,?)",
                 (
                     attempt_id,
                     project,
@@ -77,6 +80,7 @@ class Ledger:
                     str(workspace),
                     source_id,
                     base_revision,
+                    model,
                 ),
             )
             if request_key:

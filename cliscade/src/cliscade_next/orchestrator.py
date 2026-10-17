@@ -3,10 +3,11 @@
 import hashlib
 import json
 import time
+from dataclasses import replace
 from pathlib import Path
 from uuid import uuid4
 
-from filelock import FileLock
+from filelock import FileLock, Timeout
 
 from cliscade_next.agents import OpenHands, registry
 from cliscade_next.beads import Beads
@@ -16,8 +17,40 @@ from cliscade_next.ledger import Ledger
 
 def evidence(events):
     starts, checks, claims = {}, [], []
+    native_starts = {}
     for event in events:
         action = event.get("action") or {}
+        if (
+            event.get("kind") == "ActionEvent"
+            and event.get("tool_name") == "terminal"
+            and isinstance(action.get("command"), str)
+        ):
+            native_starts[event.get("id")] = event
+        if (
+            event.get("kind") == "ObservationEvent"
+            and event.get("tool_name") == "terminal"
+        ):
+            start = native_starts.get(event.get("action_id"))
+            output = event.get("observation") or {}
+            code = output.get("exit_code")
+            if (
+                start
+                and start.get("tool_call_id") == event.get("tool_call_id")
+                and type(code) is int
+                and code >= 0
+                and not output.get("timeout")
+            ):
+                checks.append(
+                    {
+                        "command": start["action"]["command"],
+                        "exit_code": code,
+                        "event_id": event.get("id"),
+                        "verification": "tool_receipt",
+                        "independently_reproduced": False,
+                        "timestamp": event.get("timestamp"),
+                    }
+                )
+                native_starts.pop(event["action_id"])
         if event.get("kind") == "ActionEvent" and action.get("kind") == "FinishAction":
             claims.append(
                 {
@@ -84,6 +117,7 @@ class Orchestrator:
             or old.get("git", {}).get("revision")
         )
         current_git = snapshot(workspace, base_revision)
+        current_git["working_directory"] = str(workspace)
         for check in checks:
             check["checkpoint_revision"] = current_git["revision"]
             check["execution_revision_known"] = False
@@ -123,22 +157,37 @@ class Orchestrator:
         request_fingerprint=None,
         consensus_id=None,
         initial_context=None,
+        model=None,
     ):
         if agent_id not in self.agents or not self.agents[agent_id].enabled:
-            raise ValueError("ACP-Agent ist nicht freigegeben")
+            raise ValueError("Agent ist nicht freigegeben")
+        agent = replace(
+            self.agents[agent_id],
+            model=model if model is not None else self.agents[agent_id].model,
+        )
         project = self.settings.project(project_name)
         self.settings.state.mkdir(parents=True, exist_ok=True)
         with FileLock(str(self.settings.state / "dispatch.lock"), timeout=30):
             fingerprint = (
                 request_fingerprint
                 or hashlib.sha256(
-                    json.dumps([project_name, task_id, agent_id, source_id]).encode()
+                    json.dumps(
+                        [project_name, task_id, agent_id, source_id]
+                        + ([model] if model is not None else [])
+                    ).encode()
                 ).hexdigest()
             )
             if request_key:
                 existing = self.ledger.request(request_key, fingerprint)
                 if existing:
                     return existing
+            if model is not None or agent_id == "openhands":
+                discovery = self.runner.probe(agent)
+                models = {
+                    item["model_id"] for item in discovery.get("available_models", [])
+                }
+                if discovery.get("error") or agent.model not in models:
+                    raise ValueError("Modell ist für diesen Agenten nicht verfügbar")
             with self.ledger.connect() as db:
                 group = db.execute(
                     "SELECT id FROM consensus WHERE project=? AND task_id=? "
@@ -196,6 +245,7 @@ class Orchestrator:
                 source_id,
                 request_key,
                 fingerprint,
+                model=agent.model,
                 base_revision=(
                     source["checkpoint"]["git"].get("base_revision")
                     or source["checkpoint"]["git"]["revision"]
@@ -227,12 +277,13 @@ class Orchestrator:
                     self.beads_factory(project).assign(
                         task_id, agent_id, previous=source["agent"] if source else None
                     )
-                session = self.runner.attach(self.agents[agent_id], workspace)
+                session = self.runner.attach(agent, workspace)
                 self.ledger.update(
                     attempt["id"],
                     session_id=session.id,
                     prompt_sent=1,
                     status="submitted",
+                    error=None,
                 )
                 session.submit(prompt)
                 return self.ledger.update(attempt["id"], status="running")
@@ -259,13 +310,21 @@ class Orchestrator:
         ):
             return attempt
         if not attempt["session_id"]:
-            return self.ledger.update(
-                attempt_id,
-                status="needs_review",
-                error="Vorbereitung unterbrochen; kein automatischer Neustart",
-            )
+            try:
+                with FileLock(str(self.settings.state / "dispatch.lock"), timeout=0):
+                    attempt = self.ledger.get(attempt_id)
+                    if not attempt["session_id"]:
+                        return self.ledger.update(
+                            attempt_id,
+                            status="needs_review",
+                            error=(
+                                "Vorbereitung unterbrochen; kein automatischer Neustart"
+                            ),
+                        )
+            except Timeout:
+                return attempt
         session = self.runner.attach(
-            self.agents[attempt["agent"]],
+            self.attempt_agent(attempt),
             Path(attempt["workspace"]),
             attempt["session_id"],
         )
@@ -312,7 +371,7 @@ class Orchestrator:
             raise ValueError("Keine aktive Session vorhanden")
         self.ledger.update(attempt_id, status="cancelling")
         session = self.runner.attach(
-            self.agents[attempt["agent"]],
+            self.attempt_agent(attempt),
             Path(attempt["workspace"]),
             attempt["session_id"],
         )
@@ -339,6 +398,7 @@ class Orchestrator:
                 source["agent"],
                 source["workspace"],
                 source["id"],
+                model=source.get("model"),
                 base_revision=(
                     source.get("base_revision")
                     or source["checkpoint"]["git"].get("base_revision")
@@ -357,7 +417,7 @@ class Orchestrator:
             session = None
             try:
                 session = self.runner.attach(
-                    self.agents[source["agent"]],
+                    self.attempt_agent(source),
                     Path(source["workspace"]),
                     source["session_id"],
                 )
@@ -372,3 +432,7 @@ class Orchestrator:
             finally:
                 if session:
                     session.close()
+
+    def attempt_agent(self, attempt):
+        agent = self.agents[attempt["agent"]]
+        return replace(agent, model=attempt.get("model") or agent.model)

@@ -35,6 +35,14 @@ class Handoff(BaseModel):
             "aktuellen Git-Stand und offene Abnahmekriterien. Anbieterinterne "
             "Conversation-Historie wird nicht übertragen.\n"
         )
+        if self.git.get("working_directory"):
+            prefix = prefix.rstrip() + (
+                " Verbindlicher Ausführungs-Worktree: "
+                f"{json.dumps(self.git['working_directory'])}. "
+                "Nur dort Dateien bearbeiten. Andere Projektpfade im Kontext "
+                "bezeichnen die Herkunft, nicht das Arbeitsziel. Explizite "
+                "Commit-/Push-Verbote der Aufgabe und Regeln beachten.\n"
+            )
         prefix = prefix.rstrip() + (
             " Ergänze abschließend einen <cliscade-report> mit JSON: "
             '{"schema_version":1,"decisions":["..."],"open_steps":["..."]}'

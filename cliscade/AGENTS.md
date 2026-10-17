@@ -67,3 +67,22 @@ Repository-Workspaces: SDK-Klonpfad wiederverwenden, nur GitHub-Katalogeinträge
 zulassen, pro Start einen eigenen Checkout. Stage-Verzeichnisse auch bei Fehlern
 entfernen und PAT aus origin entfernen, bevor der Pfad an Canvas zurückgeht.
 `github_token` ist nach der Normalisierung der kanonische GitHub-Schlüssel.
+
+Nativer Task-Harness: `openhands` startet `OpenHandsAgentSettings.create_agent()`
+über das vorhandene RemoteConversation-API. Das gespeicherte OmniRoute-Profil
+wird nur serverseitig mit Secrets gelesen; Discovery liefert ausschließlich
+Modell-IDs. Modellwahl am Attempt speichern, bei Resume wiederverwenden und
+vor Start gegen den Anbieter-Katalog prüfen. Kein leerer ACP-Befehl als Runner.
+
+Native Session-Anbindung benötigt `openhands-tools` derselben SDK-Revision im
+Integrationsdienst: RemoteConversation.attach importiert die gespeicherten
+Werkzeugmodule zur Ereignis-Deserialisierung. Diese Abhängigkeit nicht durch
+handgeschriebene Ereignismodelle ersetzen. Während dispatch.lock gehalten wird,
+ist ein Attempt ohne Session noch in Vorbereitung; Polling darf ihn nicht als
+abgebrochen markieren.
+
+Der Ausführungs-Worktree steht im Checkpoint unter git.working_directory und
+explizit im Handoff-Prolog; beim nativen Harness zusätzlich im Systemkontext.
+Beads-Kontext enthält Herkunftspfade des kanonischen Projekts und darf diese
+nicht als Schreibziel vermitteln. Dies ist Kontextführung, keine Dateisystem-
+Sandbox: Worktrees allein sperren Zugriffe auf andere Projektpfade nicht.

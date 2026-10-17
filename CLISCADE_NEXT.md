@@ -84,6 +84,7 @@ Die lokale Task-Seite bietet native Kontoanmeldung für Codex/ChatGPT,
 Claude Code, OpenCode/Console und Kiro. Es werden keine Anbieter-API-Keys
 vorausgesetzt. LLM-Profil-Onboarding und API-Key-Checkliste entfallen auf
 `/tasks`; Backend-Authentifizierung bleibt erhalten. Native CLIs starten
-nur für ihre Auth-Befehle. Alle Coding-Aufträge laufen weiterhin über das
-OpenHands SDK und ACP. Siehe [Installation](deploy/README.md) und
+nur für ihre Auth-Befehle. Externe Coding-Aufträge laufen über das OpenHands
+SDK und ACP; ab 0.10.0 ist daneben der native OpenHands-Harness mit OmniRoute
+als Task-Ausführung verfügbar. Siehe [Installation](deploy/README.md) und
 [Testnachweise](cliscade/VALIDATION.md).

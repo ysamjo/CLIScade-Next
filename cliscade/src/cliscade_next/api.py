@@ -51,6 +51,7 @@ class StartInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     task_id: str = Field(pattern=r"^[a-zA-Z][a-zA-Z0-9_.-]{1,150}$")
     agent_id: str = Field(default="auto", min_length=1, max_length=100)
+    model: str | None = Field(default=None, min_length=1, max_length=200)
     source_id: str | None = None
     capability: str = Field(default="coding", pattern="^(coding|review|analysis)$")
     request_key: str | None = Field(default=None, min_length=1, max_length=200)
@@ -181,7 +182,7 @@ def create_app(settings=None, orchestrator=None):
                 "command": agent.command,
                 "model": agent.model,
                 "live_verified": False,
-                "transport": "acp",
+                "transport": "openhands" if agent.id == "openhands" else "acp",
                 "priority": agent.priority,
                 "capabilities": agent.capabilities,
                 "enabled": agent.enabled,
@@ -226,9 +227,14 @@ def create_app(settings=None, orchestrator=None):
 
     @app.post(prefix + "/projects/{project}/attempts", status_code=201)
     def start(project: str, body: StartInput):
+        if body.agent_id == "auto" and body.model is not None:
+            raise ValueError("Für eine Modellwahl zuerst einen Agenten auswählen")
+        parameters = body.model_dump(exclude={"request_key", "model"})
+        if body.model is not None:
+            parameters["model"] = body.model
         fingerprint = hashlib.sha256(
             json.dumps(
-                [project, body.model_dump(exclude={"request_key"})],
+                [project, parameters],
                 sort_keys=True,
             ).encode()
         ).hexdigest()
@@ -257,6 +263,7 @@ def create_app(settings=None, orchestrator=None):
             body.source_id,
             request_key=body.request_key,
             request_fingerprint=fingerprint,
+            model=body.model,
         )
 
     @app.get(prefix + "/attempts/{attempt_id}")

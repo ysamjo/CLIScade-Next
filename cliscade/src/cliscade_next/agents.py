@@ -1,15 +1,17 @@
-"""ACP-Integration ausschließlich über den offiziellen OpenHands-Client."""
+"""ACP und nativer OpenHands-Harness über den offiziellen SDK-Client."""
 
 import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
 from uuid import UUID
 
-from openhands.sdk import RemoteConversation
+import httpx
+from openhands.sdk import LLM, OpenHandsAgentSettings, RemoteConversation
 from openhands.sdk.agent import ACPAgent
 from openhands.sdk.agent.acp_models import ACPModelDiscovery
+from openhands.sdk.context import AgentContext
 from openhands.sdk.secret import LookupSecret
 from openhands.sdk.settings.acp_providers import ACP_PROVIDERS
 from openhands.sdk.settings.model import ACPAgentSettings
@@ -42,6 +44,7 @@ def registry():
     agents["codebuddy"] = Agent(
         "codebuddy", ACP_ACCOUNT_COMMANDS["codebuddy"], priority=2
     )
+    agents["openhands"] = Agent("openhands", (), model="openai/c1", priority=50)
     config = os.environ.get("CLISCADE_AGENT_CONFIG")
     if config:
         policies = json.loads(Path(config).read_text())
@@ -53,7 +56,7 @@ def registry():
                 "enabled",
             }:
                 raise ValueError("Unbekannte ACP-Route oder ungültige Registry-Felder")
-            model = policy.get("model")
+            model = policy.get("model", agents[key].model)
             priority = policy.get("priority", agents[key].priority)
             enabled = policy.get("enabled", True)
             capabilities = policy.get("capabilities", ["coding", "review"])
@@ -78,6 +81,75 @@ def registry():
 class OpenHands:
     def __init__(self, settings):
         self.settings = settings
+
+    def native_profile(self, workspace):
+        try:
+            response = workspace.client.get(
+                "/api/profiles/OmniRoute", headers={"X-Expose-Secrets": "plaintext"}
+            )
+            response.raise_for_status()
+            llm = LLM.model_validate(response.json()["config"])
+            url = urlsplit(llm.base_url or "")
+            if (
+                url.scheme not in ("http", "https")
+                or not url.hostname
+                or url.username
+                or url.password
+                or url.query
+                or url.fragment
+            ):
+                raise ValueError("Ungültige Gateway-Adresse")
+            return llm
+        except (httpx.HTTPError, ValueError, KeyError):
+            raise RuntimeError(
+                "OpenHands benötigt das gespeicherte OmniRoute-Modellprofil."
+            ) from None
+
+    def native_discovery(self, workspace, agent):
+        llm = self.native_profile(workspace)
+        try:
+            with httpx.Client(timeout=30, trust_env=False) as client:
+                response = client.get(
+                    f"{llm.base_url.rstrip('/')}/models",
+                    headers={
+                        "Authorization": f"Bearer {llm.api_key.get_secret_value()}"
+                        if llm.api_key
+                        else ""
+                    },
+                )
+                response.raise_for_status()
+                models = sorted(
+                    {
+                        "openai/" + item["id"]
+                        for item in response.json()["data"]
+                        if isinstance(item.get("id"), str) and item["id"]
+                    }
+                )
+        except (httpx.HTTPError, ValueError, KeyError, TypeError):
+            raise RuntimeError("OmniRoute-Modellkatalog nicht verfügbar.") from None
+        return {
+            "available_models": [{"model_id": model} for model in models],
+            "current_model_id": agent.model or llm.model,
+            "error": None,
+        }
+
+    def native_agent(self, workspace, agent):
+        llm = self.native_profile(workspace)
+        if agent.model:
+            llm = llm.model_copy(update={"model": agent.model})
+        return OpenHandsAgentSettings(
+            llm=llm,
+            agent_context=AgentContext(
+                system_message_suffix=(
+                    "Verbindliches Arbeitsverzeichnis für diesen Beads-Run: "
+                    f"{workspace.working_dir}. Bearbeite ausschließlich diesen "
+                    "Ausführungs-Worktree. Andere Projektpfade im Beads-Kontext "
+                    "sind Herkunftsangaben, keine Arbeitsziele. Aufgabe und AGENTS.md "
+                    "bestimmen, ob Commit/Push erlaubt sind. Bei ausdrücklichem "
+                    "Verbot weder committen noch pushen."
+                )
+            ),
+        ).create_agent()
 
     def save_account(self, provider, home):
         if provider != "codex":
@@ -132,6 +204,8 @@ class OpenHands:
             api_key=self.settings.api_key,
         )
         try:
+            if agent.id == "openhands":
+                return self.native_discovery(workspace, agent)
             settings = ACPAgentSettings(
                 acp_server=agent.id if agent.id in ACP_PROVIDERS else "custom",
                 acp_command=list(agent.command),
@@ -171,7 +245,9 @@ class OpenHands:
                 )
                 if session_id
                 else RemoteConversation(
-                    agent=ACPAgent(
+                    agent=self.native_agent(remote, agent)
+                    if agent.id == "openhands"
+                    else ACPAgent(
                         acp_command=list(agent.command),
                         acp_model=agent.model,
                         acp_auth_method="oauth-personal"

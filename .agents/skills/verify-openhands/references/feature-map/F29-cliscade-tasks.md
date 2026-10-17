@@ -11,7 +11,9 @@ Source: `src/routes/cliscade-tasks.tsx`, `src/api/cliscade-service.ts`,
 - `F29.create`: Titel, Beschreibung, Abnahme, Priorität und optionale Elternaufgabe speichern; nach Reload wiederfinden.
 - `F29.edit`: Aufgabe bearbeiten, eine Abhängigkeit hinzufügen und Status ändern.
 - `F29.attempts`: Mehrere Ausführungen mit Agent, Status und Session-Link sehen.
-- `F29.handoff`: Beendeten Attempt an den ausgewählten ACP-Agenten übergeben.
+- `F29.handoff`: Beendeten Attempt an den ausgewählten ACP-Agenten oder nativen OpenHands-Agenten übergeben.
+- `F29.model`: Dynamische Modelle je Agent auswählen, im Attempt sehen und bei Resume erhalten.
+- `F29.openhands`: Beads-Task über den nativen SDK-Harness und das OmniRoute-Profil ausführen.
 - `F29.checkpoint`: Git-Diff, Werkzeugbelege und strukturierten Checkpoint lesen.
 - `F29.mobile`: Bei 390 px alle Aktionen ohne horizontalen Seiten-Scroll erreichen.
 
@@ -62,3 +64,9 @@ Canvas 0.7.2: F29.login zeigt den vollständigen nativen Anmeldelink readonly.
 „Link kopieren“ schreibt exakt diese URL und meldet Erfolg erst danach. Bei
 gesperrter/fehlender Clipboard-API wird das Feld zum manuellen Kopieren markiert.
 Agentenwechsel entfernt URL und Kopiermeldung. Tests: `cliscade-login.test.tsx`.
+
+0.10.0: Im Beads-Task Agent `openhands` wählen. Der Katalog wird automatisch
+geladen; „Agentenstandard“ verwendet `openai/c1`. Ein explizit gewähltes Modell
+wird vor Start geprüft und im Attempt gespeichert. Agentenwechsel setzt die
+Auswahl zurück. Quelle: `agents.py`, `ledger.py`, `orchestrator.py`; Regression:
+`test_native_harness.py`, `test_task_models.py`, `cliscade-tasks.test.tsx`.

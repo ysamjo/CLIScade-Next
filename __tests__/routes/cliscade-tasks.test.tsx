@@ -26,6 +26,8 @@ vi.mock("#/components/shared/navigation-link", () => ({
 describe("CLIScade tasks", () => {
   it("hands the selected task and source attempt to the selected ACP agent", async () => {
     vi.mocked(cliscadeRequest).mockImplementation(async (path, body) => {
+      if (path.endsWith("/probe"))
+        return { discovery: { available_models: [], error: null } };
       if (body) return {};
       if (path === "/projects") return [{ id: "demo", beads: true }];
       if (path === "/agents") return [{ id: "codex" }, { id: "kiro" }];
@@ -92,6 +94,83 @@ describe("CLIScade tasks", () => {
         { cron: "0 9 * * 1-5", timezone: "Europe/Berlin", agent_id: "kiro" },
       ),
     );
+  });
+
+  it("starts native OpenHands with a discovered model and resets the choice on agent change", async () => {
+    vi.mocked(cliscadeRequest).mockClear();
+    vi.mocked(cliscadeRequest).mockImplementation(async (path, body) => {
+      if (path.endsWith("/probe"))
+        return {
+          discovery: {
+            current_model_id: path.includes("openhands")
+              ? "openai/c1"
+              : "cli-default",
+            available_models: (path.includes("openhands")
+              ? ["openai/c1", "openai/ant"]
+              : ["cli-model"]
+            ).map((model_id) => ({ model_id })),
+            error: null,
+          },
+        };
+      if (body) return {};
+      if (path === "/projects") return [{ id: "demo", beads: true }];
+      if (path === "/agents")
+        return [
+          { id: "openhands", model: "openai/c1", transport: "openhands" },
+          { id: "kiro" },
+        ];
+      if (path.endsWith("/tasks"))
+        return [{ id: "cn-1", title: "Task", status: "open", priority: 2 }];
+      return [];
+    });
+    render(
+      <QueryClientProvider
+        client={
+          new QueryClient({ defaultOptions: { queries: { retry: false } } })
+        }
+      >
+        <MemoryRouter initialEntries={["/tasks?project=demo&task=cn-1"]}>
+          <CliscadeTasks />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    fireEvent.change(await screen.findByLabelText("CLISCADE$AGENT"), {
+      target: { value: "openhands" },
+    });
+    await screen.findByRole("option", { name: "openai/ant" });
+    fireEvent.change(screen.getByLabelText("CLISCADE$MODEL"), {
+      target: { value: "openai/ant" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "CLISCADE$START" }));
+    await waitFor(() =>
+      expect(cliscadeRequest).toHaveBeenCalledWith(
+        "/projects/demo/attempts",
+        {
+          task_id: "cn-1",
+          agent_id: "openhands",
+          model: "openai/ant",
+          request_key: expect.any(String),
+        },
+        undefined,
+      ),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "CLISCADE$START" }),
+      ).toBeEnabled(),
+    );
+    fireEvent.change(screen.getByLabelText("CLISCADE$AGENT"), {
+      target: { value: "kiro" },
+    });
+    await screen.findByRole("option", { name: "cli-model" });
+    expect(screen.getByLabelText("CLISCADE$MODEL")).toHaveValue("");
+    expect(
+      screen.queryByRole("option", { name: "openai/ant" }),
+    ).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("CLISCADE$AGENT"), {
+      target: { value: "auto" },
+    });
+    expect(screen.queryByLabelText("CLISCADE$MODEL")).not.toBeInTheDocument();
   });
 
   it("orders children under their canonical parent and keeps cyclic input visible", () => {

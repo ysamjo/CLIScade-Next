@@ -138,7 +138,7 @@ OpenHands-Worktrees liegen persistent unter `/workspace/worktrees`.
 Ziel: ein gemeinsamer GitHub-Workspace, ein Repository als stabiles Projekt und
 eine kanonische Beads-Aufgabenliste je Projekt. Repository-Auswahl unter New Chat
 ist derzeit ein Übergang mit Klon pro Chat, keine fertige Projektverwaltung.
-OpenHands/OmniRoute-Chats sind noch nicht an Beads-Attempts gebunden.
+OpenHands/OmniRoute kann über `/tasks` Beads-Attempts ausführen; freie New-Chat-Conversations bleiben getrennt.
 Diese Grenzen bei Statusmeldungen und Änderungen ausdrücklich erhalten.
 
 Ausführungsweg (ACP-CLI oder nativer OpenHands-Agent), Modell, Beads-Task,
@@ -146,3 +146,9 @@ Conversation, Attempt und Checkpoint bleiben getrennte Begriffe. Langfristig
 referenzieren alle Runs dieselbe Projekt-ID und denselben Beads-Bestand;
 Worktrees dürfen keine konkurrierenden Task-Datenbanken erzeugen. Installation,
 Anmeldung, Discovery und erfolgreicher Anbieter-E2E sind getrennte Nachweise.
+
+Task-Modelle: `openhands` ist der native SDK-Harness mit dem gespeicherten
+Profil `OmniRoute`, Standard `openai/c1`; niemals als ACP-Prozess starten.
+Explizite Modellwahl über Discovery prüfen, pro Attempt persistieren und bei
+Resume aus dem Attempt lesen. Agentenwechsel darf die alte Modellwahl nicht
+übernehmen. Keine globalen Profile/Registry-Einstellungen beim Task-Start ändern.

@@ -120,3 +120,18 @@ Credentials, Einschränkungen und Prüfanleitung: [Deployment](../deploy/README.
 Antigravity und CodeBuddy stehen in 0.7.0 zuerst zur Auswahl. Google ist die bevorzugte Kontoanmeldung; native Portale und ACP-Authentifizierung bleiben maßgeblich. Prüfnachweise und Grenzen stehen in `AGENTS_SUPPORTED.md`.
 
 0.7.1: Die Kontoanmeldung startet ohne Laden des Ausführungs-SDKs. Die Oberfläche unterscheidet Link-Vorbereitung und vorhandenen Anbieterlink; Polling zeigt den später eintreffenden Link automatisch an.
+
+## Nativer Harness und Modellwahl (0.10.0)
+
+`/tasks` bietet `openhands` zusätzlich zu externen ACP-Agenten. Dieser Eintrag
+verwendet den nativen SDK-Agenten und das serverseitige Profil `OmniRoute`;
+Standardmodell ist `openai/c1`. Externe Agenten verwenden weiterhin ausschließlich
+ACP. Modellkataloge werden beim Auswählen geladen; „Agentenstandard“ bleibt
+möglich. Explizite Modelle werden validiert und am einzelnen Attempt gespeichert,
+ohne globale Agenteneinstellungen zu verändern. Resume behält Session und Modell;
+ein Handoff kann einen anderen Agenten und ein anderes Modell wählen.
+
+Wiederholbarer NAS-Test: `deploy/verify-task-harness.py prepare` im
+Integrationscontainer ausführen, ausgegebenen Task unter `/tasks` mit `openhands`
+und `openai/c1` starten, anschließend `verify --attempt <id>`. Die Prüfung fordert
+exakte Dateibytes und einen abgeschlossenen Werkzeugbeleg; sie veröffentlicht nichts.

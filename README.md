@@ -5,7 +5,7 @@ Beads als Aufgabenquelle und wechselbaren Coding-Agenten. OpenHands liefert
 Canvas, Agent Server, Sessions und ACP-Transport. Der eigene OpenHands-Agent
 verwendet OmniRoute; externe CLIs behalten ihren eigenen Harness und Kontologin.
 
-**Stand 18. Oktober 2026, Version 0.9.0: Die Bausteine laufen, der gemeinsame
+**Stand 18. Oktober 2026, Version 0.10.0: Die Bausteine laufen, der gemeinsame
 Projekt-/Task-Ablauf ist noch nicht vollständig verbunden.** Die frühere Aussage
 „fünf Meilensteine implementiert“ bezeichnet die technischen Teilfunktionen,
 nicht die vollständige Erfüllung der V1-Abnahmekriterien.
@@ -38,9 +38,9 @@ getrennten Worktrees. Anbieterinterne Gesprächshistorien werden nicht als
 | Bereich | Vorhanden / geprüft | Noch offen |
 |---|---|---|
 | GitHub und Workspace | PAT serverseitig; unter „New Chat“ Auswahl aus bis zu 30 Repositories, letzte Auswahl und zehn zuletzt verwendete Namen persistent; privater Git-Zugriff und Feature-Branch live geprüft | Pro Chat entsteht ein neuer Klon. Stabile Projekt-ID und Wiederverwendung eines Projekt-Roots fehlen; die Auswahl erzeugt noch kein gemeinsames Beads-Projekt |
-| Beads und Task-Verlauf | `/tasks`: Projekte, Aufgaben, Status, Prioritäten, Abhängigkeiten, ACP-Runs, Sessions, Checkpoints und Handoff; Backend-/Protokolltests und kontrollierte ACP-E2Es | GitHub-Auswahl und Task-Projekte sind getrennt. Native OpenHands-Chats werden noch nicht als Beads-Runs verbucht |
-| Agenten und Modelle | Sechs ACP-Agenten registriert; native Anmeldung, Capability-/Modellerkennung; Modell über Routing-Konfiguration festlegbar | Task-Auswahl filtert noch nicht zuverlässig auf autorisierte, nutzbare Konten. Erkannte Modelle werden angezeigt; eine Modellwahl pro Task/Run fehlt |
-| OpenHands und OmniRoute | Profil `OmniRoute`, Modell `openai/c1`; echter Datei-/Werkzeuglauf und Gateway-Neustart geprüft | OpenHands ist noch kein auswählbarer Ausführungsweg im Beads-Task-Runner. `c1` ist eine Gateway-Kombination; nicht jeder enthaltene Anbieter ist damit einzeln verifiziert |
+| Beads und Task-Verlauf | `/tasks`: Projekte, Aufgaben, Status, Prioritäten, Abhängigkeiten, ACP-Runs, Sessions, Checkpoints und Handoff; Backend-/Protokolltests und kontrollierte ACP-E2Es | GitHub-Auswahl und Task-Projekte sind getrennt. OpenHands lässt sich jetzt als Task-Run starten; freie New-Chat-Conversations werden nicht nachträglich Tasks zugeordnet |
+| Agenten und Modelle | Sechs ACP-Agenten registriert; native Anmeldung, Capability-/Modellerkennung; Modell über Routing-Konfiguration festlegbar | Task-Auswahl filtert noch nicht zuverlässig auf autorisierte, nutzbare Konten. Dynamische Modellwahl pro Start/Handoff vorhanden; Konsens und Zeitplan verwenden weiterhin die Agentenstandardmodelle |
+| OpenHands und OmniRoute | Profil `OmniRoute`, Modell `openai/c1`; echter Datei-/Werkzeuglauf und Gateway-Neustart geprüft | OpenHands ist als Ausführungsweg im Beads-Task-Runner mit gemeinsamem Verlauf verfügbar. `c1` ist eine Gateway-Kombination; nicht jeder enthaltene Anbieter ist damit einzeln verifiziert |
 | Orchestrierung und Betrieb | Strukturierter Handoff, Routing, vorsichtiger Fallback, unabhängiger Konsens und native Automation implementiert; NAS-Compose, persistente Volumes und private Tailscale-Serve-Routen vorhanden | Vollständiger gemischter CLI-/OpenHands-Task-E2E, alle NAS-Konten, vollständiger Restore und strengere Sandbox-Betriebsarten müssen nachgewiesen werden |
 
 Die neue Repository-Auswahl ist ein Übergangsschritt, keine fertige gemeinsame
@@ -54,12 +54,13 @@ der exakte Datei-Abnahmetest bleibt fehlgeschlagen.
 1. **Ein Repository = ein Projekt:** GitHub-ID auf einen persistenten Projekt-Root
    abbilden; eine Beads-Instanz pro Projekt. Worktrees und Runs referenzieren
    dieselbe Projekt-ID, erzeugen keine konkurrierenden Aufgabenbestände.
-2. **Alle Ausführungen an Tasks binden:** OpenHands/OmniRoute als zweiten
-   Ausführungsweg neben ACP im vorhandenen Attempt-/Checkpoint-Modell ergänzen.
-   Start, Abbruch, Wiederaufnahme und Handoff erscheinen im gleichen Verlauf.
+2. **Task-Einstieg vereinheitlichen:** OpenHands/OmniRoute ist jetzt neben ACP im
+   vorhandenen Attempt-/Checkpoint-Modell verfügbar. Start, Abbruch, Wiederaufnahme
+   und Handoff verwenden denselben Verlauf. Der New-Chat-Einstieg und die
+   GitHub-Projektidentität müssen noch in diesen Ablauf überführt werden.
 3. **Agent und Modell auswählen:** Installation, Anmeldung, Discovery und echte
-   Ausführung als getrennte Zustände darstellen. Modelle je Agent/Konto abfragen,
-   vor dem Start validieren und die Auswahl pro Attempt speichern.
+   Ausführung als getrennte Zustände darstellen. Die implementierte Modellwahl
+   verwendet Discovery und speichert die Auswahl pro Attempt; Kontofilter und Freigabezustände fehlen noch.
 4. **Gemeinsamen Ablauf beweisen:** Ein privates GitHub-Projekt öffnen, Task
    erstellen, mit angemeldeter CLI bearbeiten, an einen zweiten Agenten und
    OpenHands übergeben, Prüfbelege vergleichen und Persistenz nach Neustart testen.

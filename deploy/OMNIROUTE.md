@@ -98,3 +98,22 @@ das Auswahlfeld; ein Klick auf die Auswahl startet noch keine Ausführung.
 Das Feld `CLI account` im oberen Anmeldebereich wählt nur das anzumeldende Konto.
 `New Chat` verwendet dagegen den OpenHands-Harness mit dem aktiven Profil
 `OmniRoute`; das Profilmenü zeigt darunter `openai/c1`.
+
+## OpenHands als Task-Agent ab 0.10.0
+
+Unter `/tasks` einen Beads-Task öffnen, Agent `openhands` auswählen und das Modell
+aus dem dynamischen OmniRoute-Katalog wählen. „Agentenstandard“ verwendet
+`openai/c1`. Der Run verwendet den nativen OpenHands-Harness mit SDK-Standardtools,
+das gespeicherte Profil `OmniRoute` und denselben Task-Verlauf wie ACP.
+Eine bestehende globale Agent-/Modellwahl wird dabei nicht überschrieben.
+
+Bei anderen Agenten stammen die Modelle aus deren ACP-Discovery. Eine explizite
+Auswahl wird vor Start geprüft und am Attempt gespeichert. Beim Wechsel des
+Agenten wird die Auswahl zurückgesetzt; Handoff kann ein anderes Modell erhalten.
+Resume behält das gespeicherte Modell und die vorhandene Session.
+Automatische Route, Konsens und Zeitplan verwenden weiterhin die konfigurierten
+Agentenstandardmodelle; eine einzelne explizite Modell-ID ist bei Auto nicht zulässig.
+
+Der native Systemkontext und der gemeinsame Handoff-Prolog benennen den
+Ausführungs-Worktree ausdrücklich. Quellprojektpfade aus Beads sind nur
+Herkunftsangaben. Die Worktrees bilden weiterhin keine Dateisystem-Sandbox.
