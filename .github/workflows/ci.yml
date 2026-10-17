@@ -43,6 +43,11 @@ jobs:
     # Die vollständige Canvas-Suite umfasst über 800 Dateien; 25 Minuten
     # brechen auf dem privaten Ubuntu-Runner noch laufende Tests ab.
     timeout-minutes: 60
+    # `tsc` und die Testsuite liegen auf dem privaten Ubuntu-Runner am
+    # 2-GB-Standardheap und brechen dort mit "JavaScript heap out of memory"
+    # ab (exit 134). Der Heap wird deshalb explizit angehoben.
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.prepare-test-matrix.outputs.matrix) }}
