@@ -118,3 +118,9 @@ OmniRoute-Deployment 0.8.0: optionaler eigener Compose-Dienst, kein zusätzliche
 Harness im Agent Server. `deploy/OMNIROUTE.md` beschreibt Modellprofil und Aktivierung.
 Zugangsdaten nie in Compose/Logs speichern. Bestehende CLI-Konten und ACP-Registry
 nicht für den Modellgateway umkonfigurieren. Provider-Migration nur nach Nutzerwahl.
+
+NAS-Konfiguration 0.8.1: OpenHands-Profil `OmniRoute` ist mit `openai/c1` aktiviert.
+`c1` ist ein vom Nutzer gewählter Gateway-Combo. Anbieter-Einträge wurden mit
+Nutzerfreigabe übernommen; Konten nicht erneut migrieren oder Mac-Client-Keys kopieren.
+Andere CLIs werden pro Beads-Aufgabe über `ACP agent` gewählt; `CLI account`
+ändert nur die Login-Auswahl. Prüfnachweise und Grenzen: `deploy/OMNIROUTE.md`.

@@ -1,4 +1,4 @@
-# OpenHands-Harness über OmniRoute — Deployment 0.8.0
+# OpenHands-Harness über OmniRoute — Deployment 0.8.1
 
 Der eingebaute OpenHands-Agent verwendet ein OpenAI-kompatibles Modellprofil.
 OmniRoute ist dessen Modellgateway, kein zweiter Coding-Harness. Die Beads-Runs
@@ -64,3 +64,37 @@ Nutzung einen kleinen Datei-Test mit dem OpenHands-Agenten durchführen und Erge
 Git-Diff und Gateway-Protokoll prüfen. Ohne Anbieterlogin nur Mock-Nachweise angeben.
 
 Tests: `cliscade/.venv/bin/pytest -q cliscade/tests/test_omniroute.py cliscade/tests/test_deployment.py`.
+
+## Aktivierter NAS-Stand 0.8.1
+
+Nach ausdrücklicher Freigabe wurden 28 Anbieter-Einträge, fünf eigene Endpunkte
+und die Combos `c1` und `ant` vom Mac übernommen. Der Export verwendet die
+SQLite-Backup-API für einen konsistenten Snapshot und überträgt nur Konten,
+Routing-/Modellkonfiguration und den zugehörigen Verschlüsselungsschlüssel über
+SSH. Gesprächsverläufe, Request-Logs, bestehende Mac-Client-Schlüssel und die
+Mac-Verwaltungssitzungen wurden nicht übernommen. Vor dem Import wurden die
+NAS-Datenbank, deren Schlüsseldatei und die OpenHands-Einstellungen gesichert.
+Backups unter `/DATA/AppData/cliscade-next/backups/` geschützt aufbewahren.
+
+Das aktive OpenHands-Profil heißt `OmniRoute`, das Modell `openai/c1`, die
+interne Basisadresse `http://omniroute:20128/v1`. `c1` ist ein OmniRoute-Combo;
+welcher Anbieter antwortet, entscheidet dessen bestehende Routing-Konfiguration.
+Eine echte kurze Anfrage lieferte die erwartete Testmarkierung. Anschließend
+führte der native OpenHands-Harness Datei- und Terminal-Werkzeuge aus. Die
+Byte-Prüfung erforderte eine Nachfrage zum fehlenden Zeilenumbruch und bestand
+danach mit 16 Bytes und SHA-256
+`d906a87d31d3aa07915419f2b97f8cbd75400542df337bb94fdd432789dc6cdf`.
+Nach einem Gateway-Neustart blieben der Combo-Katalog, das aktive Profil und
+die Modellzuordnung erhalten. Das belegt `c1` und diesen Werkzeugablauf, nicht
+jede übernommene Anbieter-Verbindung.
+
+## Andere Coding-CLIs auswählen
+
+`Projects & tasks` → Projekt wählen → Aufgabe öffnen → im Aufgabenbereich
+`ACP agent` auswählen → bei Bedarf Verfügbarkeit prüfen → Ausführung starten.
+`Automatic route` überlässt die Auswahl dem Router. Zum direkten Testen öffnet
+[die vorhandene Testaufgabe](https://zimaos.tail8d09ea.ts.net:9443/tasks?project=cliscade-smoke&task=cn-1u3)
+das Auswahlfeld; ein Klick auf die Auswahl startet noch keine Ausführung.
+Das Feld `CLI account` im oberen Anmeldebereich wählt nur das anzumeldende Konto.
+`New Chat` verwendet dagegen den OpenHands-Harness mit dem aktiven Profil
+`OmniRoute`; das Profilmenü zeigt darunter `openai/c1`.

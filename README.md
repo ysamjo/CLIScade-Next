@@ -5,7 +5,7 @@ verpflichtenden Anbieter-API-Key. Prüfstand und offene NAS-Anmeldungen:
 [ACP-Agenten](cliscade/AGENTS_SUPPORTED.md); [Installation](deploy/README.md).
 
 > **OpenHands-Harness über OmniRoute:** Optionaler privater Gateway-Dienst und
-> gespeichertes Modellprofil: [Einrichtung](deploy/OMNIROUTE.md). ACP-Agenten behalten
+> aktives Modellprofil `OmniRoute` mit `c1`: [Einrichtung und CLI-Auswahl](deploy/OMNIROUTE.md). ACP-Agenten behalten
 > ihre eigene Anmeldung.
 
 > **CLIScade Next:** Projekte und ACP-Aufgaben unter `/tasks` öffnen. Die
