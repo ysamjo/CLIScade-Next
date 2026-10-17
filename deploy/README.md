@@ -202,3 +202,5 @@ hat Handshake und Google-Login-Start bestanden; persönliche Kontofreigabe und
 Inferenz auf dem NAS sind noch offen. Login-Starttests ersetzen keine Anmeldung.
 
 0.7.1: Während des nativen Starts zeigt die Oberfläche ausdrücklich die Vorbereitung des Links an. Der Link erscheint durch Polling automatisch. Der Auth-Helfer lädt kein OpenHands-Ausführungs-SDK mehr; native ACP-Kommandos sind gemeinsam mit der Ausführungs-Registry definiert. Laufende persönliche Anmeldungen vor einem Update abschließen; der Dienstneustart beendet sie.
+
+Auf dem 8-GB-NAS keinen vollständigen zweiten Test-Stack parallel zum Canvas-Build starten. Der Canvas-Build begrenzt den JavaScript-Heap auf 1536 MB. Native Login-Starttests isoliert einzeln ausführen; UI gegen den laufenden Stack prüfen.

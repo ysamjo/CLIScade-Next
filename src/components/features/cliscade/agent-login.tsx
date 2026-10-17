@@ -39,6 +39,7 @@ export function AgentLogin() {
     queryFn: () => cliscadeRequest<LoginState>(`/agents/${agent}/login`),
     refetchInterval: (query) =>
       query.state.data?.state === "pending" ? POLL_MS : false,
+    refetchIntervalInBackground: true,
     retry: false,
   });
   const action = useMutation({

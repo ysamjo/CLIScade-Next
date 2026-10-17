@@ -60,3 +60,5 @@ Google ist der bevorzugte Portal-Login; keine erfundenen OAuth-Parameter oder
 API-Key-Pflicht einführen. SDK-Fork und Agent-Server-Runtime gemeinsam pinnen.
 
 Der Auth-Helfer darf das OpenHands-Ausführungs-SDK nicht importieren. Native ACP-Kontokommandos liegen gemeinsam in `native_agents.py`; tatsächliche Agentenausführung bleibt im SDK. Ohne vorhandenen Link zeigt die UI Vorbereitung statt einer Aufforderung zum Öffnen.
+
+8-GB-NAS: Keinen zweiten vollständigen Test-Stack gleichzeitig mit dem Canvas-Build starten. Ein solcher Test verursachte Speicherdruck und SSH-Aussetzer; nur eigene Testcontainer stoppen, keine fremden NAS-Dienste.

@@ -5,7 +5,11 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  QueryClient,
+  QueryClientProvider,
+  focusManager,
+} from "@tanstack/react-query";
 import { vi, describe, it, expect } from "vitest";
 import { AgentLogin } from "#/components/features/cliscade/agent-login";
 import { cliscadeRequest } from "#/api/cliscade-service";
@@ -44,17 +48,22 @@ describe("CLI account sign-in", () => {
     expect(
       screen.queryByRole("link", { name: "CLISCADE$LOGIN_OPEN" }),
     ).not.toBeInTheDocument();
-    ready = true;
-    expect(
-      await screen.findByRole(
-        "link",
-        { name: "CLISCADE$LOGIN_OPEN" },
-        { timeout: 6000 },
-      ),
-    ).toHaveAttribute("href", "https://accounts.google.com/o/oauth2/v2/auth");
-    expect(
-      screen.queryByText("CLISCADE$LOGIN_PREPARING"),
-    ).not.toBeInTheDocument();
+    focusManager.setFocused(false);
+    try {
+      ready = true;
+      expect(
+        await screen.findByRole(
+          "link",
+          { name: "CLISCADE$LOGIN_OPEN" },
+          { timeout: 6000 },
+        ),
+      ).toHaveAttribute("href", "https://accounts.google.com/o/oauth2/v2/auth");
+      expect(
+        screen.queryByText("CLISCADE$LOGIN_PREPARING"),
+      ).not.toBeInTheDocument();
+    } finally {
+      focusManager.setFocused(undefined);
+    }
   });
   it("prioritizes Antigravity and keeps CodeBuddy on its native browser flow", async () => {
     vi.mocked(cliscadeRequest).mockImplementation(async (path) => ({

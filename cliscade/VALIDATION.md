@@ -223,3 +223,11 @@ Credentials: 0.7.0 lieferte accounts.google.com nach 23,29 Sekunden,
 0.7.1 nach 7,02 Sekunden. Je ein Messlauf, keine allgemeine Laufzeitgarantie.
 Beide eigenen Testprozesse wurden beendet. Die laufende persönliche Anmeldung
 im produktiven Dienst wurde dabei nicht abgebrochen.
+
+Das Login-Polling wird auch im Hintergrund fortgesetzt. Der Regressionstest setzt den Query-Fokus ausdrücklich auf false und prüft den später eintreffenden Google-Link.
+Ein vollständiger zweiter Test-Stack parallel zum Canvas-Build überlastete den 8-GB-NAS (RAM/Swap); die vier eigenen Testcontainer wurden gestoppt. Danach waren rund 2,9 GB RAM verfügbar, SSH und privates HTTPS wieder erreichbar. Produktive Container wurden nicht neu gestartet. Der zweite Stack bleibt aus; die Live-UI-Prüfung erfolgt nach regulärem Rollout.
+
+Nach Ende des Test-Stacks lieferte die produktive Anmeldung `failed` und
+`connected=false`; keine aktive Aufgabe vorhanden. Der neue Build läuft allein
+mit 1536-MB-JavaScript-Heap. Vor dem Rollout wird der Login-Zustand erneut
+geprüft. Der vollständige Ubuntu-CI-Lauf von PR #17 ist inzwischen bestanden.
