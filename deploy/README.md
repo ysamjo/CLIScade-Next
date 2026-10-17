@@ -209,3 +209,9 @@ Canvas 0.7.2 ergänzt das vollständige Linkfeld und „Link kopieren“. Nur Ca
 aktualisieren (`docker compose up -d --no-deps canvas`), damit eine laufende
 CLI-Anmeldung im Integrationsdienst erhalten bleibt. Bei Clipboard-Sperre ist
 der Link im Feld markiert und kann manuell kopiert werden.
+
+## Optional: OpenHands-Harness über OmniRoute
+
+[Einrichtung und Grenzen](OMNIROUTE.md): separater privater Dienst im selben
+Compose-Netz, persistente Konten und verschlüsseltes OpenHands-Modellprofil.
+Externe ACP-Agenten verwenden weiterhin ihre eigene CLI-Anmeldung.

@@ -52,3 +52,5 @@ build-fresh/
 
 # Lokale Versionsarchive
 Archiv/
+
+/deploy/omniroute.env

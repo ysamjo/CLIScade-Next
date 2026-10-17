@@ -113,3 +113,8 @@ CLIScade Canvas 0.7.2: Native Anmeldelinks stehen vollständig in einem Readonly
 Berechtigung das Feld markieren und manuelles Kopieren anbieten. URLs weder loggen
 noch dauerhaft im Browser speichern. Reine UI-Updates nur mit Canvas-Neustart deployen,
 um laufende CLI-Anmeldungen im Integrationsdienst zu erhalten.
+
+OmniRoute-Deployment 0.8.0: optionaler eigener Compose-Dienst, kein zusätzlicher
+Harness im Agent Server. `deploy/OMNIROUTE.md` beschreibt Modellprofil und Aktivierung.
+Zugangsdaten nie in Compose/Logs speichern. Bestehende CLI-Konten und ACP-Registry
+nicht für den Modellgateway umkonfigurieren. Provider-Migration nur nach Nutzerwahl.

@@ -4,6 +4,10 @@ priorisiert. Kontologin bevorzugt Google im jeweiligen Anbieterportal, ohne
 verpflichtenden Anbieter-API-Key. Prüfstand und offene NAS-Anmeldungen:
 [ACP-Agenten](cliscade/AGENTS_SUPPORTED.md); [Installation](deploy/README.md).
 
+> **OpenHands-Harness über OmniRoute:** Optionaler privater Gateway-Dienst und
+> gespeichertes Modellprofil: [Einrichtung](deploy/OMNIROUTE.md). ACP-Agenten behalten
+> ihre eigene Anmeldung.
+
 > **CLIScade Next:** Projekte und ACP-Aufgaben unter `/tasks` öffnen. Die
 > Kontoanmeldung nutzt die nativen CLIs ohne verpflichtende Anbieter-API-Keys.
 > Den vollständigen Anmeldelink über „Link kopieren“ übernehmen oder im Textfeld markieren.
