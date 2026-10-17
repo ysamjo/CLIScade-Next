@@ -79,6 +79,30 @@ def verify(settings, attempt_id):
     assert not (settings.projects / PROJECT / FILENAME).exists(), (
         "Agent hat außerhalb des Ausführungs-Worktrees geschrieben"
     )
+    source = settings.projects / PROJECT
+    source_status = subprocess.run(
+        [
+            "git",
+            "-C",
+            str(source),
+            "status",
+            "--porcelain",
+            "--",
+            ".",
+            ":(exclude).beads",
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    assert not source_status.strip(), "Quellprojekt enthält Dateiänderungen"
+    source_revision = subprocess.run(
+        ["git", "-C", str(source), "rev-parse", "HEAD"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    assert source_revision == attempt["base_revision"], "Quellrevision verändert"
     assert attempt["checkpoint"]["git"]["working_directory"] == attempt["workspace"]
     assert attempt["checkpoint"]["git"]["revision"] == attempt["base_revision"], (
         "Agent hat entgegen der Testregel committet"
