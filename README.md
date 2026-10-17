@@ -1,4 +1,4 @@
-<!-- CLIScade Next 0.7.1: Antigravity und CodeBuddy -->
+<!-- CLIScade Next Canvas 0.7.2: Antigravity und CodeBuddy -->
 Antigravity und CodeBuddy sind als native ACP-Agenten integriert und im Routing
 priorisiert. Kontologin bevorzugt Google im jeweiligen Anbieterportal, ohne
 verpflichtenden Anbieter-API-Key. Prüfstand und offene NAS-Anmeldungen:
@@ -6,6 +6,7 @@ verpflichtenden Anbieter-API-Key. Prüfstand und offene NAS-Anmeldungen:
 
 > **CLIScade Next:** Projekte und ACP-Aufgaben unter `/tasks` öffnen. Die
 > Kontoanmeldung nutzt die nativen CLIs ohne verpflichtende Anbieter-API-Keys.
+> Den vollständigen Anmeldelink über „Link kopieren“ übernehmen oder im Textfeld markieren.
 > [Installation auf ZimaOS](deploy/README.md) · [CLIScade-Dokumentation](cliscade/README.md)
 
 > **CLIScade Next:** Eigenständiges privates Projekt. [Architektur und Entwicklungsstand](CLISCADE_NEXT.md). Die folgende Dokumentation beschreibt die übernommene OpenHands-Basis.

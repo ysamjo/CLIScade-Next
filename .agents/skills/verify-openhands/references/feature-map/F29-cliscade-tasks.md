@@ -57,3 +57,8 @@ Ein Login-Start ist kein Nachweis einer persönlichen Freigabe oder Inferenz.
 0.7.1: Während pending ohne URL zeigt F29.login die Vorbereitung des Links an.
 Erst mit vorhandener URL folgt die Aufforderung zum Öffnen. Regression:
 `cliscade-login.test.tsx` prüft verspätete Links mit echtem Query-Polling.
+
+Canvas 0.7.2: F29.login zeigt den vollständigen nativen Anmeldelink readonly.
+„Link kopieren“ schreibt exakt diese URL und meldet Erfolg erst danach. Bei
+gesperrter/fehlender Clipboard-API wird das Feld zum manuellen Kopieren markiert.
+Agentenwechsel entfernt URL und Kopiermeldung. Tests: `cliscade-login.test.tsx`.

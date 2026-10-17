@@ -32,6 +32,72 @@ function mount() {
 }
 
 describe("CLI account sign-in", () => {
+  it.each(["success", "denied", "unavailable"])(
+    "offers the full URL for copying when clipboard is %s",
+    async (result) => {
+      const url =
+        "https://accounts.google.com/o/oauth2/v2/auth?state=test&redirect_uri=http%3A%2F%2F127.0.0.1%3A47407%2F";
+      const writeText = vi.fn().mockImplementation(async () => {
+        if (result === "denied") throw new Error("Permission denied");
+      });
+      const descriptor = Object.getOwnPropertyDescriptor(
+        navigator,
+        "clipboard",
+      );
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: result === "unavailable" ? undefined : { writeText },
+      });
+      try {
+        vi.mocked(cliscadeRequest).mockImplementation(async (path) => ({
+          state: path.includes("antigravity") ? "pending" : "idle",
+          mode: "callback",
+          url,
+        }));
+        mount();
+        const input = (await screen.findByLabelText(
+          "CLISCADE$LOGIN_URL",
+        )) as HTMLInputElement;
+        expect(input).toHaveValue(url);
+        expect(input).toHaveAttribute("readonly");
+        fireEvent.click(
+          screen.getByRole("button", { name: "CLISCADE$LOGIN_COPY" }),
+        );
+        if (result === "success") {
+          expect(
+            await screen.findByText("CLISCADE$LOGIN_COPIED"),
+          ).toBeInTheDocument();
+          expect(writeText).toHaveBeenCalledWith(url);
+        } else {
+          expect(
+            await screen.findByText("CLISCADE$LOGIN_COPY_MANUALLY"),
+          ).toBeInTheDocument();
+          expect(input).toHaveFocus();
+          expect(input.selectionStart).toBe(0);
+          expect(input.selectionEnd).toBe(url.length);
+        }
+        fireEvent.change(screen.getByLabelText("CLISCADE$LOGIN_AGENT"), {
+          target: { value: "codebuddy" },
+        });
+        await waitFor(() =>
+          expect(
+            screen.queryByLabelText("CLISCADE$LOGIN_URL"),
+          ).not.toBeInTheDocument(),
+        );
+        expect(
+          screen.queryByText("CLISCADE$LOGIN_COPIED"),
+        ).not.toBeInTheDocument();
+        expect(
+          screen.queryByText("CLISCADE$LOGIN_COPY_MANUALLY"),
+        ).not.toBeInTheDocument();
+      } finally {
+        if (descriptor)
+          Object.defineProperty(navigator, "clipboard", descriptor);
+        else Reflect.deleteProperty(navigator, "clipboard");
+      }
+    },
+  );
+
   it("shows link preparation and polls until the native provider URL is ready", async () => {
     let ready = false;
     vi.mocked(cliscadeRequest).mockImplementation(async () => ({
@@ -130,7 +196,9 @@ describe("CLI account sign-in", () => {
     expect(
       screen.getByRole("link", { name: "CLISCADE$LOGIN_OPEN" }),
     ).toHaveAttribute("href", "https://auth.openai.com/codex/device");
-    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("CLISCADE$LOGIN_CODE"),
+    ).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "CLISCADE$CANCEL" }));
     await waitFor(() =>
       expect(cliscadeRequest).toHaveBeenCalledWith(

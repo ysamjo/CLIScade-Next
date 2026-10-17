@@ -107,3 +107,9 @@ SDK-Fork startet Agenten im Workspace und wählt angebotene Auth-Methoden. Das
 Agent-Server-Image führt dessen Python-Entrypoint aus; eine SDK-Installation
 neben dem eingefrorenen Upstream-Binary reicht nicht. Google ist der bevorzugte
 Kontologin, ohne API-Key-Pflicht; persönliche Anmeldung und Inferenz separat belegen.
+
+CLIScade Canvas 0.7.2: Native Anmeldelinks stehen vollständig in einem Readonly-Feld.
+„Link kopieren“ bestätigt erst nach erfolgreichem Clipboard-Schreiben; bei fehlender
+Berechtigung das Feld markieren und manuelles Kopieren anbieten. URLs weder loggen
+noch dauerhaft im Browser speichern. Reine UI-Updates nur mit Canvas-Neustart deployen,
+um laufende CLI-Anmeldungen im Integrationsdienst zu erhalten.

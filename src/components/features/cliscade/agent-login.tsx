@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { BrandButton } from "#/components/features/settings/brand-button";
@@ -125,14 +125,7 @@ export function AgentLogin() {
               <code className="select-all text-lg">{state.user_code}</code>
             </p>
           )}
-          <a
-            className="inline-flex min-h-11 items-center underline"
-            href={state.url}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            {t(I18nKey.CLISCADE$LOGIN_OPEN)}
-          </a>
+          <LoginLink key={`${agent}:${state.url}`} url={state.url} />
           {(state.mode === "code" || state.mode === "callback") && (
             <form
               className="max-w-xl space-y-2"
@@ -222,5 +215,64 @@ export function AgentLogin() {
         </BrandButton>
       </div>
     </section>
+  );
+}
+
+function LoginLink({ url }: { url: string }) {
+  const { t } = useTranslation("openhands");
+  const input = useRef<HTMLInputElement>(null);
+  const [copyState, setCopyState] = useState<
+    "idle" | "copying" | "copied" | "manual"
+  >("idle");
+  const copy = async () => {
+    setCopyState("copying");
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopyState("copied");
+    } catch {
+      input.current?.focus();
+      input.current?.select();
+      setCopyState("manual");
+    }
+  };
+  return (
+    <div className="min-w-0 max-w-xl space-y-2">
+      <label className="block">
+        {t(I18nKey.CLISCADE$LOGIN_URL)}
+        <input
+          ref={input}
+          className={CONTROL}
+          type="text"
+          inputMode="url"
+          readOnly
+          value={url}
+          autoComplete="off"
+          spellCheck={false}
+          onFocus={(event) => event.currentTarget.select()}
+        />
+      </label>
+      <div className="flex flex-wrap items-center gap-3">
+        <BrandButton
+          type="button"
+          variant="secondary"
+          isDisabled={copyState === "copying"}
+          onClick={() => void copy()}
+        >
+          {t(I18nKey.CLISCADE$LOGIN_COPY)}
+        </BrandButton>
+        <a
+          className="inline-flex min-h-11 items-center underline"
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {t(I18nKey.CLISCADE$LOGIN_OPEN)}
+        </a>
+      </div>
+      <p role="status" aria-live="polite">
+        {copyState === "copied" && t(I18nKey.CLISCADE$LOGIN_COPIED)}
+        {copyState === "manual" && t(I18nKey.CLISCADE$LOGIN_COPY_MANUALLY)}
+      </p>
+    </div>
   );
 }
