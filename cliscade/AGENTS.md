@@ -58,3 +58,5 @@ Anmeldung auf vorhandene Credentials prüfen, da Authenticate eine bestehende
 Anmeldung sonst abmeldet. Antigravity verwendet ausschließlich `oauth-personal`.
 Google ist der bevorzugte Portal-Login; keine erfundenen OAuth-Parameter oder
 API-Key-Pflicht einführen. SDK-Fork und Agent-Server-Runtime gemeinsam pinnen.
+
+Der Auth-Helfer darf das OpenHands-Ausführungs-SDK nicht importieren. Native ACP-Kontokommandos liegen gemeinsam in `native_agents.py`; tatsächliche Agentenausführung bleibt im SDK. Ohne vorhandenen Link zeigt die UI Vorbereitung statt einer Aufforderung zum Öffnen.

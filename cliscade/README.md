@@ -118,3 +118,5 @@ Agentenaufträge verwenden weiterhin OpenHands ACP. Installation, persistente
 Credentials, Einschränkungen und Prüfanleitung: [Deployment](../deploy/README.md).
 
 Antigravity und CodeBuddy stehen in 0.7.0 zuerst zur Auswahl. Google ist die bevorzugte Kontoanmeldung; native Portale und ACP-Authentifizierung bleiben maßgeblich. Prüfnachweise und Grenzen stehen in `AGENTS_SUPPORTED.md`.
+
+0.7.1: Die Kontoanmeldung startet ohne Laden des Ausführungs-SDKs. Die Oberfläche unterscheidet Link-Vorbereitung und vorhandenen Anbieterlink; Polling zeigt den später eintreffenden Link automatisch an.

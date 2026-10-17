@@ -53,3 +53,7 @@ Anmeldestatus). Bei Kiro/OpenCode Google wählen, soweit angeboten. Das geprüft
 zeigt E-Mail/OneID/SSO, keinen Google-Button; Google dort nicht bestätigt.
 Ein Login-Start ist kein Nachweis einer persönlichen Freigabe oder Inferenz.
 `deploy/verify-login.py` prüft alle sechs nativen Starts und den gezielten Abbruch.
+
+0.7.1: Während pending ohne URL zeigt F29.login die Vorbereitung des Links an.
+Erst mit vorhandener URL folgt die Aufforderung zum Öffnen. Regression:
+`cliscade-login.test.tsx` prüft verspätete Links mit echtem Query-Polling.

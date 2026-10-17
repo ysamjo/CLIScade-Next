@@ -28,6 +28,34 @@ function mount() {
 }
 
 describe("CLI account sign-in", () => {
+  it("shows link preparation and polls until the native provider URL is ready", async () => {
+    let ready = false;
+    vi.mocked(cliscadeRequest).mockImplementation(async () => ({
+      state: "pending",
+      mode: "callback",
+      available: true,
+      id: "slow-native-start",
+      url: ready ? "https://accounts.google.com/o/oauth2/v2/auth" : null,
+    }));
+    mount();
+    expect(
+      await screen.findByText("CLISCADE$LOGIN_PREPARING"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "CLISCADE$LOGIN_OPEN" }),
+    ).not.toBeInTheDocument();
+    ready = true;
+    expect(
+      await screen.findByRole(
+        "link",
+        { name: "CLISCADE$LOGIN_OPEN" },
+        { timeout: 6000 },
+      ),
+    ).toHaveAttribute("href", "https://accounts.google.com/o/oauth2/v2/auth");
+    expect(
+      screen.queryByText("CLISCADE$LOGIN_PREPARING"),
+    ).not.toBeInTheDocument();
+  });
   it("prioritizes Antigravity and keeps CodeBuddy on its native browser flow", async () => {
     vi.mocked(cliscadeRequest).mockImplementation(async (path) => ({
       state: "pending",

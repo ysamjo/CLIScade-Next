@@ -1,6 +1,6 @@
 # CLIScade Next auf ZimaOS
 
-Stand 0.7.0. Vier Dienste verwenden den vorhandenen Canvas-Proxy, den offiziellen
+Stand 0.7.1 (Agent Server unverändert 0.7.0). Vier Dienste verwenden den vorhandenen Canvas-Proxy, den offiziellen
 OpenHands Agent Server 1.55.1 aus dem gepinnten CLIScade-SDK-Fork mit nativen Login-CLIs und die offizielle Automation 1.20.0. Beads 1.3.1
 läuft ausschließlich im Integrationsdienst. Kein Docker-Socket wird eingebunden.
 
@@ -16,8 +16,8 @@ mkdir -p /DATA/AppData/cliscade-next/projects \
 chmod -R g+rwX /DATA/AppData/cliscade-next
 # Die Container verwenden UID/GID 1000:1000. Die Verzeichnisse müssen für GID 1000 schreibbar sein.
 docker build -f deploy/Dockerfile.agent-server -t cliscade-next-agent-server:0.7.0 .
-docker build -f deploy/Dockerfile.cliscade -t cliscade-next-service:0.7.0 .
-docker build -f deploy/Dockerfile.canvas -t cliscade-next-canvas:0.7.0 .
+docker build -f deploy/Dockerfile.cliscade -t cliscade-next-service:0.7.1 .
+docker build -f deploy/Dockerfile.canvas -t cliscade-next-canvas:0.7.1 .
 python3 deploy/init-secrets.py
 cd deploy
 docker compose config -q
@@ -200,3 +200,5 @@ veröffentlichten Signaturen. Beide nativen Programme bleiben benachbart.
 CodeBuddy hat lokal einen authentifizierten Datei-E2E bestanden. Antigravity
 hat Handshake und Google-Login-Start bestanden; persönliche Kontofreigabe und
 Inferenz auf dem NAS sind noch offen. Login-Starttests ersetzen keine Anmeldung.
+
+0.7.1: Während des nativen Starts zeigt die Oberfläche ausdrücklich die Vorbereitung des Links an. Der Link erscheint durch Polling automatisch. Der Auth-Helfer lädt kein OpenHands-Ausführungs-SDK mehr; native ACP-Kommandos sind gemeinsam mit der Ausführungs-Registry definiert. Laufende persönliche Anmeldungen vor einem Update abschließen; der Dienstneustart beendet sie.

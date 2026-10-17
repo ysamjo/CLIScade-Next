@@ -53530,5 +53530,23 @@
     "tr": "After sign-in, the browser opens a localhost or 127.0.0.1 address. Paste the full address from the browser address bar here, even if that page cannot be reached.",
     "uk": "After sign-in, the browser opens a localhost or 127.0.0.1 address. Paste the full address from the browser address bar here, even if that page cannot be reached.",
     "id": "After sign-in, the browser opens a localhost or 127.0.0.1 address. Paste the full address from the browser address bar here, even if that page cannot be reached."
+  },
+  "CLISCADE$LOGIN_PREPARING": {
+    "en": "The CLI is starting and preparing your sign-in link. This can take up to a minute. The link will appear here automatically.",
+    "ja": "The CLI is starting and preparing your sign-in link. This can take up to a minute. The link will appear here automatically.",
+    "zh-CN": "The CLI is starting and preparing your sign-in link. This can take up to a minute. The link will appear here automatically.",
+    "zh-TW": "The CLI is starting and preparing your sign-in link. This can take up to a minute. The link will appear here automatically.",
+    "ko-KR": "The CLI is starting and preparing your sign-in link. This can take up to a minute. The link will appear here automatically.",
+    "no": "The CLI is starting and preparing your sign-in link. This can take up to a minute. The link will appear here automatically.",
+    "ar": "The CLI is starting and preparing your sign-in link. This can take up to a minute. The link will appear here automatically.",
+    "de": "Die CLI startet und bereitet den Anmeldelink vor. Das kann bis zu einer Minute dauern. Der Link erscheint hier automatisch.",
+    "fr": "The CLI is starting and preparing your sign-in link. This can take up to a minute. The link will appear here automatically.",
+    "it": "The CLI is starting and preparing your sign-in link. This can take up to a minute. The link will appear here automatically.",
+    "pt": "The CLI is starting and preparing your sign-in link. This can take up to a minute. The link will appear here automatically.",
+    "es": "The CLI is starting and preparing your sign-in link. This can take up to a minute. The link will appear here automatically.",
+    "ca": "The CLI is starting and preparing your sign-in link. This can take up to a minute. The link will appear here automatically.",
+    "tr": "The CLI is starting and preparing your sign-in link. This can take up to a minute. The link will appear here automatically.",
+    "uk": "The CLI is starting and preparing your sign-in link. This can take up to a minute. The link will appear here automatically.",
+    "id": "The CLI is starting and preparing your sign-in link. This can take up to a minute. The link will appear here automatically."
   }
 }

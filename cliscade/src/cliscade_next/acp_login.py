@@ -10,7 +10,7 @@ from pathlib import Path
 from acp import Client, spawn_agent_process
 from acp.schema import CreateElicitationResponse
 
-from cliscade_next.agents import registry
+from cliscade_next.native_agents import ACP_ACCOUNT_COMMANDS
 
 METHODS = {"antigravity": "oauth-personal", "codebuddy": "external"}
 
@@ -27,7 +27,7 @@ class LoginClient(Client):
 
 
 async def account(agent_id, action):
-    command = registry()[agent_id].command
+    command = ACP_ACCOUNT_COMMANDS[agent_id]
     env = dict(os.environ)
     if action == "status" and agent_id == "antigravity":
         marker = Path.home() / ".cliscade-accounts" / agent_id

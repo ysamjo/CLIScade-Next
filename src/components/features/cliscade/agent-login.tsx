@@ -99,7 +99,11 @@ export function AgentLogin() {
         {state?.connected
           ? t(I18nKey.CLISCADE$LOGIN_CONNECTED)
           : pending
-            ? t(I18nKey.CLISCADE$LOGIN_PENDING)
+            ? t(
+                state?.url
+                  ? I18nKey.CLISCADE$LOGIN_PENDING
+                  : I18nKey.CLISCADE$LOGIN_PREPARING,
+              )
             : t(I18nKey.CLISCADE$LOGIN_DISCONNECTED)}
       </p>
       {state?.available === false && (

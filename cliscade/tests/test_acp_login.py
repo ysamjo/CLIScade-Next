@@ -4,7 +4,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 from cliscade_next import acp_login
-from cliscade_next.agents import Agent, registry
+from cliscade_next.agents import registry
 
 
 def transport(monkeypatch, connected=False, method="external"):
@@ -34,10 +34,10 @@ def transport(monkeypatch, connected=False, method="external"):
     monkeypatch.setattr(acp_login, "spawn_agent_process", spawn)
     monkeypatch.setattr(
         acp_login,
-        "registry",
-        lambda: {
-            "codebuddy": Agent("codebuddy", ("native-codebuddy", "--acp")),
-            "antigravity": Agent("antigravity", ("native-antigravity",)),
+        "ACP_ACCOUNT_COMMANDS",
+        {
+            "codebuddy": ("native-codebuddy", "--acp"),
+            "antigravity": ("native-antigravity",),
         },
     )
     return connection, launches
@@ -110,3 +110,30 @@ def test_priority_agents_can_be_configured_without_replacing_commands(
     assert configured["codebuddy"].model == "reported-model"
     assert configured["codebuddy"].priority == agents["codebuddy"].priority
     assert configured["codebuddy"].command == agents["codebuddy"].command
+
+
+def test_account_helper_starts_without_loading_the_execution_sdk(tmp_path):
+    import os
+    import subprocess
+    import sys
+
+    script = """
+import asyncio
+import importlib.abc
+import sys
+class NoExecutionSDK(importlib.abc.MetaPathFinder):
+    def find_spec(self, fullname, path=None, target=None):
+        if fullname == "openhands" or fullname.startswith("openhands."):
+            raise AssertionError("Auth darf das Ausführungs-SDK nicht laden")
+sys.meta_path.insert(0, NoExecutionSDK())
+from cliscade_next.acp_login import account
+assert asyncio.run(account("antigravity", "status")) is False
+"""
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        env={**os.environ, "HOME": str(tmp_path)},
+        capture_output=True,
+        text=True,
+        timeout=15,
+    )
+    assert result.returncode == 0, result.stderr

@@ -208,3 +208,18 @@ Der Home-Chat-Test zur Automationsübergabe wartet jetzt auf den asynchronen
 Abschlusscallback statt nur auf den vorherigen Create-Aufruf. Die unveränderte
 Datei bestand lokal mit Node 24 (18 Tests); die korrigierte Abfrage verhindert
 die im CI-Log beobachtete Race-Condition. Neuer vollständiger CI-Lauf folgt.
+
+## 0.7.1: Fehlenden Anmeldelink während des CLI-Starts erklären
+
+42 Backend-Tests bestanden, 8 opt-in Prüfungen übersprungen. 57 UI-Tests
+(Login, Aufgaben, Root, Sidebar) mit Node 24 bestanden. Typecheck, Ruff,
+Prettier und vollständige Übersetzungen geprüft. Neuer Regressionstest:
+Vorbereitung anzeigen, automatisch weiter abfragen, erst danach Providerlink
+und passende Aufforderung anzeigen. Ein frischer Python-Prozess beweist,
+dass der Auth-Helfer das Ausführungs-SDK nicht mehr importiert.
+
+Isolierter nativer Antigravity-Start auf demselben NAS, ohne persönliche
+Credentials: 0.7.0 lieferte accounts.google.com nach 23,29 Sekunden,
+0.7.1 nach 7,02 Sekunden. Je ein Messlauf, keine allgemeine Laufzeitgarantie.
+Beide eigenen Testprozesse wurden beendet. Die laufende persönliche Anmeldung
+im produktiven Dienst wurde dabei nicht abgebrochen.

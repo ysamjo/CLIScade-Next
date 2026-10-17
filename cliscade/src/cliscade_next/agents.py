@@ -2,7 +2,6 @@
 
 import json
 import os
-import sys
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import quote
@@ -15,6 +14,8 @@ from openhands.sdk.secret import LookupSecret
 from openhands.sdk.settings.acp_providers import ACP_PROVIDERS
 from openhands.sdk.settings.model import ACPAgentSettings
 from openhands.sdk.workspace import RemoteWorkspace
+
+from cliscade_next.native_agents import ACP_ACCOUNT_COMMANDS
 
 
 @dataclass(frozen=True)
@@ -35,10 +36,12 @@ def registry():
     agents["kiro"] = Agent("kiro", ("kiro-cli", "acp"))
     agents["antigravity"] = Agent(
         "antigravity",
-        ("agy_acp_server.par",) + (("--uid=",) if sys.platform == "linux" else ()),
+        ACP_ACCOUNT_COMMANDS["antigravity"],
         priority=1,
     )
-    agents["codebuddy"] = Agent("codebuddy", ("codebuddy", "--acp"), priority=2)
+    agents["codebuddy"] = Agent(
+        "codebuddy", ACP_ACCOUNT_COMMANDS["codebuddy"], priority=2
+    )
     config = os.environ.get("CLISCADE_AGENT_CONFIG")
     if config:
         policies = json.loads(Path(config).read_text())

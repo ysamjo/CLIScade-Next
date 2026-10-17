@@ -1,4 +1,4 @@
-<!-- CLIScade Next 0.7.0: Antigravity und CodeBuddy -->
+<!-- CLIScade Next 0.7.1: Antigravity und CodeBuddy -->
 Antigravity und CodeBuddy sind als native ACP-Agenten integriert und im Routing
 priorisiert. Kontologin bevorzugt Google im jeweiligen Anbieterportal, ohne
 verpflichtenden Anbieter-API-Key. Prüfstand und offene NAS-Anmeldungen:
