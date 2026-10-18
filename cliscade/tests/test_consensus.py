@@ -92,3 +92,26 @@ def test_handoff_keeps_changes_committed_by_previous_agent(system):
     second = service.start("project", "cn-1", "two", source_id=first["id"])
     assert second["checkpoint"]["git"]["base_revision"] == first["base_revision"]
     assert "+committed solution" in second["checkpoint"]["git"]["diff"]
+
+
+def test_consensus_carries_the_chosen_model_per_participant(system):
+    service, runner, settings = system
+    group = Consensus(service).start(
+        "project", "cn-1", ["one", "two"], models={"two": "special/model"}
+    )
+    models = {
+        attempt["agent"]: attempt["model"] for attempt in group["attempts"]
+    }
+    assert models == {"one": None, "two": "special/model"}
+    # Der Ledger trägt das Modell, damit die Auswahl über den Lauf hinaus sichtbar bleibt.
+    for attempt in group["attempts"]:
+        saved = service.ledger.get(attempt["id"])
+        assert saved["model"] == attempt["model"]
+
+
+def test_model_for_a_non_participant_is_refused(system):
+    service, _, _ = system
+    with pytest.raises(ValueError, match="keinem Teilnehmer"):
+        Consensus(service).start(
+            "project", "cn-1", ["one", "two"], models={"three": "x/y"}
+        )
