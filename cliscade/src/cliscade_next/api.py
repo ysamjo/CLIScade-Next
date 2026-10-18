@@ -1,5 +1,6 @@
 """Authentifizierte Aufgaben-API; Ausführung bleibt im OpenHands Agent Server."""
 
+import asyncio
 import hashlib
 import hmac
 import json
@@ -97,10 +98,39 @@ def create_app(settings=None, orchestrator=None):
         on_complete=OpenHands(settings).save_account,
     )
 
+    CLAIM_SWEEP_SECONDS = 600
+
+    def sweep_stale_claims():
+        """Blockierte Aufgaben wieder freigeben: abgelaufene Leases einsammeln.
+
+        Eine Behauptung committed in Status und Assignee, ihr Lease-Register ist
+        node-lokal und flüchtig. Stirbt der Agent — oder startet der Container
+        neu —, hören die Heartbeats auf und die Aufgabe bleibt für immer
+        in_progress; jeder neue Lauf scheitert dann an der Blockade. Der Reaper
+        sammelt die Leases ein. Ein lebender Agent erneuert seine Behauptung per
+        Heartbeat, das zehnminütige Fenster liegt über jedem Lease-TTL.
+        """
+        for record in Projects(settings).list().values():
+            if not record.get("beads"):
+                continue
+            try:
+                Beads(settings.project(record["id"])).reclaim()
+            except Exception:
+                continue
+
     @asynccontextmanager
     async def lifespan(app):
-        yield
-        login.close()
+        async def sweep_loop():
+            while True:
+                await asyncio.sleep(CLAIM_SWEEP_SECONDS)
+                await asyncio.to_thread(sweep_stale_claims)
+
+        sweeper = asyncio.create_task(sweep_loop())
+        try:
+            yield
+        finally:
+            sweeper.cancel()
+            login.close()
 
     def authenticate(x_session_api_key: Annotated[str, Header()] = ""):
         if not settings.api_key or not hmac.compare_digest(

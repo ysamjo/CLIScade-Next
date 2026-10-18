@@ -296,7 +296,13 @@ class Orchestrator:
                 self.ledger.update(attempt["id"], checkpoint=checkpoint)
                 if assign:
                     self.beads_factory(project).assign(
-                        task_id, agent_id, previous=source["agent"] if source else None
+                        task_id,
+                        agent_id,
+                        previous=source["agent"] if source else None,
+                        # Kein Lauf haelt die Aufgabe aktiv (Parallelitaetspruefung
+                        # oben); eine blockierende Behauptung ist damit verlassen
+                        # und darf geloest werden.
+                        allow_stale_claim=True,
                     )
                 # Zustand aller Projekte nach dem Assign, direkt vor dem Submit:
                 # so zählt weder die eigene Vorbereitung noch die Beads-Änderung
