@@ -510,6 +510,12 @@ export default function CliscadeTasks() {
                 {new Date(attempt.created_at).toLocaleString()}
               </p>
               {attempt.error && <p role="alert">{attempt.error}</p>}
+              {attempt.checkpoint?.isolation?.ok === false && (
+                <p role="alert">
+                  {t(I18nKey.CLISCADE$ISOLATION_VIOLATION)}:{" "}
+                  {attempt.checkpoint.isolation.changed_projects.join(", ")}
+                </p>
+              )}
               <div className="my-3 flex flex-wrap gap-3">
                 {attempt.session_id && (
                   <NavigationLink
@@ -586,13 +592,13 @@ export default function CliscadeTasks() {
                       {t(I18nKey.CLISCADE$GIT)}
                     </summary>
                     <p className="break-all text-xs">
-                      {attempt.checkpoint.git.revision}
+                      {attempt.checkpoint.git?.revision}
                     </p>
                     <pre className="max-h-80 overflow-auto whitespace-pre-wrap break-all text-xs">
-                      {attempt.checkpoint.git.status}
-                      {attempt.checkpoint.git.diff}
+                      {attempt.checkpoint.git?.status}
+                      {attempt.checkpoint.git?.diff}
                     </pre>
-                    {attempt.checkpoint.git.diff_truncated && (
+                    {attempt.checkpoint.git?.diff_truncated && (
                       <p>{t(I18nKey.CLISCADE$TRUNCATED)}</p>
                     )}
                   </details>

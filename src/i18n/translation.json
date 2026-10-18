@@ -53728,5 +53728,23 @@
     "tr": "This model is no longer available. Please select again.",
     "uk": "This model is no longer available. Please select again.",
     "id": "This model is no longer available. Please select again."
+  },
+  "CLISCADE$ISOLATION_VIOLATION": {
+    "en": "Wrote outside the run's workspace (isolation)",
+    "ja": "Wrote outside the run's workspace (isolation)",
+    "zh-CN": "Wrote outside the run's workspace (isolation)",
+    "zh-TW": "Wrote outside the run's workspace (isolation)",
+    "ko-KR": "Wrote outside the run's workspace (isolation)",
+    "no": "Wrote outside the run's workspace (isolation)",
+    "ar": "Wrote outside the run's workspace (isolation)",
+    "de": "Hat außerhalb des Arbeitsbaums des Laufs geschrieben (Isolation)",
+    "fr": "Wrote outside the run's workspace (isolation)",
+    "it": "Wrote outside the run's workspace (isolation)",
+    "pt": "Wrote outside the run's workspace (isolation)",
+    "es": "Wrote outside the run's workspace (isolation)",
+    "ca": "Wrote outside the run's workspace (isolation)",
+    "tr": "Wrote outside the run's workspace (isolation)",
+    "uk": "Wrote outside the run's workspace (isolation)",
+    "id": "Wrote outside the run's workspace (isolation)"
   }
 }
