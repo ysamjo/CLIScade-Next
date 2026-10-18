@@ -69,6 +69,9 @@ class Ledger:
                 continue
             checks = checkpoint.get("verified_checks") or []
             changed = ((checkpoint.get("git") or {}).get("status") or "").strip()
+            if (checkpoint.get("isolation") or {}).get("ok") is False:
+                # Der Lauf hat ein fremdes Projekt verändert; er belegt nichts.
+                continue
             if not checks and not changed:
                 continue
             entry = result.setdefault(row["agent"], {"runs": 0, "models": []})

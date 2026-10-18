@@ -46,3 +46,31 @@ def test_verified_agents_counts_commands_and_worktree_changes(tmp_path):
     assert set(verified) == {"openhands", "opencode"}
     assert verified["openhands"] == {"runs": 1, "models": ["openai/c1"]}
     assert verified["opencode"] == {"runs": 1, "models": ["opencode/big-pickle"]}
+
+
+def test_verified_agents_skips_runs_that_touched_another_project(tmp_path):
+    ledger = Ledger(tmp_path / "state")
+    leaked = ledger.create("p", "t1", "opencode", tmp_path / "w1", model="m")
+    _finish(
+        ledger,
+        leaked,
+        {
+            "git": {"status": "?? new.txt"},
+            "verified_checks": [],
+            "isolation": {"ok": False, "changed_projects": ["other"]},
+        },
+    )
+    clean = ledger.create("p", "t2", "opencode", tmp_path / "w2", model="m")
+    _finish(
+        ledger,
+        clean,
+        {
+            "git": {"status": "?? new.txt"},
+            "verified_checks": [],
+            "isolation": {"ok": True, "changed_projects": []},
+        },
+    )
+
+    verified = ledger.verified_agents()
+
+    assert verified["opencode"] == {"runs": 1, "models": ["m"]}

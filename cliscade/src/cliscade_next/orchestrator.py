@@ -9,6 +9,7 @@ from uuid import uuid4
 
 from filelock import FileLock, Timeout
 
+from cliscade_next import isolation
 from cliscade_next.agents import OpenHands, registry
 from cliscade_next.beads import Beads
 from cliscade_next.context import Handoff, git, load_rules, report_from_claims, snapshot
@@ -122,21 +123,38 @@ class Orchestrator:
         for check in checks:
             check["checkpoint_revision"] = current_git["revision"]
             check["execution_revision_known"] = False
+        baseline = (old.get("isolation") or {}).get("baseline")
+        isolation_state = isolation.check(
+            baseline, isolation.snapshot(self.settings.projects)
+        )
+        if baseline is not None:
+            isolation_state["baseline"] = baseline
+        errors = [
+            {
+                "code": event.get("code"),
+                "reported_by": "OpenHands ConversationErrorEvent",
+                "timestamp": event.get("timestamp"),
+            }
+            for event in events
+            if event.get("kind") == "ConversationErrorEvent"
+        ]
+        if isolation_state["changed_projects"]:
+            errors.append(
+                {
+                    "code": "IsolationViolation",
+                    "reported_by": "git status of registered projects",
+                    "timestamp": None,
+                    "detail": isolation_state["changed_projects"],
+                }
+            )
         return Handoff(
             task=beads.show(attempt["task_id"]),
             rules=load_rules(project, workspace, current_git["base_revision"]),
             project_knowledge=beads.context(),
             git=current_git,
             verified_checks=checks or old.get("verified_checks", []),
-            runtime_errors=[
-                {
-                    "code": event.get("code"),
-                    "reported_by": "OpenHands ConversationErrorEvent",
-                    "timestamp": event.get("timestamp"),
-                }
-                for event in events
-                if event.get("kind") == "ConversationErrorEvent"
-            ],
+            runtime_errors=errors,
+            isolation=isolation_state,
             agent_claims=claims or old.get("agent_claims", []),
             decisions=report.decisions if report else old.get("decisions", []),
             open_steps=report.open_steps
@@ -280,6 +298,15 @@ class Orchestrator:
                     self.beads_factory(project).assign(
                         task_id, agent_id, previous=source["agent"] if source else None
                     )
+                # Zustand aller Projekte nach dem Assign, direkt vor dem Submit:
+                # so zählt weder die eigene Vorbereitung noch die Beads-Änderung
+                # als Verletzung, aber jeder Schreibzugriff des Agenten danach.
+                checkpoint["isolation"] = {
+                    "ok": True,
+                    "changed_projects": [],
+                    "baseline": isolation.snapshot(self.settings.projects),
+                }
+                self.ledger.update(attempt["id"], checkpoint=checkpoint)
                 session = self.runner.attach(agent, workspace)
                 self.ledger.update(
                     attempt["id"],
