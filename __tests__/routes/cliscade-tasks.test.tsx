@@ -137,7 +137,11 @@ describe("CLIScade tasks", () => {
     fireEvent.change(await screen.findByLabelText("CLISCADE$AGENT"), {
       target: { value: "openhands" },
     });
-    await screen.findByRole("option", { name: "openai/ant" });
+    await waitFor(() =>
+      expect(
+        document.querySelector('datalist option[value="openai/ant"]'),
+      ).toBeTruthy(),
+    );
     fireEvent.change(screen.getByLabelText("CLISCADE$MODEL"), {
       target: { value: "openai/ant" },
     });
@@ -162,11 +166,15 @@ describe("CLIScade tasks", () => {
     fireEvent.change(screen.getByLabelText("CLISCADE$AGENT"), {
       target: { value: "kiro" },
     });
-    await screen.findByRole("option", { name: "cli-model" });
+    await waitFor(() =>
+      expect(
+        document.querySelector('datalist option[value="cli-model"]'),
+      ).toBeTruthy(),
+    );
     expect(screen.getByLabelText("CLISCADE$MODEL")).toHaveValue("");
     expect(
-      screen.queryByRole("option", { name: "openai/ant" }),
-    ).not.toBeInTheDocument();
+      document.querySelector('datalist option[value="openai/ant"]'),
+    ).toBeNull();
     fireEvent.change(screen.getByLabelText("CLISCADE$AGENT"), {
       target: { value: "auto" },
     });

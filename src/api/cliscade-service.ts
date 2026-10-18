@@ -54,6 +54,8 @@ export interface TaskAgent {
   command: string[];
   model: string | null;
   live_verified: boolean;
+  verified_runs?: number;
+  verified_models?: string[];
   transport?: "acp" | "openhands";
 }
 
