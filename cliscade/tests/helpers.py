@@ -17,7 +17,7 @@ class FakeBeads:
     def update(self, task_id, **fields):
         return self.show(task_id) | fields
 
-    def assign(self, task_id, agent_id, previous=None):
+    def assign(self, task_id, agent_id, previous=None, allow_stale_claim=False):
         return self.show(task_id) | {"assignee": agent_id}
 
 

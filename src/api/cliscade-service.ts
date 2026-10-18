@@ -33,6 +33,11 @@ export interface TaskCheckpoint {
   agent_claims: unknown[];
   decisions: string[];
   open_steps: string[];
+  isolation?: {
+    ok: boolean;
+    changed_projects: string[];
+    scope: string;
+  } | null;
 }
 
 export interface TaskAttempt {

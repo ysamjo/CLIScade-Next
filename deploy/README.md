@@ -27,6 +27,9 @@ docker compose up -d
 `init-secrets.py` erstellt `runtime.env` mit Modus 0600 und überschreibt keine
 bestehende Datei. Diese Datei niemals committen oder bei Updates neu erzeugen:
 Agent-Server-Sessions und verschlüsselte Anbieter-Secrets benötigen dieselben Schlüssel.
+Wer den Quellbaum auf dem NAS aktualisiert, muss `deploy/runtime.env` ausschließen —
+ein Ersetzen des Baumes zerstört die Schlüssel, ein Neu Erzeugen die Sessions.
+Die Werten stehen bis zum nächsten Container-Neubau in `docker inspect`.
 Produktives Compose verwendet ausschließlich fertige Images, keine Builds und
 keine Variablensubstitution. `x-casaos.port_map` ist eine Zeichenkette. Die App
 wird durch Compose gestartet; eine Installation als CasaOS-Dashboard-Kachel ist
