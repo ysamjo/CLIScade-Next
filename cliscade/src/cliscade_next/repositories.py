@@ -12,6 +12,8 @@ import httpx
 from filelock import FileLock
 from openhands.sdk.workspace import RemoteWorkspace
 
+from cliscade_next.projects import Projects
+
 
 class RepositoryWorkspaces:
     def __init__(self, settings):
@@ -109,11 +111,19 @@ class RepositoryWorkspaces:
             raise ValueError(
                 "Repository ist in der GitHub-Auswahl nicht mehr verfügbar."
             )
+        projects = Projects(self.settings)
+        existing = projects.get(name)
+        if existing and Path(existing["root"]).is_dir():
+            prepared = projects.refresh(name)
+            self._remember(name)
+            return prepared
         self.settings.projects.mkdir(parents=True, exist_ok=True)
+        target = projects.root(name)
+        if target.exists():
+            raise RuntimeError(
+                "Projektverzeichnis existiert ohne Eintrag; vor dem Klonen prüfen"
+            )
         staging = self.settings.projects / ".imports" / uuid4().hex
-        target = self.settings.projects / (
-            name.replace("/", "--") + "--" + uuid4().hex[:8]
-        )
         staging.mkdir(parents=True, mode=0o700)
         workspace = self.workspace()
         try:
@@ -154,15 +164,31 @@ class RepositoryWorkspaces:
                 capture_output=True,
             )
             clone.rename(target)
-            with self.lock:
-                prefs = json.loads(self.path.read_text()) if self.path.exists() else {}
-                recent = [name] + [
-                    item for item in prefs.get("recent", []) if item != name
-                ]
-                temp = self.path.with_suffix(".tmp")
-                temp.write_text(json.dumps({"selected": name, "recent": recent[:10]}))
-                temp.replace(self.path)
-            return {"path": str(target), "repository": repo}
         finally:
             workspace.client.close()
             shutil.rmtree(staging, ignore_errors=True)
+        record = projects.register(name, target, repo["main_branch"])
+        beads = True
+        beads_error = None
+        try:
+            projects.ensure_beads(name)
+        except Exception:
+            beads = False
+            beads_error = "Beads-Einrichtung fehlgeschlagen; bd doctor prüfen"
+        self._remember(name)
+        return {
+            "path": str(target),
+            "project": record,
+            "repository": repo,
+            "reused": False,
+            "beads": beads,
+            "beads_error": beads_error,
+        }
+
+    def _remember(self, name):
+        with self.lock:
+            prefs = json.loads(self.path.read_text()) if self.path.exists() else {}
+            recent = [name] + [item for item in prefs.get("recent", []) if item != name]
+            temp = self.path.with_suffix(".tmp")
+            temp.write_text(json.dumps({"selected": name, "recent": recent[:10]}))
+            temp.replace(self.path)

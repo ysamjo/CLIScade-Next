@@ -13,6 +13,7 @@ from cliscade_next.agents import OpenHands, registry
 from cliscade_next.beads import Beads
 from cliscade_next.context import Handoff, git, load_rules, report_from_claims, snapshot
 from cliscade_next.ledger import Ledger
+from cliscade_next.projects import link_beads
 
 
 def evidence(events):
@@ -236,7 +237,9 @@ class Orchestrator:
                     self.settings.projects / ".cliscade-worktrees" / str(uuid4())
                 )
                 workspace.parent.mkdir(parents=True, exist_ok=True)
-                git(project, "worktree", "add", "--detach", str(workspace), "HEAD")
+                branch = f"cliscade/{task_id}-{str(uuid4())[:8]}"
+                git(project, "worktree", "add", "-b", branch, str(workspace), "HEAD")
+                link_beads(project, workspace)
             attempt = self.ledger.create(
                 project_name,
                 task_id,

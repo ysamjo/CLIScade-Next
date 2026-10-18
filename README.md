@@ -5,7 +5,7 @@ Beads als Aufgabenquelle und wechselbaren Coding-Agenten. OpenHands liefert
 Canvas, Agent Server, Sessions und ACP-Transport. Der eigene OpenHands-Agent
 verwendet OmniRoute; externe CLIs behalten ihren eigenen Harness und Kontologin.
 
-**Stand 18. Oktober 2026, Version 0.10.0: Die Bausteine laufen, der gemeinsame
+**Stand 18. Oktober 2026, Version 0.11.0: Die Bausteine laufen, der gemeinsame
 Projekt-/Task-Ablauf ist noch nicht vollständig verbunden.** Die frühere Aussage
 „fünf Meilensteine implementiert“ bezeichnet die technischen Teilfunktionen,
 nicht die vollständige Erfüllung der V1-Abnahmekriterien.
@@ -37,33 +37,39 @@ getrennten Worktrees. Anbieterinterne Gesprächshistorien werden nicht als
 
 | Bereich | Vorhanden / geprüft | Noch offen |
 |---|---|---|
-| GitHub und Workspace | PAT serverseitig; unter „New Chat“ Auswahl aus bis zu 30 Repositories, letzte Auswahl und zehn zuletzt verwendete Namen persistent; privater Git-Zugriff und Feature-Branch live geprüft | Pro Chat entsteht ein neuer Klon. Stabile Projekt-ID und Wiederverwendung eines Projekt-Roots fehlen; die Auswahl erzeugt noch kein gemeinsames Beads-Projekt |
+| GitHub und Workspace | PAT serverseitig; unter „New Chat“ Auswahl aus bis zu 30 Repositories, letzte Auswahl und zehn zuletzt verwendete Namen persistent; privater Git-Zugriff und Feature-Branch live geprüft. Ein Repository wird genau einmal geklont: Projekt-ID und Projektverzeichnis bleiben stabil, ein zweiter Aufruf verwendet denselben Root und überschreibt keinen Arbeitsstand | Ein Repository-Klon und eine Beads-Liste sind noch nicht für jedes bestehende Projekt migriert; Altdaten aus der Zeit mit Zufallssuffix bleiben als Beads-lose Verzeichnisse liegen |
 | Beads und Task-Verlauf | `/tasks`: Projekte, Aufgaben, Status, Prioritäten, Abhängigkeiten, ACP-Runs, Sessions, Checkpoints und Handoff; Backend-/Protokolltests und kontrollierte ACP-E2Es | GitHub-Auswahl und Task-Projekte sind getrennt. OpenHands lässt sich jetzt als Task-Run starten; freie New-Chat-Conversations werden nicht nachträglich Tasks zugeordnet |
-| Agenten und Modelle | Sechs ACP-Agenten registriert; native Anmeldung, Capability-/Modellerkennung; Modell über Routing-Konfiguration festlegbar | Task-Auswahl filtert noch nicht zuverlässig auf autorisierte, nutzbare Konten. Dynamische Modellwahl pro Start/Handoff vorhanden; Konsens und Zeitplan verwenden weiterhin die Agentenstandardmodelle |
+| Agenten und Modelle | Sechs ACP-Agenten plus nativer OpenHands-Harness; native Anmeldung, Capability-/Modellerkennung; dynamische Modellwahl pro Start und Handoff. `live_verified` und die belegten Modelle stammen aus dem Ledger: abgeschlossener Lauf ohne Fehler und mit Spur (Kommando mit Exit-Code oder Änderung im Arbeitsbaum), nicht aus einer Konfigurationsangabe | Task-Auswahl filtert noch nicht zuverlässig auf autorisierte, nutzbare Konten. Auf dem NAS gemessen: `codex` verweigert mit `ACPAuthRequired`, `kiro` startet nicht (`Connection closed`), `opencode` und `openhands` sind belegt. Der Modellkatalog des Gateways umfasst über 4000 Einträge; gefiltert wird im Feld, nicht serverseitig |
 | OpenHands und OmniRoute | Profil `OmniRoute`, Modell `openai/c1`; nativer Beads-Task mit exaktem Datei-/Werkzeugnachweis und persistiertem Run geprüft | OpenHands ist als Ausführungsweg im Beads-Task-Runner mit gemeinsamem Verlauf verfügbar. `c1` ist eine Gateway-Kombination; nicht jeder enthaltene Anbieter ist damit einzeln verifiziert |
-| Orchestrierung und Betrieb | Strukturierter Handoff, Routing, vorsichtiger Fallback, unabhängiger Konsens und native Automation implementiert; NAS-Compose, persistente Volumes und private Tailscale-Serve-Routen vorhanden | Vollständiger gemischter CLI-/OpenHands-Task-E2E, alle NAS-Konten, vollständiger Restore und strengere Sandbox-Betriebsarten müssen nachgewiesen werden |
+| Orchestrierung und Betrieb | Strukturierter Handoff, Routing, vorsichtiger Fallback, unabhängiger Konsens und native Automation implementiert; NAS-Compose, persistente Volumes und private Tailscale-Serve-Routen vorhanden. Zeitpläne sind gesperrt, bis `CLISCADE_ALLOW_UNATTENDED=1` gesetzt ist. Gemischter Wechsel live belegt: `opencode` → `openhands` → `opencode` auf einem Worktree, Datei und Entscheidungen bleiben erhalten, Quellprojekt unberührt, nach Dienstneustart unverändert lesbar | Offen: Neustart des Agent Servers mitten in einer Session, weitere Anbieterkonten, vollständiger Restore, strengere Sandbox-Betriebsarten. Worktrees bleiben keine Dateisystemgrenze |
 
 Die neue Repository-Auswahl ist ein Übergangsschritt, keine fertige gemeinsame
 Projektverwaltung. Siehe [genaues Workspace-Verhalten](deploy/REPOSITORIES.md).
-Der neueste GitHub-Dateitest legte die angeforderte Datei an, erfüllte deren
-exakten Inhalt aber nicht: Der geforderte abschließende Zeilenumbruch fehlt. Git-Zugriff und Workspace-Vorbereitung bestanden;
-der exakte Datei-Abnahmetest bleibt fehlgeschlagen.
+Der jüngste gemischte Lauf auf dem NAS legte die angeforderte Datei mit exaktem
+Inhalt inklusive abschließendem Zeilenumbruch an, änderte nichts außerhalb des
+Worktrees und ließ das Quellprojekt sauber. Der frühere Befund (fehlender
+Zeilenumbruch) ist damit überholt; die Prüfung bleibt Teil jedes Abnahmelaufs.
 
 ## Nächste Umsetzung, in dieser Reihenfolge
 
-1. **Ein Repository = ein Projekt:** GitHub-ID auf einen persistenten Projekt-Root
-   abbilden; eine Beads-Instanz pro Projekt. Worktrees und Runs referenzieren
-   dieselbe Projekt-ID, erzeugen keine konkurrierenden Aufgabenbestände.
-2. **Task-Einstieg vereinheitlichen:** OpenHands/OmniRoute ist jetzt neben ACP im
+1. **Ein Repository = ein Projekt:** erledigt in 0.11.0. Projekt-ID und
+   Projektverzeichnis entstehen einmal aus `owner/repo`, ein zweiter Aufruf
+   verwendet denselben Root, und der Worktree erhält einen Verweis auf die
+   kanonische Beads-Liste statt einer zweiten Datenbank. Offen bleibt die
+   Migration der Altdaten aus der Zeit mit Zufallssuffix.
+2. **Task-Einstieg vereinheitlichen:** OpenHands/OmniRoute ist neben ACP im
    vorhandenen Attempt-/Checkpoint-Modell verfügbar. Start, Abbruch, Wiederaufnahme
-   und Handoff verwenden denselben Verlauf. Der New-Chat-Einstieg und die
-   GitHub-Projektidentität müssen noch in diesen Ablauf überführt werden.
+   und Handoff verwenden denselben Verlauf. Der New-Chat-Einstieg muss noch in
+   diesen Ablauf überführt werden.
 3. **Agent und Modell auswählen:** Installation, Anmeldung, Discovery und echte
-   Ausführung als getrennte Zustände darstellen. Die implementierte Modellwahl
-   verwendet Discovery und speichert die Auswahl pro Attempt; Kontofilter und Freigabezustände fehlen noch.
-4. **Gemeinsamen Ablauf beweisen:** Ein privates GitHub-Projekt öffnen, Task
-   erstellen, mit angemeldeter CLI bearbeiten, an einen zweiten Agenten und
-   OpenHands übergeben, Prüfbelege vergleichen und Persistenz nach Neustart testen.
+   Ausführung als getrennte Zustände darstellen. `live_verified` und die belegten
+   Modelle kommen jetzt aus dem Ledger; Kontofilter und Freigabezustände fehlen noch.
+4. **Gemeinsamen Ablauf beweisen:** in 0.12.0 für einen Pfad erledigt — privates
+   Repository, Task, CLI `opencode`, Übergabe an `openhands`, Rückübergabe an
+   `opencode`, ein Worktree, Datei und Entscheidungen erhalten, Quellprojekt
+   unberührt, nach Dienstneustart lesbar. Offen: Neustart des Agent Servers mitten
+   in der Session, ein zweiter CLI-Anbieter mit echtem Konto, ein Prüf-Agent als
+   dritter Hop.
 5. **V1 abschließen:** Konto-/Provider-E2Es, Konsens und Scheduler auf diesem
    gemeinsamen Pfad prüfen; Restore und Installation dokumentiert wiederholen.
 

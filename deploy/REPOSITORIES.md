@@ -13,14 +13,30 @@ unter diesem vom SDK erwarteten Namen. Das ursprüngliche Secret bleibt erhalten
 für spätere Rotation `github_token` aktualisieren. Kein Token gelangt in den
 Browser oder in die Auswahlantwort.
 
-Beim Absenden wird über `RemoteWorkspace.clone_repos` ein eigener Checkout unter
-`/projects` erstellt. Der SDK-Klonpfad schreibt eine authentifizierte Remote-URL;
-der Integrationsdienst ersetzt sie vor der Freigabe durch die reine HTTPS-URL.
-Ein Git-Credential-Helper liest das Secret bei Bedarf vom lokalen Agent Server,
-begrenzt auf github.com. Eine falsche Repository-ID, fehlendes PAT oder ein
+Beim Absenden wird über `RemoteWorkspace.clone_repos` ein Checkout unter
+`/projects/<owner>--<repo>` erstellt. Der SDK-Klonpfad schreibt eine authentifizierte
+Remote-URL; der Integrationsdienst ersetzt sie vor der Freigabe durch die reine
+HTTPS-URL. Ein Git-Credential-Helper liest das Secret bei Bedarf vom lokalen Agent
+Server, begrenzt auf github.com. Eine falsche Repository-ID, fehlendes PAT oder ein
 fehlgeschlagener Klon startet keinen leeren Ersatz-Chat. Der Prompt bleibt erhalten.
-Als Übergang entsteht pro Chat ein eigener Klon; das braucht mehr Speicher als ein Cache,
-vermeidet aber das Zurücksetzen oder Wiederholen bereits geänderter Arbeitsstände.
+
+## Ein Repository, ein Projekt (0.11.0)
+
+Projekt-ID und Projektverzeichnis entstehen einmal aus `owner/repo`
+(`owner--repo`) und werden in `state/projects.json` festgehalten. Ein zweiter
+Aufruf klont nicht erneut, sondern aktualisiert den vorhandenen Root
+(`git fetch`, ohne Arbeitsstand zu überschreiben) und meldet `reused`. Ein
+vorhandenes Verzeichnis ohne Registry-Eintrag wird nicht blind übernommen.
+
+Beim Anlegen erhält das Projekt genau eine Beads-Liste. Jeder Run bekommt einen
+Worktree mit eigenem Branch `cliscade/<task>-<zufall>` und einem Verweis
+`.beads` auf die kanonische Liste des Projekts; der Verweis steht in
+`info/exclude`, damit der Worktree sauber bleibt. Ohne diesen Verweis kann ein
+Agent im Worktree einen zweiten Aufgabenbestand anlegen.
+
+`/projects` listet registrierte Projekte und vorhandene Beads-Verzeichnisse.
+Verzeichnisse ohne Registry-Eintrag und ohne Beads erscheinen nicht mehr — ein
+Klon ohne Aufgabenliste ist kein Projekt.
 
 Canvas startet anschließend den nativen OpenHands-Worktree mit Feature-Branch
 `openhands/<conversation-id>`. Sein Root ist `/workspace/worktrees` und liegt im

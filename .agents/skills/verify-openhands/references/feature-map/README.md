@@ -257,10 +257,9 @@ How to write and prove new entries: [../mapping.md](../mapping.md).
 | F26 | [Launcher modes, Docker, desktop and library](F26-runtime-variants.md) | launcher flags, partial stacks, LAN bind, Docker, Electron, embeddable library | a terminal | Docker/Electron where available | 34 |
 | F27 | [Workspace tools](F27-workspace-tools.md) | terminal, browser, planner, task list, usage, `canvas_ui_control` | drawer tabs | LLM | 30 |
 | F28 | [Automation setup page](F28-automation-setup-page.md) | blank form, kind toggle, schedule presets, event fields, timeout, draft save and validation, draft Test, Create | **Add Automation → Create Automation**, `/automations/setup`, draft Resume, kebab Edit | automation service; no LLM | 13 |
+| F29 | [CLIScade Beads-Aufgaben](F29-cliscade-tasks.md) | Aufgabenbaum, CRUD, ACP-Runs, Handoff, Checkpoints und Mobile | Seitenleiste, `/tasks` | CLIScade + Beads + Agent Server | 15 |
 
-| F29 | [CLIScade Beads-Aufgaben](F29-cliscade-tasks.md) | Aufgabenbaum, CRUD, ACP-Runs, Handoff, Checkpoints und Mobile | Seitenleiste, `/tasks` | CLIScade + Beads + Agent Server | 13 |
-
-29 families, 791 sub-features. `control-openhands map ids` lists every ID with its file.
+29 families, 793 sub-features. `control-openhands map ids` lists every ID with its file.
 
 ### Neighbouring families
 

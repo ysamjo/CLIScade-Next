@@ -45,6 +45,38 @@ class Ledger:
             if "model" not in columns:
                 db.execute("ALTER TABLE attempts ADD COLUMN model TEXT")
 
+    def verified_agents(self):
+        """Agenten mit mindestens einem abgeschlossenen Lauf, der Spuren hinterließ.
+
+        `completed` allein genügt nicht: ein Lauf kann fertig sein und trotzdem am
+        falschen Ort gearbeitet haben. Als Beleg zählt entweder ein Kommando mit
+        Exit-Code (`verified_checks`, so arbeitet der native OpenHands-Harness)
+        oder eine nachweisbare Änderung im Arbeitsbaum (`git.status`). ACP-Agenten
+        führen Werkzeuge über ihr eigenes Protokoll aus; ihre Kommandos landen nicht
+        in `verified_checks`. Ohne den Git-Zweig wäre kein ACP-Lauf je belegt,
+        obwohl er Dateien geändert hat.
+        """
+        with self.connect() as db:
+            rows = db.execute(
+                "SELECT agent, model, checkpoint FROM attempts "
+                "WHERE status='completed' AND error IS NULL AND checkpoint IS NOT NULL"
+            ).fetchall()
+        result = {}
+        for row in rows:
+            try:
+                checkpoint = json.loads(row["checkpoint"])
+            except (ValueError, AttributeError):
+                continue
+            checks = checkpoint.get("verified_checks") or []
+            changed = ((checkpoint.get("git") or {}).get("status") or "").strip()
+            if not checks and not changed:
+                continue
+            entry = result.setdefault(row["agent"], {"runs": 0, "models": []})
+            entry["runs"] += 1
+            if row["model"] and row["model"] not in entry["models"]:
+                entry["models"].append(row["model"])
+        return result
+
     @contextmanager
     def connect(self):
         db = sqlite3.connect(self.path, timeout=30)

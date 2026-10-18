@@ -7,14 +7,16 @@ from cliscade_next.orchestrator import evidence
 
 
 def test_api_requires_key_and_refuses_unknown_provider_and_extra_task_fields(tmp_path):
-    (tmp_path / "project").mkdir()
+    (tmp_path / "project" / ".beads").mkdir(parents=True)
     app = create_app(
         Settings(tmp_path, tmp_path / "state", "http://localhost:8000", "test-key")
     )
     client = TestClient(app)
     assert client.get("/cliscade/v1/projects").status_code == 401
     client.headers["X-Session-API-Key"] = "test-key"
-    assert client.get("/cliscade/v1/projects").json()[0]["id"] == "project"
+    listed = client.get("/cliscade/v1/projects").json()
+    assert [item["id"] for item in listed] == ["project"]
+    assert listed[0]["beads"] is True
     assert (
         client.post(
             "/cliscade/v1/projects/project/attempts",
@@ -126,3 +128,18 @@ def test_pending_login_poll_does_not_start_a_competing_native_status_process(
     assert response.status_code == 200
     assert response.json()["url"] == "https://www.codebuddy.ai/login"
     assert response.json()["connected"] is False
+
+
+def test_unattended_schedules_are_refused_until_isolation_is_enabled(tmp_path):
+    (tmp_path / "project" / ".beads").mkdir(parents=True)
+    app = create_app(
+        Settings(tmp_path, tmp_path / "state", "http://localhost:8000", "test-key")
+    )
+    client = TestClient(app)
+    client.headers["X-Session-API-Key"] = "test-key"
+    refused = client.post(
+        "/cliscade/v1/projects/project/tasks/cn-1/schedule",
+        json={"cron": "0 9 * * 1", "agent_id": "auto"},
+    )
+    assert refused.status_code == 400
+    assert "CLISCADE_ALLOW_UNATTENDED" in refused.json()["detail"]

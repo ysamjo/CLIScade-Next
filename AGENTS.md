@@ -133,6 +133,20 @@ Credential-Helper löst das Secret nur für github.com zur Laufzeit auf. Fehlges
 Vorbereitung darf keinen Scratch-Chat starten. Auswahl und MRU liegen im Serverzustand.
 OpenHands-Worktrees liegen persistent unter `/workspace/worktrees`.
 
+CLIScade 0.11.0: Projektidentität und Aufgabenbestand sind aneinander gebunden.
+`projects.py` ist die einzige Quelle für Projekt-ID (`owner--repo`) und Root;
+`repositories.prepare()` klont einmal und verwendet danach denselben Root
+(`reused`), ohne Arbeitsstände zu überschreiben. `/projects` listet registrierte
+Projekte und vorhandene Beads-Verzeichnisse, keine Klone ohne Aufgabenliste.
+Runs erhalten einen Worktree mit Branch `cliscade/<task>-<zufall>` und einen
+`.beads`-Verweis auf die kanonische Liste (`link_beads`, in `info/exclude`);
+Worktrees dürfen keine zweite Aufgaben-Datenbank anlegen. `live_verified` und
+`verified_models` stammen aus dem Ledger (`verified_agents`: abgeschlossener
+Lauf ohne Fehler mit Werkzeugbelegen) — nie aus einer Konfigurationsangabe, und
+`completed` allein zählt nicht als Beleg. Zeitpläne sind gesperrt, bis
+`CLISCADE_ALLOW_UNATTENDED=1` gesetzt ist: ein Worktree ist keine
+Dateisystemgrenze, unbeaufsichtigte Läufe brauchen zuerst geprüfte Isolation.
+
 ## Verbindliche CLIScade-Projektgrenzen
 
 Ziel: ein gemeinsamer GitHub-Workspace, ein Repository als stabiles Projekt und

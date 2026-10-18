@@ -89,7 +89,11 @@ def test_catalog_uses_pat_alias_without_exposing_value_and_remembers_workspace(
     assert json.loads(alias.content)["value"] == "private-token"
     first = service.prepare("owner/other")
     second = service.prepare("owner/other")
-    assert first["path"] != second["path"]
+    assert first["path"] == second["path"]
+    assert first["reused"] is False
+    assert second["reused"] is True
+    assert len(clones) == 1
+    assert second["project"]["id"] == "owner--other"
     assert service.catalog()["repositories"][0]["full_name"] == "owner/other"
     assert service.preference() == {
         "selected": "owner/other",
