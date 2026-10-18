@@ -103,7 +103,8 @@ def test_consensus_carries_the_chosen_model_per_participant(system):
         attempt["agent"]: attempt["model"] for attempt in group["attempts"]
     }
     assert models == {"one": None, "two": "special/model"}
-    # Der Ledger trägt das Modell, damit die Auswahl über den Lauf hinaus sichtbar bleibt.
+    # Der Ledger trägt das Modell: die Auswahl bleibt über den Lauf
+    # hinaus sichtbar.
     for attempt in group["attempts"]:
         saved = service.ledger.get(attempt["id"])
         assert saved["model"] == attempt["model"]
