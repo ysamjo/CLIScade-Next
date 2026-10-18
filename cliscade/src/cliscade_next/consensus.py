@@ -13,7 +13,11 @@ class Consensus:
     def __init__(self, service):
         self.service = service
 
-    def start(self, project, task_id, agents):
+    def start(self, project, task_id, agents, models=None):
+        models = models or {}
+        unknown = set(models) - set(agents)
+        if unknown:
+            raise ValueError("Modell gehört zu keinem Teilnehmer des Konsens")
         if not 2 <= len(set(agents)) == len(agents) <= 4:
             raise ValueError("Konsens benötigt zwei bis vier verschiedene ACP-Agenten")
         if any(
@@ -51,6 +55,10 @@ class Consensus:
                         assign=False,
                         consensus_id=group_id,
                         initial_context=baseline,
+                        # Ohne das Modell läuft jeder Teilnehmer auf seinem
+                        # Standard; der Konsens vergleicht dann nicht die
+                        # gewählte Auswahl.
+                        model=models.get(agent),
                     )
                     attempts.append(attempt["id"])
                     with ledger.connect() as db:

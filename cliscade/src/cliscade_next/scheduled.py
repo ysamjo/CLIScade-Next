@@ -22,13 +22,18 @@ def dispatch(config, client, run_id, on_start=None, poll_seconds=5, timeout=1500
     response.raise_for_status()
     if response.json()["status"] == "closed":
         return {"status": "skipped", "reason": "task_closed"}
+    payload = {
+        "task_id": config["task_id"],
+        "agent_id": config["agent_id"],
+        "request_key": "automation:" + run_id,
+    }
+    if config.get("model"):
+        # Der Zeitplan trägt das Modell mit; sonst läuft der Agent auf seinem
+        # Standard statt auf der gewählten Auswahl.
+        payload["model"] = config["model"]
     response = client.post(
         f"/cliscade/v1/projects/{project}/attempts",
-        json={
-            "task_id": config["task_id"],
-            "agent_id": config["agent_id"],
-            "request_key": "automation:" + run_id,
-        },
+        json=payload,
     )
     response.raise_for_status()
     attempt = response.json()
