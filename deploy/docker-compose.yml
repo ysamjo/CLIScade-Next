@@ -21,10 +21,6 @@ services:
     image: cliscade-next-service:0.14.0
     restart: unless-stopped
     env_file: runtime.env
-    # Nur Loopback: Diagnose und Skripte greifen lokal zu, Nutzer gehen über
-    # den Canvas-Proxy. Der Port gehört zum Betrieb, nicht ins Produkt-Routing.
-    ports:
-      - "127.0.0.1:18002:18002"
     environment:
       CLISCADE_LOGIN_HOME: /workspace/home
       CLISCADE_PROJECTS: /projects
