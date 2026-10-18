@@ -58,7 +58,10 @@ def test_claim_error_names_the_holder():
 def test_reclaim_falls_back_without_any_replica():
     beads = FlakyBeads(
         [
-            RuntimeError("Beads-Zugriff fehlgeschlagen; bd doctor prüfen — unknown flag: --any-replica"),
+            RuntimeError(
+                "Beads-Zugriff fehlgeschlagen; bd doctor prüfen — "
+                "unknown flag: --any-replica"
+            ),
             {"reclaimed": 1},
         ]
     )
