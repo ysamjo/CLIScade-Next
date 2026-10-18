@@ -425,7 +425,7 @@ export default function CliscadeTasks() {
                   </label>
                   {!!availableModels.length && (
                     <span className="text-sm text-muted">
-                      {availableModels.length}
+                      {availableModels.length} {t(I18nKey.CLISCADE$MODELS)}
                     </span>
                   )}
                 </div>
