@@ -46,10 +46,15 @@ class Ledger:
                 db.execute("ALTER TABLE attempts ADD COLUMN model TEXT")
 
     def verified_agents(self):
-        """Agenten mit mindestens einem abgeschlossenen Lauf mit Werkzeugbelegen.
+        """Agenten mit mindestens einem abgeschlossenen Lauf, der Spuren hinterließ.
 
         `completed` allein genügt nicht: ein Lauf kann fertig sein und trotzdem am
-        falschen Ort gearbeitet haben. Gezählt wird nur, was Belege hinterlassen hat.
+        falschen Ort gearbeitet haben. Als Beleg zählt entweder ein Kommando mit
+        Exit-Code (`verified_checks`, so arbeitet der native OpenHands-Harness)
+        oder eine nachweisbare Änderung im Arbeitsbaum (`git.status`). ACP-Agenten
+        führen Werkzeuge über ihr eigenes Protokoll aus; ihre Kommandos landen nicht
+        in `verified_checks`. Ohne den Git-Zweig wäre kein ACP-Lauf je belegt,
+        obwohl er Dateien geändert hat.
         """
         with self.connect() as db:
             rows = db.execute(
@@ -59,10 +64,12 @@ class Ledger:
         result = {}
         for row in rows:
             try:
-                checks = json.loads(row["checkpoint"]).get("verified_checks") or []
+                checkpoint = json.loads(row["checkpoint"])
             except (ValueError, AttributeError):
                 continue
-            if not checks:
+            checks = checkpoint.get("verified_checks") or []
+            changed = ((checkpoint.get("git") or {}).get("status") or "").strip()
+            if not checks and not changed:
                 continue
             entry = result.setdefault(row["agent"], {"runs": 0, "models": []})
             entry["runs"] += 1
