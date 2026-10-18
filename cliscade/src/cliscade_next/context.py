@@ -24,6 +24,7 @@ class Handoff(BaseModel):
     decisions: list[str] = Field(default_factory=list)
     open_steps: list[str] = Field(default_factory=list)
     source_attempt: str | None = None
+    isolation: dict | None = None
     omitted: list[str] = Field(default_factory=list)
     captured_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
 
