@@ -59,3 +59,73 @@ def test_scheduled_dispatch_uses_stable_run_key_and_waits_for_completion():
             poll_seconds=0,
         )
     assert result["status"] == "completed"
+
+
+def test_scheduled_run_carries_the_model_into_the_attempt():
+    payloads = []
+
+    def handle(request):
+        if request.method == "POST":
+            payloads.append(json.loads(request.content))
+            return httpx.Response(201, json={"id": "a1", "status": "running"})
+        if request.url.path.endswith("/cn-1"):
+            return httpx.Response(200, json={"id": "cn-1", "status": "open"})
+        return httpx.Response(200, json={"id": "a1", "status": "completed"})
+
+    with httpx.Client(
+        base_url="http://cliscade", transport=httpx.MockTransport(handle)
+    ) as client:
+        dispatch(
+            {
+                "project": "project",
+                "task_id": "cn-1",
+                "agent_id": "auto",
+                "model": "openai/c1",
+            },
+            client,
+            "run-2",
+            poll_seconds=0,
+        )
+    assert payloads[0]["model"] == "openai/c1"
+
+
+def test_schedule_without_model_does_not_send_one():
+    payloads = []
+
+    def handle(request):
+        if request.method == "POST":
+            payloads.append(json.loads(request.content))
+            return httpx.Response(201, json={"id": "a1", "status": "running"})
+        if request.url.path.endswith("/cn-1"):
+            return httpx.Response(200, json={"id": "cn-1", "status": "open"})
+        return httpx.Response(200, json={"id": "a1", "status": "completed"})
+
+    with httpx.Client(
+        base_url="http://cliscade", transport=httpx.MockTransport(handle)
+    ) as client:
+        dispatch(
+            {"project": "project", "task_id": "cn-1", "agent_id": "auto"},
+            client,
+            "run-3",
+            poll_seconds=0,
+        )
+    assert "model" not in payloads[0]
+
+
+def test_automation_bundle_carries_the_model_and_changes_identity():
+    configs = []
+
+    def handle(request):
+        if request.url.path.endswith("/uploads"):
+            with tarfile.open(fileobj=io.BytesIO(request.content), mode="r:gz") as tar:
+                configs.append(json.load(tar.extractfile("cliscade.json")))
+            return httpx.Response(201, json={"tarball_path": "oh-internal://upload"})
+        return httpx.Response(201, json={"id": "automation"})
+
+    create = Automation(
+        SimpleNamespace(api_key="test-key"), httpx.MockTransport(handle)
+    ).create
+    create("project", "cn-1", "auto", "0 9 * * 1", "Europe/Berlin", model="openai/c1")
+    create("project", "cn-1", "auto", "0 9 * * 1", "Europe/Berlin")
+    assert configs[0]["model"] == "openai/c1"
+    assert "model" not in configs[1]

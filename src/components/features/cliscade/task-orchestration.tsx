@@ -38,6 +38,8 @@ export function TaskOrchestration({
   const { t } = useTranslation("openhands");
   const cache = useQueryClient();
   const [participants, setParticipants] = useState<string[]>([]);
+  const [models, setModels] = useState<Record<string, string>>({});
+  const [scheduleModel, setScheduleModel] = useState("");
   const [cron, setCron] = useState("0 9 * * 1-5");
   const [timezone, setTimezone] = useState("Europe/Berlin");
   const [scheduled, setScheduled] = useState(false);
@@ -62,7 +64,13 @@ export function TaskOrchestration({
     change.mutate(
       {
         path: `${projectTaskPath(project)}/${encodeURIComponent(taskId)}/schedule`,
-        body: { cron, timezone, agent_id: agent },
+        body: {
+          cron,
+          timezone,
+          agent_id: agent,
+          // Leer heißt: Standard des Agenten, kein Feldschlüssel.
+          ...(scheduleModel.trim() ? { model: scheduleModel.trim() } : {}),
+        },
       },
       { onSuccess: () => setScheduled(true) },
     );
@@ -97,9 +105,20 @@ export function TaskOrchestration({
       <form
         onSubmit={(event) => {
           event.preventDefault();
+          // Nur gesetzte Einträge; ein leerer Teilnehmer läuft auf seinem Standard.
+          const chosen = Object.fromEntries(
+            Object.entries(models).filter(
+              ([agent, model]) =>
+                participants.includes(agent) && model.trim() !== "",
+            ),
+          );
           change.mutate({
             path: `/projects/${encodeURIComponent(project)}/consensus`,
-            body: { task_id: taskId, agents: participants },
+            body: {
+              task_id: taskId,
+              agents: participants,
+              ...(Object.keys(chosen).length ? { models: chosen } : {}),
+            },
           });
         }}
       >
@@ -107,23 +126,36 @@ export function TaskOrchestration({
           <legend>{t(I18nKey.CLISCADE$CONSENSUS_AGENTS)}</legend>
           <div className="flex flex-wrap gap-2">
             {agents.map((item) => (
-              <label
-                key={item.id}
-                className="flex min-h-11 items-center gap-2 rounded border border-border px-3"
-              >
-                <input
-                  type="checkbox"
-                  checked={participants.includes(item.id)}
-                  onChange={(event) =>
-                    setParticipants((current) =>
-                      event.target.checked
-                        ? [...current, item.id]
-                        : current.filter((id) => id !== item.id),
-                    )
-                  }
-                />
-                {item.id}
-              </label>
+              <div key={item.id} className="space-y-1">
+                <label className="flex min-h-11 items-center gap-2 rounded border border-border px-3">
+                  <input
+                    type="checkbox"
+                    checked={participants.includes(item.id)}
+                    onChange={(event) =>
+                      setParticipants((current) =>
+                        event.target.checked
+                          ? [...current, item.id]
+                          : current.filter((id) => id !== item.id),
+                      )
+                    }
+                  />
+                  {item.id}
+                </label>
+                {participants.includes(item.id) && (
+                  <input
+                    className="min-h-11 w-full rounded-lg border border-border bg-canvas-base p-2 text-sm"
+                    aria-label={`${t(I18nKey.CLISCADE$MODEL)} ${item.id}`}
+                    placeholder={t(I18nKey.CLISCADE$MODEL_DEFAULT)}
+                    value={models[item.id] ?? ""}
+                    onChange={(event) =>
+                      setModels((current) => ({
+                        ...current,
+                        [item.id]: event.target.value,
+                      }))
+                    }
+                  />
+                )}
+              </div>
             ))}
           </div>
           <BrandButton
@@ -195,6 +227,15 @@ export function TaskOrchestration({
             className="min-h-11 w-full rounded border border-border bg-canvas-base p-2"
             value={timezone}
             onChange={(event) => setTimezone(event.target.value)}
+          />
+        </label>
+        <label className="block">
+          {t(I18nKey.CLISCADE$SCHEDULE_MODEL)}
+          <input
+            className="min-h-11 w-full rounded border border-border bg-canvas-base p-2"
+            placeholder={t(I18nKey.CLISCADE$MODEL_DEFAULT)}
+            value={scheduleModel}
+            onChange={(event) => setScheduleModel(event.target.value)}
           />
         </label>
         <BrandButton

@@ -271,3 +271,87 @@ describe("CLIScade isolation", () => {
     );
   });
 });
+
+describe("CLIScade model choice", () => {
+  it("sends the chosen model per consensus participant", async () => {
+    vi.mocked(cliscadeRequest).mockImplementation(async (path) => {
+      if (path.endsWith("/probe"))
+        return { discovery: { available_models: [], error: null } };
+      if (path === "/projects") return [{ id: "demo", beads: true }];
+      if (path === "/agents") return [{ id: "codex" }, { id: "kiro" }];
+      if (path.includes("/consensus?")) return [];
+      if (path.endsWith("/tasks"))
+        return [{ id: "cn-3", title: "Konsens", status: "open" }];
+      if (path.includes("/attempts?task_id=")) return [];
+      return [];
+    });
+    render(
+      <QueryClientProvider
+        client={
+          new QueryClient({ defaultOptions: { queries: { retry: false } } })
+        }
+      >
+        <MemoryRouter initialEntries={["/tasks?project=demo&task=cn-3"]}>
+          <CliscadeTasks />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    fireEvent.click(await screen.findByRole("checkbox", { name: "codex" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "kiro" }));
+    fireEvent.change(screen.getByLabelText("CLISCADE$MODEL kiro"), {
+      target: { value: "kiro/fast" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "CLISCADE$START_CONSENSUS" }),
+    );
+    await waitFor(() =>
+      expect(cliscadeRequest).toHaveBeenCalledWith("/projects/demo/consensus", {
+        task_id: "cn-3",
+        agents: ["codex", "kiro"],
+        models: { kiro: "kiro/fast" },
+      }),
+    );
+  });
+
+  it("sends the schedule with a model when one is chosen", async () => {
+    vi.mocked(cliscadeRequest).mockImplementation(async (path) => {
+      if (path.endsWith("/probe"))
+        return { discovery: { available_models: [], error: null } };
+      if (path === "/projects") return [{ id: "demo", beads: true }];
+      if (path === "/agents") return [{ id: "codex" }];
+      if (path.includes("/consensus?")) return [];
+      if (path.endsWith("/tasks"))
+        return [{ id: "cn-4", title: "Zeitplan", status: "open" }];
+      if (path.includes("/attempts?task_id=")) return [];
+      return [];
+    });
+    render(
+      <QueryClientProvider
+        client={
+          new QueryClient({ defaultOptions: { queries: { retry: false } } })
+        }
+      >
+        <MemoryRouter initialEntries={["/tasks?project=demo&task=cn-4"]}>
+          <CliscadeTasks />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    fireEvent.change(await screen.findByLabelText("CLISCADE$SCHEDULE_MODEL"), {
+      target: { value: "openai/c1" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "CLISCADE$CREATE_SCHEDULE" }),
+    );
+    await waitFor(() =>
+      expect(cliscadeRequest).toHaveBeenCalledWith(
+        "/projects/demo/tasks/cn-4/schedule",
+        {
+          cron: "0 9 * * 1-5",
+          timezone: "Europe/Berlin",
+          agent_id: "auto",
+          model: "openai/c1",
+        },
+      ),
+    );
+  });
+});
