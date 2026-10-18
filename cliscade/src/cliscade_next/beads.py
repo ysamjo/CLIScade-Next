@@ -69,7 +69,11 @@ class Beads:
                 check=False,
             )
         if result.returncode:
-            raise RuntimeError("Beads-Zugriff fehlgeschlagen; bd doctor prüfen")
+            detail = (result.stderr or result.stdout or "").strip()
+            raise RuntimeError(
+                "Beads-Zugriff fehlgeschlagen; bd doctor prüfen"
+                + (f" — {detail}" if detail else "")
+            )
         return json.loads(result.stdout) if json_output else result.stdout
 
     def tasks(self):
@@ -122,12 +126,56 @@ class Beads:
         self.validate_id(depends_on)
         return self.call("dep", "add", task_id, depends_on)
 
-    def assign(self, task_id, agent_id, previous=None):
+    def assign(self, task_id, agent_id, previous=None, allow_stale_claim=False):
+        """Aufgabe übergeben.
+
+        `allow_stale_claim` erlaubt das Lösen einer verlassenen Behauptung. Der
+        Aufrufer muss sicherstellen, dass kein Lauf die Aufgabe aktiv hält (im
+        Orchestrator garantiert die Parallelitätsprüfung); sonst würde `--force`
+        einem lebenden Agenten die Aufgabe wegnehmen.
+        """
         self.validate_id(task_id)
         args = ["update", task_id, "--assignee", agent_id, "--status", "in_progress"]
         if previous:
             args.extend(["--if-assignee", previous, "--if-status", "in_progress"])
-        return self.call(*args)
+        try:
+            return self.call(*args)
+        except RuntimeError:
+            if not allow_stale_claim:
+                raise
+        # Behauptung eines anderen Agenten blockiert. Zuerst der vorgesehene Weg:
+        # abgelaufene Leases einsammeln. Scheitert der (das Lease-Register ist
+        # node-lokal und flüchtig — ein Neustart des Containers eliminiert es),
+        # bleibt nur der belegte Ausweg: die Behauptung ist per Annahme des
+        # Aufrufers verlassen, `bd update --force` überschreibt sie.
+        self.reclaim(stale_after_minutes=120)
+        return self.call(*args, "--force")
+
+    def reclaim(self, stale_after_minutes=120):
+        """Abgelaufene Leases einsammeln, damit ihre Aufgaben wieder frei werden.
+
+        Erfasst auch Leases anderer Replicas: nach einem Container-Neustart ist
+        das node-lokale Register leer, fremde Leases würden sonst übersprungen.
+        """
+        window = f"{max(1, int(stale_after_minutes))}m"
+        try:
+            return self.call(
+                "reclaim",
+                "--any-replica",
+                "--older-than",
+                window,
+                json_output=False,
+            )
+        except RuntimeError as exc:
+            message = str(exc)
+            if "--any-replica" in message or "unknown flag" in message:
+                return self.call(
+                    "reclaim",
+                    "--older-than",
+                    window,
+                    json_output=False,
+                )
+            raise
 
     def context(self):
         return {
