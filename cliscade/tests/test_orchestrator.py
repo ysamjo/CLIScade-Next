@@ -106,3 +106,22 @@ def test_existing_ledger_adds_baseline_column_without_losing_attempts(system):
     saved = Ledger(settings.state).get(attempt["id"])
     assert saved["session_id"] == attempt["session_id"]
     assert saved["base_revision"] is None
+
+
+def test_paused_session_needs_review_with_reason(system):
+    """Ein angehaltener Lauf (Agent-Server-Neustart) meldet sich mit Grund."""
+    service, runner, _ = system
+    attempt = service.start("project", "cn-1", "one")
+    runner.sessions[attempt["session_id"]].update(status="paused", events=[])
+    reviewed = service.refresh(attempt["id"])
+    assert reviewed["status"] == "needs_review"
+    assert reviewed["error"] == "Session wurde angehalten; Arbeitsstand prüfen"
+
+
+def test_errored_session_fails_with_reason(system):
+    service, runner, _ = system
+    attempt = service.start("project", "cn-1", "one")
+    runner.sessions[attempt["session_id"]].update(status="error", events=[])
+    failed = service.refresh(attempt["id"])
+    assert failed["status"] == "failed"
+    assert failed["error"] == "Agent-Session endete mit Fehler; Arbeitsstand prüfen"

@@ -384,9 +384,15 @@ class Orchestrator:
                     if attempt["status"] == "cancelling"
                     else "needs_review",
                 }
+                reasons = {
+                    "error": "Agent-Session endete mit Fehler; Arbeitsstand prüfen",
+                    "stuck": "Agent-Session steckt fest; Arbeitsstand prüfen",
+                    "paused": "Session wurde angehalten; Arbeitsstand prüfen",
+                }
                 return self.ledger.update(
                     attempt_id,
                     status=terminal[status],
+                    error=reasons.get(status),
                     checkpoint=self.checkpoint(attempt, state["events"]),
                 )
             if status == "running":

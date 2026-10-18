@@ -208,3 +208,66 @@ describe("CLIScade tasks", () => {
     ]);
   });
 });
+
+describe("CLIScade isolation", () => {
+  it("shows an attempt that wrote outside its workspace", async () => {
+    vi.mocked(cliscadeRequest).mockImplementation(async (path) => {
+      if (path.endsWith("/probe"))
+        return { discovery: { available_models: [], error: null } };
+      if (path === "/projects") return [{ id: "demo", beads: true }];
+      if (path === "/agents") return [{ id: "codex" }];
+      if (path.includes("/consensus?")) return [];
+      if (path.endsWith("/tasks"))
+        return [{ id: "cn-2", title: "Isolation", status: "open" }];
+      if (path.includes("/attempts?task_id="))
+        return [{ id: "a9", status: "completed" }];
+      if (path.startsWith("/attempts/"))
+        return {
+          id: "a9",
+          agent: "openhands",
+          model: "openai/c1",
+          task_id: "cn-2",
+          session_id: "s9",
+          status: "completed",
+          created_at: "2026-10-18T08:00:00Z",
+          source_id: null,
+          checkpoint: {
+            schema_version: 1,
+            task: { id: "cn-2", title: "Isolation", status: "open" },
+            git: {
+              revision: "859f18f",
+              status: "",
+              diff: "",
+              diff_truncated: false,
+            },
+            verified_checks: [],
+            agent_claims: [],
+            decisions: [],
+            open_steps: [],
+            isolation: {
+              ok: false,
+              changed_projects: ["ysamjo--userscripts"],
+              scope: "git HEAD and status of registered projects",
+            },
+          },
+          error: null,
+        };
+      return [];
+    });
+    render(
+      <QueryClientProvider
+        client={
+          new QueryClient({ defaultOptions: { queries: { retry: false } } })
+        }
+      >
+        <MemoryRouter initialEntries={["/tasks?project=demo&task=cn-2"]}>
+          <CliscadeTasks />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toBe(
+      "CLISCADE$ISOLATION_VIOLATION: ysamjo--userscripts",
+    );
+  });
+});
