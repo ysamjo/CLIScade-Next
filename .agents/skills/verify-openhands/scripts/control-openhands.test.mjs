@@ -16,7 +16,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { setTimeout as delay } from "node:timers/promises";
-import { test } from "vitest";
+import { test, vi } from "vitest";
 import { buildIdentity } from "./lib/build-id.mjs";
 import { BUILD_INPUTS } from "./lib/build-inputs.mjs";
 import {
@@ -1790,7 +1790,13 @@ test.skipIf(process.platform === "win32")(
     const serviceFile = join(dir, "static-server.mjs");
     writeFileSync(
       serviceFile,
-      `import { writeFileSync } from "node:fs"; setInterval(() => writeFileSync(process.argv[2], String(Date.now())), 20);`,
+      `import { renameSync, writeFileSync } from "node:fs";
+const beat = process.argv[2];
+let count = 0;
+setInterval(() => {
+  writeFileSync(beat + ".tmp", String(++count));
+  renameSync(beat + ".tmp", beat);
+}, 20);`,
     );
     const ownBeat = join(dir, "own-beat");
     const otherBeat = join(dir, "other-beat");
@@ -1810,10 +1816,15 @@ test.skipIf(process.platform === "win32")(
     });
     let childPid;
     try {
-      for (let attempts = 0; attempts < 50 && !existsSync(ownBeat); attempts++)
-        await delay(20);
+      await vi.waitFor(
+        () => {
+          assert.match(readFileSync(ownBeat, "utf8"), /^\d+$/);
+          assert.match(readFileSync(otherBeat, "utf8"), /^\d+$/);
+          assert.match(readFileSync(childPidFile, "utf8"), /^\d+$/);
+        },
+        { timeout: 5000 },
+      );
       childPid = Number(readFileSync(childPidFile, "utf8"));
-      assert.ok(existsSync(ownBeat) && existsSync(otherBeat));
       writeFileSync(
         join(dir, "run.json"),
         JSON.stringify({
@@ -1827,14 +1838,23 @@ test.skipIf(process.platform === "win32")(
       assert.equal(paused.json.launcherAlive, true);
       const frozen = readFileSync(ownBeat, "utf8");
       const otherBefore = readFileSync(otherBeat, "utf8");
+      await vi.waitFor(
+        () => {
+          assert.notEqual(readFileSync(otherBeat, "utf8"), otherBefore);
+        },
+        { timeout: 5000 },
+      );
       await delay(100);
       assert.equal(readFileSync(ownBeat, "utf8"), frozen);
-      assert.notEqual(readFileSync(otherBeat, "utf8"), otherBefore);
       const resumed = run(["service", "resume", "frontend", "--run", dir]);
       assert.equal(resumed.status, 0);
       assert.deepEqual(resumed.json.signalled, [childPid]);
-      await delay(100);
-      assert.notEqual(readFileSync(ownBeat, "utf8"), frozen);
+      await vi.waitFor(
+        () => {
+          assert.notEqual(readFileSync(ownBeat, "utf8"), frozen);
+        },
+        { timeout: 5000 },
+      );
     } finally {
       if (!childPid && existsSync(childPidFile))
         childPid = Number(readFileSync(childPidFile, "utf8"));
