@@ -18,6 +18,10 @@
   written temp file instead of `-m` for any non-trivial message.
 
 - Primary verification commands are `npm run lint`, `npm test`, `npm run build`, and `npm run build:lib`.
+- Prozess-Lebenszeichentests veröffentlichen Dateien atomar und warten begrenzt
+  auf beobachtbaren Fortschritt. Pause weiterhin auf Stillstand prüfen; längere
+  feste Wartezeiten ersetzen keine Start-/Fortsetzungsbedingung. Gezielter Lauf:
+  `npx vitest run .agents/skills/verify-openhands/scripts/control-openhands.test.mjs`.
 - Direct dependencies and dev dependencies are exact-pinned. Use the committed `package-lock.json` with `npm ci`, and update `package.json` and `package-lock.json` together through npm.
 - Public skills come from `@openhands/extensions`; project-specific contributor guidance lives under `.agents/skills/`.
 - Default working-directory behavior must reuse `DEFAULT_WORKING_DIR` from `src/api/agent-server-config.ts` rather than hardcoding `/workspace/project`.
