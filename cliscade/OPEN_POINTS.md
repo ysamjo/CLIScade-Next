@@ -42,3 +42,14 @@ Anbieterfreigabe und sämtliche Betriebsarten werden damit nicht behauptet.
    10 Minuten; Force-Pfad mit Parallelitätsannahme). Der HUMAN-Check auf PR #1
    verwendet bis zur Übernahme weiterhin den alten vertrauenswürdigen
    main-Validator; keine menschliche Bestätigung fingieren.
+6. **Neuinstallation 2026-10-19 (Stand 0.14.0):** Frischinstallation von
+   `main` auf der ZimaOS abgeschlossen — Quellbaum neu geklont, beide Images
+   aus dem Stand mit #25–#28 gebaut (Service `3bd84d04…`, Canvas
+   Cache-Treffer `a72aa808…`). Verifiziert: Dienst gesund, Task-Liste
+   intakt über alle vier Projekte, Canvas-UI und Proxy über
+   `https://zimaos.tail8d09ea.ts.net:9443` offen, E2E-Lauf `61c501b5`
+   (openhands, openai/c1) abgeschlossen — Ledger zählt openhands jetzt 4
+   belegte Läufe, Datei `verify-reinstall.md` (sha256 `7012986567dd…`)
+   im Checkpoint festgehalten. Verwaiste `in_progress`-Aufgaben aus
+   Vorinstallationen bleiben als Datenstand stehen; deren Leases sammelt
+   der Reaper ein.
