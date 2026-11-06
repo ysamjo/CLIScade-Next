@@ -40,13 +40,17 @@ class Automation:
             "CLISCADE_INTERNAL_URL", "http://cliscade:18002"
         )
 
-    def create(self, project, task_id, agent_id, cron, timezone):
+    def create(self, project, task_id, agent_id, cron, timezone, model=None):
         config = {
             "project": project,
             "task_id": task_id,
             "agent_id": agent_id,
             "url": self.internal_url,
         }
+        if model:
+            # Das Modell gehört zur Identität des Laufs: ein anderer Eintrag
+            # erzeugt eine eigene Automatisierung, statt still zu ersetzen.
+            config["model"] = model
         archive = bundle(config)
         identity = hashlib.sha256(
             archive + json.dumps([cron, timezone]).encode()

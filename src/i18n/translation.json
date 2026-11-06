@@ -53746,5 +53746,23 @@
     "tr": "Wrote outside the run's workspace (isolation)",
     "uk": "Wrote outside the run's workspace (isolation)",
     "id": "Wrote outside the run's workspace (isolation)"
+  },
+  "CLISCADE$SCHEDULE_MODEL": {
+    "en": "Model for the scheduled run",
+    "ja": "Model for the scheduled run",
+    "zh-CN": "Model for the scheduled run",
+    "zh-TW": "Model for the scheduled run",
+    "ko-KR": "Model for the scheduled run",
+    "no": "Model for the scheduled run",
+    "ar": "Model for the scheduled run",
+    "de": "Modell für den geplanten Lauf",
+    "fr": "Model for the scheduled run",
+    "it": "Model for the scheduled run",
+    "pt": "Model for the scheduled run",
+    "es": "Model for the scheduled run",
+    "ca": "Model for the scheduled run",
+    "tr": "Model for the scheduled run",
+    "uk": "Model for the scheduled run",
+    "id": "Model for the scheduled run"
   }
 }

@@ -67,6 +67,7 @@ class ConsensusInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     task_id: str = Field(pattern=r"^[a-zA-Z][a-zA-Z0-9_.-]{1,150}$")
     agents: list[str] = Field(min_length=2, max_length=4)
+    models: dict[str, str] = Field(default_factory=dict)
 
 
 class ScheduleInput(BaseModel):
@@ -74,6 +75,7 @@ class ScheduleInput(BaseModel):
     cron: str = Field(min_length=1, max_length=100)
     timezone: str = Field(default="Europe/Berlin", min_length=1, max_length=100)
     agent_id: str = Field(default="auto", min_length=1, max_length=100)
+    model: str | None = Field(default=None, min_length=1, max_length=200)
 
 
 class LoginInput(BaseModel):
@@ -320,7 +322,9 @@ def create_app(settings=None, orchestrator=None):
 
     @app.post(prefix + "/projects/{project}/consensus", status_code=201)
     def start_consensus(project: str, body: ConsensusInput):
-        return Consensus(service).start(project, body.task_id, body.agents)
+        return Consensus(service).start(
+            project, body.task_id, body.agents, models=body.models
+        )
 
     @app.get(prefix + "/projects/{project}/consensus")
     def consensus(project: str, task_id: str):
@@ -343,7 +347,7 @@ def create_app(settings=None, orchestrator=None):
         if body.agent_id != "auto" and body.agent_id not in service.agents:
             raise ValueError("ACP-Agent ist nicht freigegeben")
         return Automation(settings).create(
-            project, task_id, body.agent_id, body.cron, body.timezone
+            project, task_id, body.agent_id, body.cron, body.timezone, model=body.model
         )
 
     return app

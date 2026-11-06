@@ -46,6 +46,15 @@ class FakeOpenHands:
         self.sessions = {}
         self.fail_submit = False
 
+    def probe(self, agent):
+        # Der Fake bedient jedes konfigurierte Modell; die Verfügbarkeitsprüfung
+        # selbst ist Sache der echten Discovery.
+        return {
+            "available_models": [{"model_id": agent.model}],
+            "current_model_id": agent.model,
+            "error": None,
+        }
+
     def attach(self, agent, workspace, session_id=None):
         session_id = session_id or str(len(self.sessions) + 1)
         state = self.sessions.setdefault(
