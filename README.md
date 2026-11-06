@@ -105,6 +105,15 @@ Zeilenumbruch) ist damit überholt; die Prüfung bleibt Teil jedes Abnahmelaufs.
 
 Änderungen bleiben auf Feature-Branches mit Pull Requests. Das ursprüngliche
 CLIScade-Repository und dessen ACP-Draft #4 werden nicht automatisch gemergt.
+
+Gezielte CI-Prüfung ohne Browser oder Anbieterzugang:
+`npx vitest run .agents/skills/verify-openhands/scripts/control-openhands.test.mjs`
+prüft unter anderem Pause und Fortsetzen eigener Prozesse. Die Testprozesse
+veröffentlichen ihre Lebenszeichen atomar; der Test wartet auf tatsächlichen
+Fortschritt statt auf eine feste Start- oder Fortsetzungsdauer.
+`cliscade/.venv/bin/python -m pytest cliscade/tests/test_deployment.py -q`
+prüft die private Compose-Konfiguration einschließlich portfreiem Integrationsdienst.
+
 Die folgende Dokumentation beschreibt die übernommene OpenHands-Basis.
 
 ---
